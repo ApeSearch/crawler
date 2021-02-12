@@ -9,8 +9,6 @@
 #include <string>
 #include <memory>
 
-enum class Status {ServiceFail = 0, HostFail, PortFail, PathFail, Success};
-
 // RAII wrapper for addrinfo struct
 struct Address {
     Address() {}
