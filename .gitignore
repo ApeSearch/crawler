@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+others
+
+#dSYM directories
+*.dSYM
+
+#miscellaneous
+.vscode
+.DS_Store

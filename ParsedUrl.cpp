@@ -2,6 +2,11 @@
 #include "ParsedUrl.h"
 
 ParsedUrl::ParsedUrl( const char *url ) : CompleteUrl(url), valid_url(false) {
+
+    pathBuffer = new char[ strlen( url ) ];
+
+    for ( const char *urlPtr = url; *pathBuffer++ = *urlPtr++; );
+
     parseUrl();
 }
 
