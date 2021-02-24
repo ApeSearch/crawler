@@ -1,19 +1,165 @@
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-//#include <openssl/ssl.h>
 #include <string>
-
+#include <atomic>
 #include <iostream>
 #include "assert.h"
+#include <netdb.h> // For addrinfo
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <openssl/ssl.h>
+
+/*
+class Crawler
+{
+   public:
+
+
+   private:
+      ParsedUrl parsedUrl;
+      OutputFileDescriptor;
+      Address *address;
+      char *userAgent;
+};
+*/
+
+// RAII wrapper for addrinfo struct
+struct Address {
+    Address() {}
+
+    // ai_family specifies the address family: which restricts the kind of addresses to the same type.
+    // i.ei AF_UNIX are UNIX sockets, AF_IPS, IPX. Bluetooh has AF_BLUETOOTH.
+    // AF_INET6 is for v6 addresses (Use AF_INET as it's the safest option)
+    Address(char *Host, char *Port, int addrFamily = AF_INET, 
+          int sockType = SOCK_STREAM, int transportProtocol = IPPROTO_TCP) 
+    {
+        memset( &hints, 0, sizeof( hints ) );
+        hints.ai_family = addrFamily;
+        hints.ai_socktype = sockType;
+        hints.ai_protocol = transportProtocol;
+        // If this does not return 0, the DNS was unable to resolve the hostname:port
+        // and so we can assume it's invalid
+        if (getaddrinfo( Host, (Port == nullptr) ? "80": Port, &hints, &info ) != 0 ) {
+            perror("Error inside Address Constructor occured");
+        } // end if
+    }
+
+    ~Address() 
+    {
+        if (valid)
+            freeaddrinfo( info );
+    }
+
+    struct addrinfo *info, hints;
+    bool valid;
+
+    // PrintAddressInfo as defined in class
+    //Used only in regression testing methods
+    //friend std::ostream &operator<<( std::ostream &os, const Address & addr);
+}; // end Address
+
+
+class Socket 
+{
+   public:
+      Socket(const Address& address) 
+      {
+         socketFD = socket(address.hints.ai_family, address.hints.ai_socktype, address.hints.ai_protocol);
+         connectResult = connect(socketFD, address.info->ai_addr, address.info->ai_addrlen);
+      }
+      virtual ~Socket() 
+      {
+         if (socketFD != -1) 
+            close(socketFD);  
+      }
+
+      virtual ssize_t send(const char* buffer, int length) 
+      {
+         if (socketFD == -1) 
+         {
+            throw;
+         }
+         ::send(socketFD, buffer, length, 0);
+      }
+
+      virtual ssize_t receive(char *buffer, int length)
+      {
+         if(socketFD == -1)
+         {
+            throw;
+         }
+         return ::recv(socketFD, buffer, length, 0);
+      }
+
+   protected:
+      struct timeval tv;
+      int socketFD;
+      int connectResult;
+};
+
+class SSLSocket : public Socket 
+{
+   public:
+   SSLSocket(const Address& address) : Socket(address) 
+   {
+      // Initialize the SSL Library
+      sslFramework = SSL_CTX_new(SSLv23_method());
+      ssl = SSL_new(sslFramework);
+      SSL_set_fd(ssl, socketFD);
+      SSL_connect(ssl);
+   }
+   ~SSLSocket() 
+   {
+      SSL_shutdown(ssl);
+      SSL_free(ssl);
+      SSL_CTX_free(sslFramework);
+   }
+   ssize_t send(const char* buffer, int length)
+   {
+      return SSL_write(ssl , buffer, length);
+   }
+   ssize_t receive(char* buffer, int length)
+   {
+      return SSL_read(ssl, buffer, length);
+   }
+   private:
+      // Pointerto to a framework which establishes TLS/SSL enabled ocnnections
+      SSL_CTX * sslFramework;
+      SSL * ssl;
+}; // end SSLSocket
+
+
+class Header 
+{
+   public:
+      //Make sure response header is 404, if its 302 we must redirect.
+      std::string response;
+      std::string date;
+      std::string server;
+      std::string last_modified;
+      std::string content_length;
+      std::string content_type;
+      //Check content_encoding for gzip
+      std::string content_encoding;
+
+      Header()
+      {
+
+      }
+      ~Header()
+      {
+         
+      }
+   private:
+
+};
 
 class ParsedUrl
    {
    public:
       const char *CompleteUrl;
       char *Service, *Host, *Port, *Path;
+      bool protocolType; // true == http, false == https
 
       std::string formRequest() 
       {
@@ -57,6 +203,7 @@ class ParsedUrl
             {
             // Mark the end of the Service.
             *p++ = 0;
+            protocolType = strcmp(Service, "https");
 
             if ( *p == Slash )
                p++;
@@ -104,6 +251,8 @@ class ParsedUrl
 int main( int argc, char **argv )
    {
 
+   SSL_library_init();
+
    if ( argc != 2 )
       {
       std::cerr << "Usage: " << argv[ 0 ] << " url" << std::endl;
@@ -112,27 +261,25 @@ int main( int argc, char **argv )
 
    // Parse the URL
    ParsedUrl url( argv[ 1 ] );
-
-   // Get the host address.
-   struct addrinfo *address, hints;
-   memset(&hints, 0, sizeof(hints));
-   hints.ai_family = AF_INET;
-   hints.ai_socktype = SOCK_STREAM;
-   hints.ai_protocol = IPPROTO_TCP;
    
+   // Get the host address.
+   Address address(url.Host, "80"); 
+   
+   Socket *socket = strcmp(url.Service, "http://") ? new Socket(address) : new SSLSocket(address);
    //TODO
    // Maybe use another addrinfo in linked-list if this timesout 
-   getaddrinfo(url.Host, "80", &hints, &address);
-
    // Create a TCP/IP socket.
-   int socketFD = socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
-
    // Connect the socket to the host address.
-   int connectResult = connect(socketFD, address->ai_addr, address->ai_addrlen);
 
    // Send a GET message.
    std::string getMessage = url.formRequest();
-   send(socketFD, getMessage.c_str(), getMessage.length(), 0);
+   try{
+      socket->send(getMessage.c_str(), getMessage.length());
+   }
+   catch(...){
+      //std::cout << "send failed" << endl; 
+   }
+   
 
    // Read from the socket until there's no more data, copying it to
    // stdout. 
@@ -140,8 +287,9 @@ int main( int argc, char **argv )
    int bytesToWrite;
    static char const * const endHeader = "\r\n\r\n";
 
+
    char const *place = endHeader;
-   while((bytesToWrite = recv(socketFD, buffer, sizeof(buffer), 0)) > 0)
+   while((bytesToWrite = socket->receive(buffer, 10240)) > 0)
    {  
       char *bufPtr, *bufEnd;
       bufEnd = ( bufPtr = buffer ) + bytesToWrite;
@@ -159,7 +307,5 @@ int main( int argc, char **argv )
       }
    } // end while
 
-   // Close the socket and free the address info structure.
-   close(socketFD);
-   freeaddrinfo( address );
+   delete socket;
   }
