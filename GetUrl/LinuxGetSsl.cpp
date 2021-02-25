@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <openssl/ssl.h>
+#include <sys/epoll.h> // For epoll
 
 /*
 class Crawler
@@ -108,6 +109,12 @@ class SSLSocket : public Socket
       SSL_set_fd(ssl, socketFD);
       SSL_connect(ssl);
    }
+   // Upgrading a regular socket
+   SSLSocket(Socket& socket)
+   {
+
+   }
+
    ~SSLSocket() 
    {
       SSL_shutdown(ssl);
@@ -161,6 +168,9 @@ class ParsedUrl
       char *Service, *Host, *Port, *Path;
       bool protocolType; // true == http, false == https
 
+      static const std::string reqType("GET /");
+
+      static constexpr char * const reqType = "GET /";
       std::string formRequest() 
       {
          std::string header;
@@ -263,7 +273,7 @@ int main( int argc, char **argv )
    ParsedUrl url( argv[ 1 ] );
    
    // Get the host address.
-   Address address(url.Host, "80"); 
+   Address address(url.Host, url.Port); 
    
    Socket *socket = strcmp(url.Service, "http://") ? new Socket(address) : new SSLSocket(address);
    //TODO
