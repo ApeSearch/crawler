@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <openssl/ssl.h>
-#include <sys/epoll.h> // For epoll
+#include <libuv/1.41.0/epoll.h> // For epoll
 
 /*
 class Crawler
@@ -91,6 +91,13 @@ class Socket
          }
          return ::recv(socketFD, buffer, length, 0);
       }
+      protected:
+         int transferSocket() {
+            assert(fd != -1);
+            int fd = socketFD;
+            socketFD = -1;
+            return fs;
+         } // end transferSocket()
 
    protected:
       struct timeval tv;
@@ -103,16 +110,23 @@ class SSLSocket : public Socket
    public:
    SSLSocket(const Address& address) : Socket(address) 
    {
+      setupSSLLayer();
+   }
+   // Upgrading a regular socket
+   SSLSocket(Socket& socket) : socketFD(socket.transferSocket())
+   {
       // Initialize the SSL Library
       sslFramework = SSL_CTX_new(SSLv23_method());
       ssl = SSL_new(sslFramework);
       SSL_set_fd(ssl, socketFD);
       SSL_connect(ssl);
    }
-   // Upgrading a regular socket
-   SSLSocket(Socket& socket)
-   {
 
+   void setupSSLLayer() {
+      sslFramework = SSL_CTX_new(SSLv23_method());
+      ssl = SSL_new(sslFramework);
+      SSL_set_fd(ssl, socketFD);
+      SSL_connect(ssl);
    }
 
    ~SSLSocket() 

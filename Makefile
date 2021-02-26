@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++1z
 
 # Define certain variables based on system
 ifeq ($(shell uname -s | tr A-Z a-z), darwin)
-	LDFLAGS:=-lpthread -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib  -lssl -lcrypto
+	LDFLAGS:=-lpthread -DLIBUS_USE_LIBUV -I/usr/local/opt/openssl/include /usr/local/Cellar/libuv/1.41.0/include  -L/usr/local/opt/openssl/lib /usr/local/Cellar/libuv/1.41.0/lib  -lssl -lcrypto -luv -lz -flto
 	# -I likely means (Include) -L likely means (Library)
 endif
 
