@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <openssl/ssl.h>
 #include <libuv/1.41.0/epoll.h> // For epoll
+#include <memory>
+#include <atomic>
 
 /*
 class Crawler
