@@ -63,9 +63,10 @@ int main( int argc, char **argv )
          //TODO Update address to loop around back to the beginning
          if(address.info->ai_next)
             address.info = address.info->ai_next;
+         else
+            address.info = address.head;
          ++attempts;
       }
-
    }
 
   }
