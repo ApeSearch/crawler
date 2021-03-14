@@ -38,7 +38,7 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
 $(TEST_SRC): %: %.cpp ParsedUrl.o
-	${CC} -D LOCAL -o ${EXECDIR}/$(notdir $@)
+	${CC} -D LOCAL  -o ${EXECDIR}/$(notdir $@)
 
 test: ${TEST_SRC} 
 
