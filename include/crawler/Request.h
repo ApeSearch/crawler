@@ -45,7 +45,7 @@ class Request
    unsigned state;
    bool gzipped, chunked, redirect;
    // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
-   APESEARCH::pair< std::string, size_t> processedResponse; 
+   APESEARCH::pair< std::string, size_t> processedResponse;
    
 
 public:

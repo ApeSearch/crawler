@@ -66,9 +66,8 @@ Result Request::getReqAndParse(const char *urlStr)
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          socket->send( req.first(), req.second() ); // Send get part
          socket->send( fields, fieldSize ); // Send fields
-         
          char *endOfHeader = getHeader( socket );
-         if ( !endOfHeader ) // If nullptr is reached
+         if ( !endOfHeader ) // If end of file is reached
             return Result( getReqStatus::badHtml );
          res = parseHeader(endOfHeader);
 
@@ -102,29 +101,70 @@ char * findString( char *begin, const char* end, const char *str, const char sen
    while(*str && begin != end && *begin != sentinel )
       (*place == *begin++) ? ++place : place = str;
    return begin;
-   }
+   } // end findString
 
-unsigned getResponseStatus( char **header, const char* endOfHeader )
+
+// HTTP/1.x 200 OK\r\n
+// HTTP/2.0 200
+unsigned getResponseStatus( char **header, const char* const endOfHeader )
    {
+   static constexpr char * newline = "\r\n";
    char *endOfLine;
-   //if endOfLine = findString( ptr, endOfHeader, newline ) ) - headerPtr > 2
+   if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - headerPtr > 2 )
+      {
+      char *space = findString( *header, endOfLine, " " );
+      if ( space != endOfLine )
+
+      } // end if
    return 0;
    }
+
+Strncmp( '\0' );
+server
+Aderesss
+
+char *safeStrNCmp( char *start, char *end, const char* const strLookingFor, size_t numOfContents )
+   {
+   const char *place = str;
+   while ( *place && start != end )
+      {
+      if ( *place != *start )
+         return end;
+      } // end for
+   return *place ? start;
+   } // end 
+
+
+//Transfer-Encoding: gzip
 
 Result Request::parseHeader( char const * const endOfHeader)
 {
 
    const char * newline = "\r\n";
-   char *headerPtr = &*buffer.begin();
-   char *endOfLine;
+   char *headerPtr = &*buffer.begin(); // Pointer to where request is in header
+   char *endOfLine; // Relatie pointer to end of a specific line for a header field
    
-   // Assume connection (HTTP/1.1)
-   
-
+   // Assume connection HTTP/1.x 200 OK\r\n
+   unsigned status = getResponseStatus( &headPtr, endOfHeader );
+   if ( status == -1 )
+      return Result( getReqStatus::badHtml );
+   Transfer-Encoding: chunked, gzip\r\n
+   Transfer-E       
    while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) - headerPtr > 2 )
       {
-      //switch( *headPtr )
-      //   case 
+      switch( *headPtr )
+      {
+      case 'T':
+         headerPtr = findString( headPtr, endOfLine, "Transfer-Encoding: " );
+
+         break;
+      case 'C':
+
+         break;
+      case "L":
+      } // end switch
+
+      
       }  //end while
    
    //scanf(ptr, "%s:%s/r/n", key, val);
