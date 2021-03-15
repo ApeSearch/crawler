@@ -19,7 +19,8 @@ enum class getReqStatus
    successful, // 
    redirected, // What url to redirected ( give to frontier for them to check )
    timedOut,   // 
-   badHtml     // Tell crawler to throw away such html
+   badHtml,     // Tell crawler to throw away such html
+   ServerIssue
 };
 
 // Tells the crawler status of request
@@ -27,30 +28,45 @@ struct Result
 {
    std::string url; // For redirects...
    getReqStatus status; 
+   unsigned response;
    Result() = default;
-   Result( getReqStatus _status ) : status( _status ) {}
+   Result( getReqStatus _status, unsigned _response = 600 ) : status( _status ), response( _response ) {}
 };
 
 #define TIMEOUT 30
 class Request 
 {
-
+   enum statusCategory
+   {
+      informational = 1,
+      successful = 2,
+      redirection = 3,
+      clientError = 4,
+      serverError = 5
+   };
 
    std::string buffer;
+   char *endHeaderPtr;
+   unsigned state;
+   bool gzipped, chunked, redirect;
+   // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
+   APESEARCH::pair< std::string, size_t > processedResponse;
+   
+   // Helper Functions
+  
+   // Static Variables
    static constexpr const char * const fields = "User-Agent: ApeSearchCrawler/1.0 xiongrob@umich.edu (Linux)\r\n\
    Accept: */*\r\n Accept-Encoding: identity\r\nConnection: close\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
    static constexpr time_t timeoutSec = 30;
-   char *endOfHeader;
-   unsigned state;
-   bool gzipped, chunked, redirect;
-   // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
-   APESEARCH::pair< std::string, size_t> processedResponse;
-   
 
 public:
-   //TODO Overload string to not care about what's inside
+   getReqStatus validateStatus( unsigned status );
+   int evalulateRespStatus( char **header, const char* const endOfHeader );
+   Result getResponseStatus( char **header, const char* const endOfHeader );
+
    Request();
+
    char *getHeader( APESEARCH::unique_ptr<Socket> &socket );
 
    Result getReqAndParse( const char* );

@@ -19,6 +19,9 @@ ASSRC=libraries/AS/src
 ASSOURCES=$(wildcard ${ASSRC}/*.cpp)
 ASOBJS=${ASSOURCES:.cpp=.o}
 
+FrameWorkSRC=libraries/unit_test_framework/src
+FrameWorkSources=$(wildcard ${FrameWorkSRC}/*.cpp)
+FrameWorkOBJS=$(FrameWorkSources:.cpp=.o)
 
 MODULEDIR=bin
 EXECDIR=tests/bin
@@ -41,7 +44,7 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 # 	${CC} -o $@ $^
 
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
-$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS}
+$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS}
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}

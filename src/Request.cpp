@@ -7,6 +7,13 @@
 #include <utility> // for std::move
 using APESEARCH::pair;
 
+#include "../libraries/AS/include/AS/algorithms.h"
+
+#include <stdlib.h> /* atoi */
+
+
+#include <iostream>
+
 #ifdef testing
    #include <memory>
    using std::unique_ptr;
@@ -67,13 +74,14 @@ Result Request::getReqAndParse(const char *urlStr)
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          socket->send( req.first(), static_cast<int>( req.second() ) ); // Send get part
          socket->send( fields, fieldSize ); // Send fields
-         char *endOfHeader = getHeader( socket );
+         char *endOfHeader =  endHeaderPtr = getHeader( socket );
          if ( !endOfHeader ) // If end of file is reached
             return Result( getReqStatus::badHtml );
          res = parseHeader(endOfHeader);
 
          getBody();
-         
+
+         break;
          // Parse header
          }
       //TODO Add error catching functionality for errono in Socket and SSLSocket
@@ -91,90 +99,120 @@ Result Request::getReqAndParse(const char *urlStr)
 char * findString(char * begin, const char* end , const char *str )
    {
    const char *place = str;
-   while(*str && begin != end)
+   while(*place && begin != end)
       (*place == *begin++) ? ++place : place = str;
    return begin;
    } // end findString
 
-char * findString( char *begin, const char* end, const char *str, const char sentinel )
+/*
+ * REQUIRED: strLookingFor to be a c-string
+*/
+static char *safeStrNCmp( char * start, char * end, const char* strLookingFor )
    {
-   const char *place = str;
-   while(*str && begin != end && *begin != sentinel )
-      (*place == *begin++) ? ++place : place = str;
-   return begin;
-   } // end findString
-
+   for (; *strLookingFor && start != end; ++start )
+      {
+      if ( *strLookingFor != *start )
+         return end;
+      } // end while
+   return start;
+   } // end
 
 // HTTP/1.x 200 OK\r\n
 // HTTP/2.0 200
-unsigned getResponseStatus( char **header, const char* const endOfHeader )
+int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
    {
-   static constexpr char * newline = "\r\n";
+   static constexpr char * const newline = "\r\n";
    char *endOfLine;
+   int status;
    if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - *header > 2 )
       {
-      char *space = findString( *header, endOfLine, " " );
-      //if ( space != endOfLine )
+      // Seek the space i.e HTTP/1.x" " 
+      char *space = findString( *header, endOfLine, " " ); // Go one past space
+      // Check if http verision is okay
+      if ( space == endOfLine || findString( *header, space, "HTTP/1." ) == space )
+         return -1;
 
+      *header = space; // update pointer
+
+      // Now seek for next space in order to add a null character there
+      space = APESEARCH::find( *header, endOfLine, ' ' );
+      if ( space == endOfLine )
+         return -1; 
+      *space = '\0'; // Change to null-character
+      status = atoi( *header );
+
+      std::cout << "Response: " << status << std::endl;
       } // end if
-   return 0;
-   }
+   *header = endOfLine; // Skip to the end of the line
+   return status;
+   } // end getResponseStatus()
 
-char *safeStrNCmp( char *start, char *end, const char* const strLookingFor, size_t numOfContents )
+Result Request::getResponseStatus( char **header, const char* const endOfHeader )
    {
-   const char *place = strLookingFor;
-   while ( *place && start != end )
+   int status = evalulateRespStatus( header, endOfHeader );
+   if ( status < 0 )
+      return Result( getReqStatus::badHtml );
+   unsigned unsignedStatus = static_cast<unsigned> ( status );
+   return Result( validateStatus( unsignedStatus ), unsignedStatus );
+   } // end evalulateRespStatus()
+
+
+getReqStatus Request::validateStatus( unsigned status )
+   {
+   int category = status / 100;
+
+   switch( category )
       {
-      if ( *place != *start )
-         return end;
-      } // end for
-   //return *place ? start;
-   return nullptr;
-   } // end 
+      case successful:
+         return getReqStatus::successful;
+      case redirection:
+         redirect = true;
+         return getReqStatus::redirected;
+      case serverError:
+         return getReqStatus::ServerIssue;
+      default:
+         return getReqStatus::badHtml;
+      } // end switch
+   } // end validateStatus()
 
-
-//Transfer-Encoding: gzip
-
-Result Request::parseHeader( char const * const endOfHeader)
+Result Request::parseHeader( char const * const endOfHeader )
 {
-
-   const char * newline = "\r\n";
+   static constexpr char * const newline = "\r\n";
    char *headerPtr = &*buffer.begin(); // Pointer to where request is in header
    char *endOfLine; // Relatie pointer to end of a specific line for a header field
    
    // Assume connection HTTP/1.x 200 OK\r\n
-   unsigned status = getResponseStatus( &headerPtr, endOfHeader );
-   if ( status == -1 )
-      return Result( getReqStatus::badHtml );
+   Result resultOfReq( getResponseStatus( &headerPtr, endOfHeader ) );
+   if ( static_cast<int>( resultOfReq.response ) < 2 )
+      return resultOfReq;
 
-   while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) - headerPtr > 2 )
+   while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) != endOfHeader )
       {
       switch( *headerPtr )
-      {
-      case 'T':
-         headerPtr = findString( headerPtr, endOfLine, "Transfer-Encoding: " );
+         {
+         case 'T':
+            headerPtr = findString( headerPtr, endOfLine, "Transfer-Encoding: " );
 
-         break;
-      case 'C':
+            break;
+         case 'C':
+            break;
+         case 'L':
+            if ( redirect )
+               resultOfReq.url;
 
-         break;
-      case 'L':
-         break;
-      } // end switch
-
-      
-      }  //end while
+            break;
+         } // end switch
+      headerPtr = endOfLine;
+      } // end while
    
    //scanf(ptr, "%s:%s/r/n", key, val);
    return Result();
 }
 
-
-
 void Request::getBody()
-{
-   
-}
+   {
+   return;
+   }
 
 APESEARCH::pair< std::string, size_t> Request::getResponseBuffer()
    {
