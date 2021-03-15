@@ -1,8 +1,9 @@
-#include "../include/AS/Request.h"
+#include "../include/crawler/Request.h"
 #include <iostream>
-#include "../include/AS/utility.h" // for APESEARCH::pair
-#include "../include/AS/Socket.h"
-#include "../include/AS/SSLSocket.h" // For SSLSocket
+#include "../libraries/AS/include/AS/utility.h" // for APESEARCH::pair
+#include "../libraries/AS/include/AS/Socket.h"
+#include "../include/crawler/SSLSocket.h" // For SSLSocket
+#include "../include/crawler/ParsedUrl.h"
 #include <utility> // for std::move
 using APESEARCH::pair;
 
@@ -12,7 +13,7 @@ using APESEARCH::pair;
    #include <string>
    using std::string;
 #else
-   #include "../include/AS/unique_ptr.h"
+   #include "../libraries/AS/include/AS/unique_ptr.h"
    using APESEARCH::unique_ptr;
 #endif
 
@@ -29,7 +30,7 @@ char *Request::getHeader( unique_ptr<Socket> &socket )
     bufEnd = bufPtr = &*buffer.begin();
     //TODO check string.end() 
 
-    while( *place && (bytesToWrite = socket->receive(bufPtr, (&*buffer.end()) - bufPtr)) > 0 )
+    while( *place && (bytesToWrite = socket->receive(bufPtr, static_cast<int> ( &*buffer.end() - bufPtr) ) ) > 0 )
         {
         bufEnd += bytesToWrite;
         while(*place && bufPtr != bufEnd)
@@ -37,7 +38,7 @@ char *Request::getHeader( unique_ptr<Socket> &socket )
         //TODO Some statistics tracking to see how many times this runs
         if ( bufPtr == &*buffer.end() )
             {
-            unsigned sizeOfHeaderSoFar = buffer.size();
+            unsigned sizeOfHeaderSoFar = static_cast<unsigned> ( buffer.size() );
             //TODO implemnent resize for string.h
             buffer.resize( buffer.size() << 1 );
             bufPtr = bufEnd = &*buffer.begin() + sizeOfHeaderSoFar;
@@ -64,7 +65,7 @@ Result Request::getReqAndParse(const char *urlStr)
       try
          {
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
-         socket->send( req.first(), req.second() ); // Send get part
+         socket->send( req.first(), static_cast<int>( req.second() ) ); // Send get part
          socket->send( fields, fieldSize ); // Send fields
          char *endOfHeader = getHeader( socket );
          if ( !endOfHeader ) // If end of file is reached
@@ -110,28 +111,25 @@ unsigned getResponseStatus( char **header, const char* const endOfHeader )
    {
    static constexpr char * newline = "\r\n";
    char *endOfLine;
-   if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - headerPtr > 2 )
+   if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - *header > 2 )
       {
       char *space = findString( *header, endOfLine, " " );
-      if ( space != endOfLine )
+      //if ( space != endOfLine )
 
       } // end if
    return 0;
    }
 
-Strncmp( '\0' );
-server
-Aderesss
-
 char *safeStrNCmp( char *start, char *end, const char* const strLookingFor, size_t numOfContents )
    {
-   const char *place = str;
+   const char *place = strLookingFor;
    while ( *place && start != end )
       {
       if ( *place != *start )
          return end;
       } // end for
-   return *place ? start;
+   //return *place ? start;
+   return nullptr;
    } // end 
 
 
@@ -145,23 +143,23 @@ Result Request::parseHeader( char const * const endOfHeader)
    char *endOfLine; // Relatie pointer to end of a specific line for a header field
    
    // Assume connection HTTP/1.x 200 OK\r\n
-   unsigned status = getResponseStatus( &headPtr, endOfHeader );
+   unsigned status = getResponseStatus( &headerPtr, endOfHeader );
    if ( status == -1 )
       return Result( getReqStatus::badHtml );
-   Transfer-Encoding: chunked, gzip\r\n
-   Transfer-E       
+
    while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) - headerPtr > 2 )
       {
-      switch( *headPtr )
+      switch( *headerPtr )
       {
       case 'T':
-         headerPtr = findString( headPtr, endOfLine, "Transfer-Encoding: " );
+         headerPtr = findString( headerPtr, endOfLine, "Transfer-Encoding: " );
 
          break;
       case 'C':
 
          break;
-      case "L":
+      case 'L':
+         break;
       } // end switch
 
       

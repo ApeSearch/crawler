@@ -9,11 +9,11 @@
 
 #include <memory>
 #include <string>
-#include "Address.h"
+#include "../../libraries/AS/include/AS/Address.h"
 #include "ParsedUrl.h"
-#include "utility.h"
-#include "unique_ptr.h"
-#include "Socket.h"
+#include "../../libraries/AS/include/AS/utility.h"
+#include "../../libraries/AS/include/AS/unique_ptr.h"
+#include "../../libraries/AS/include/AS/Socket.h"
 enum class getReqStatus
 {
    successful, // 

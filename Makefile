@@ -2,27 +2,31 @@ CC=g++ -g3 -std=c++17 -Wall -pedantic -Wconversion -Wextra -Wreorder -fno-builti
 CXX=g++ -O3 -DNDEBUG -std=c++1z -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
 CXXFLAGS = -std=c++1z
 
+LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto
 # Define certain variables based on system
 ifeq ($(shell uname -s | tr A-Z a-z), darwin)
-	LDFLAGS:=-lpthread -DLIBUS_USE_LIBUV -I/usr/local/opt/openssl/include /usr/local/Cellar/libuv/1.41.0/include  -L/usr/local/opt/openssl/lib /usr/local/Cellar/libuv/1.41.0/lib  -lssl -lcrypto -luv -lz -flto
 	# -I likely means (Include) -L likely means (Library)
 endif
 
 ifeq ($(shello uname -s | tr A-Z a-z), linux)
-	LDFLAGS
 endif
 
-SOURCES=$(wildcard *.cpp)
-#GETURLSOURCES=$(wildcard GetUrl/*.cpp)
+SRC=src
+SOURCES=$(wildcard ${SRC}/*.cpp)
 OBJS=${SOURCES:.cpp=.o}
-#URLOBJS=${GETURLSOURCES:.cpp=.o}
+
+ASSRC=libraries/AS/src
+ASSOURCES=$(wildcard ${ASSRC}/*.cpp)
+ASOBJS=${ASSOURCES:.cpp=.o}
 
 
 MODULEDIR=bin
 EXECDIR=tests/bin
+OUTPUT=tests/output
+STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-all: LinuxGetUrl  test
+all: LinuxGetUrl test
 
 LinuxGetUrl: ${OBJS}
 	${CC} -o $@ $^
@@ -37,15 +41,18 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 # 	${CC} -o $@ $^
 
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
-$(TEST_SRC): %: %.cpp ParsedUrl.o
-	${CC} -D LOCAL  -o ${EXECDIR}/$(notdir $@)
+$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS}
+	@mkdir -p ${EXECDIR}
+	@mkdir -p ${STDEXECDIR}
+	@mkdir -p ${OUTPUT}
+	${CC} -Dtesting $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
 
 test: ${TEST_SRC} 
 
 %.o: %.cpp
-	${CC} -c $<
+	${CC} ${LDFLAGS} -c $< -o $@
 %.o: %.cc
-	${CC} -c $<
+	${CC} -c $< -o $@
 
 debug: CC += -g3 -DDEBUG
 debug: clean all
@@ -57,7 +64,7 @@ release: clean all
 .PHONY: clean
 
 clean:
-	rm -f LinuxGetUrl LinuxGetSsl *.o tests/bin/* *.exe bin/*
+	rm -rf LinuxGetUrl LinuxGetSsl *.o tests/bin/* *.exe bin/* ${ASOBJS} ${OBJS} ${EXECDIR}/* ${STDEXECDIR}/* ${OUTPUT}/* ${STDEXECDIR}/*
 
 Christian:
 	git config user.name "cluc"

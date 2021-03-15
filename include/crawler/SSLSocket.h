@@ -3,7 +3,7 @@
 #ifndef SSLSOCKET_H_APESEARCH
 #define  SSLSOCKET_H_APESEARCH
 
-#include "Socket.h"
+#include "../../libraries/AS/include/AS/Socket.h"
 #include <openssl/ssl.h>
 //#include "/usr/local/opt/openssl/include/openssl/ssl.h"
 

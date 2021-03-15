@@ -1,5 +1,5 @@
 
-#include "../include/AS/Request.h"
+#include "../include/crawler/Request.h"
 #include <assert.h>
 
 // Simulates the behavior of a crawler
