@@ -211,29 +211,29 @@ Result Request::parseHeader( char const * const endOfHeader )
       switch( *headerPtr )
          {
          case 'T':
-         {
-         auto Tpred = [this]( char const * front, char const *end ) 
-            {  
-            if ( safeStrNCmp( front, end, "chunked" ) != end )
-               chunked = foundChunked = true;
-            else if ( safeStrNCmp( front, end, "gzip" ) != end )
-               gzipped = foundGzipped = true; 
-            }; // end pred
-         if ( !foundChunked || !foundGzipped )
-            processField( headerPtr, endOfLine, "Transfer-Encoding: ", Tpred, FieldTerminator() );
-         break;
-         }
+            {
+            auto Tpred = [this]( char const * front, char const *end ) 
+               {  
+               if ( safeStrNCmp( front, end, "chunked" ) != end )
+                  chunked = foundChunked = true;
+               else if ( safeStrNCmp( front, end, "gzip" ) != end )
+                  gzipped = foundGzipped = true; 
+               }; // end pred
+            if ( !foundChunked || !foundGzipped )
+               processField( headerPtr, endOfLine, "Transfer-Encoding: ", Tpred, FieldTerminator() );
+            break;
+            } // end case 'T'
          case 'C':
-         {
-          auto Cpred = [this]( char const * front, char const * end ) 
-            {  
-            if ( safeStrNCmp( front, end, "gzip" ) != end )
-               gzipped = foundGzipped = true;
-            }; // end pred
-          if ( !foundGzipped )
-            processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
-          break;
-         }
+            {
+            auto Cpred = [this]( char const * front, char const * end ) 
+               {  
+               if ( safeStrNCmp( front, end, "gzip" ) != end )
+                  gzipped = foundGzipped = true;
+               }; // end pred
+            if ( !foundGzipped )
+               processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
+            break;
+            } // end case 'C'
          case 'L':
             {
             auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
@@ -244,7 +244,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             if ( redirect && !foundUrl )
                processField( headerPtr, endOfLine, "Location: ", Lpred , []( char c) { return c == '\r'; } );
             break;
-            }
+            } // end case 'L'
          } // end switch
       headerPtr = endOfLine;
       } // end while
