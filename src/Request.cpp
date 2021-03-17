@@ -107,9 +107,9 @@ char * findString(char * begin, const char* end , const char *str )
 /*
  * REQUIRED: strLookingFor to be a c-string
 */
-static char *safeStrNCmp( char * start, char * end, const char* strLookingFor )
+static char const *safeStrNCmp( char const * start, const char * const end, const char* strLookingFor )
    {
-   for (; *strLookingFor && start != end; ++start )
+   for (; *strLookingFor && start != end; ++start, ++strLookingFor )
       {
       if ( *strLookingFor != *start )
          return end;
@@ -123,7 +123,7 @@ int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
    {
    static constexpr char * const newline = "\r\n";
    char *endOfLine;
-   int status;
+   int status = -1;
    if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - *header > 2 )
       {
       // Seek the space i.e HTTP/1.x" " 
@@ -166,7 +166,6 @@ getReqStatus Request::validateStatus( unsigned status )
       case successful:
          return getReqStatus::successful;
       case redirection:
-         redirect = true;
          return getReqStatus::redirected;
       case serverError:
          return getReqStatus::ServerIssue;
@@ -174,6 +173,23 @@ getReqStatus Request::validateStatus( unsigned status )
          return getReqStatus::badHtml;
       } // end switch
    } // end validateStatus()
+
+
+template<class Predicate, class fieldTerminator>
+void processField( char const * headerPtr, char const * const endOfLine, const char* const key, Predicate pred, fieldTerminator func)
+   {
+   const char *ptr;
+   ptr = safeStrNCmp( headerPtr, (char *)endOfLine, key );
+   if ( ptr == endOfLine )
+      return;
+   headerPtr = ptr; // update pointer
+   // Found the key, now processing...
+   while ( ( ptr = APESEARCH::findChars( headerPtr, endOfLine, func ) ) != endOfLine )
+      {
+      pred( headerPtr, ptr++ );
+      headerPtr = ptr;
+      } // end while
+   } // end processField
 
 Result Request::parseHeader( char const * const endOfHeader )
 {
@@ -185,28 +201,54 @@ Result Request::parseHeader( char const * const endOfHeader )
    Result resultOfReq( getResponseStatus( &headerPtr, endOfHeader ) );
    if ( static_cast<int>( resultOfReq.response ) < 2 )
       return resultOfReq;
+   else if ( resultOfReq.status == getReqStatus::redirected )
+      {
+      redirect = true;
+      }
 
    while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) != endOfHeader )
       {
       switch( *headerPtr )
          {
          case 'T':
-            headerPtr = findString( headerPtr, endOfLine, "Transfer-Encoding: " );
-
+         {
+         auto Tpred = [this]( char const * front, char const *end ) 
+            {  
+            if ( safeStrNCmp( front, end, "chunked" ) != end )
+               chunked = foundChunked = true;
+            else if ( safeStrNCmp( front, end, "gzip" ) != end )
+               gzipped = foundGzipped = true; 
+            }; // end pred
+            if ( !foundChunked || !foundGzipped )
+               processField( headerPtr, endOfLine, "Transfer-Encoding: ", Tpred, FieldTerminator() );
             break;
+         }
          case 'C':
+         {
+          auto Cpred = [this]( char const * front, char const * end ) 
+            {  
+            if ( safeStrNCmp( front, end, "gzip" ) != end )
+               gzipped = foundGzipped = true;
+            }; // end pred
+            if ( !foundGzipped )
+               processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
             break;
+         }
          case 'L':
-            if ( redirect )
-               resultOfReq.url;
-
+            {
+            auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
+               {  
+               resultOfReq.url = std::string( front, end );
+               foundUrl = true;
+               }; // end pred
+            if ( redirect && !foundUrl )
+               processField( headerPtr, endOfLine, "Location: ", Lpred , []( char c) { return c == '\r'; } );
             break;
+            }
          } // end switch
       headerPtr = endOfLine;
       } // end while
-   
-   //scanf(ptr, "%s:%s/r/n", key, val);
-   return Result();
+   return resultOfReq;
 }
 
 void Request::getBody()

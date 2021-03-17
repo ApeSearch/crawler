@@ -45,10 +45,26 @@ class Request
       serverError = 5
    };
 
+   struct FieldTerminator {
+         FieldTerminator() = default;
+         inline bool operator()(char a) {
+            switch(a) 
+            {
+            case '\r':
+            case ' ':
+            case ',':
+               return true;
+            default:
+               return false;
+            } // end switch
+         }  // end operator()()
+   };
+
    std::string buffer;
    char *endHeaderPtr;
    unsigned state;
    bool gzipped, chunked, redirect;
+   bool foundGzipped, foundChunked, foundUrl;
    // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
    APESEARCH::pair< std::string, size_t > processedResponse;
    

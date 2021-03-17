@@ -7,14 +7,14 @@ TEST( test_evalulateRespStatus )
 {
     Request requester;
 
-    string statStr( "HTTP/1.1 301 Moved Permanently\r\n" );
+    APESEARCH::string statStr( "HTTP/1.1 301 Moved Permanently\r\n" );
     char *ptr = statStr.begin();
 
 
     int status = requester.evalulateRespStatus( &ptr,  statStr.cend() );
 
     ASSERT_EQUAL( status, 301 );
-    ASSERT_EQUAL( statStr, string("HTTP/1.1 301\0Moved Permanently\r\n", 0, 32) );
+    ASSERT_EQUAL( statStr, APESEARCH::string("HTTP/1.1 301\0Moved Permanently\r\n", 0, 32) );
 
     statStr = "HTTP/2.1 302 Woah man\r\n";
     ptr = statStr.begin();
@@ -35,9 +35,22 @@ TEST( test_evalulateRespStatus )
     statStr = "\r\n";
     ptr = statStr.begin();
     status = requester.evalulateRespStatus( &ptr, statStr.cend() );
-     ASSERT_EQUAL( status, -1 );
+    ASSERT_EQUAL( status, -1 );
 
 }
 
+TEST( test_validateStatus )
+   {
+    Request requester;
+    getReqStatus bad = getReqStatus::badHtml;
+    ASSERT_EQUAL( requester.validateStatus( 0 ), bad );
+    ASSERT_EQUAL( requester.validateStatus( 100 ), bad );
+    ASSERT_EQUAL( requester.validateStatus( 200 ), getReqStatus::successful );
+    ASSERT_EQUAL( requester.validateStatus( 299 ), getReqStatus::successful );
+    ASSERT_EQUAL( requester.validateStatus( 300 ), getReqStatus::redirected );
+    ASSERT_EQUAL( requester.validateStatus( 404 ), bad );
+    ASSERT_EQUAL( requester.validateStatus( 504 ), getReqStatus::ServerIssue );
+    ASSERT_EQUAL( requester.validateStatus( -1 ), bad );
+   }
 
 TEST_MAIN()
