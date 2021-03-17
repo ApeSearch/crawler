@@ -29,6 +29,8 @@
 # Executables
 *.exe
 *.out
+tests/bin/*
+tests/std_bin/*
 *.app
 
 others

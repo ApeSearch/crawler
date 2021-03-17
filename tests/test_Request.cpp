@@ -32,6 +32,10 @@ TEST( test_evalulateRespStatus )
     status = requester.evalulateRespStatus( &ptr, statStr.cend() );
     ASSERT_EQUAL( status, 30 );
 
+    statStr = "\r\n";
+    ptr = statStr.begin();
+    status = requester.evalulateRespStatus( &ptr, statStr.cend() );
+     ASSERT_EQUAL( status, -1 );
 
 }
 
