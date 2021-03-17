@@ -219,9 +219,9 @@ Result Request::parseHeader( char const * const endOfHeader )
             else if ( safeStrNCmp( front, end, "gzip" ) != end )
                gzipped = foundGzipped = true; 
             }; // end pred
-            if ( !foundChunked || !foundGzipped )
-               processField( headerPtr, endOfLine, "Transfer-Encoding: ", Tpred, FieldTerminator() );
-            break;
+         if ( !foundChunked || !foundGzipped )
+            processField( headerPtr, endOfLine, "Transfer-Encoding: ", Tpred, FieldTerminator() );
+         break;
          }
          case 'C':
          {
@@ -230,9 +230,9 @@ Result Request::parseHeader( char const * const endOfHeader )
             if ( safeStrNCmp( front, end, "gzip" ) != end )
                gzipped = foundGzipped = true;
             }; // end pred
-            if ( !foundGzipped )
-               processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
-            break;
+          if ( !foundGzipped )
+            processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
+          break;
          }
          case 'L':
             {
