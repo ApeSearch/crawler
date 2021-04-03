@@ -13,15 +13,25 @@
 #include "../libraries/AS/include/AS/circular_buffer.h"
 #include "../libraries/AS/include/AS/unique_ptr.h"
 #include "../libraries/AS/include/AS/string.h"
+#include "../libraries/AS/include/AS/unique_mmap.h"
 #include "ParsedUrl.h"
 
 #include<chrono>
 
 struct domainTiming
 {
-    std::chrono::time_point<std::chrono::system_clock> timeWCanCrawl; //Indicates moment when crawlable. Value is computed based on current time
+    //Indicates moment when crawlable. Value is computed based on current time
+    std::chrono::time_point<std::chrono::system_clock> timeWCanCrawl; 
     APESEARCH::string domain;
     //TODO implement comparator
+
+    struct compareTime
+       {
+        bool okToReq( const domainTiming& time )
+           {
+            return true;
+           }
+       };
 };
 
 struct UrlObj
@@ -33,9 +43,20 @@ struct UrlObj
     };
 
     APESEARCH::string url;
-    ParsedUrl parsedUrl;
+    //ParsedUrl parsedUrl; can always parse after popping
     PriorityFields priority; // Indicate which bucket to place priority
 };
+
+class SetOfUrls
+   {
+    static constexpr frontierLoc = "VirtualFileSystem/Root/frontier.bin";
+    APESEARCH::unique_mmap urls;
+    public:
+        SetOfUrls();
+        SetOfUrls( const char * );
+        UrlObj dequeue();
+        void enqueue( const APESEARCH::string &url );
+   }; // SetOfUrls
 
 class UrlFrontier
 {
@@ -47,11 +68,12 @@ class UrlFrontier
                 APESEARCH::circular_buffer< UrlObj, 
                 APESEARCH::DEFAULT::defaultBuffer< UrlObj, urlsPerPriority>
                                         pQueues;
-        char * urlsToCrawl_front; // memory-mapped queue of urls to be crawled
-        class Impl;
-        APESEARCH::unique_ptr<Impl> impl;
+        char *urlsToCrawl_front; // memory-mapped queue of urls to be crawled
+        //class Impl;
+        //APESEARCH::unique_ptr<Impl> impl;
         std::size_t pickQueue(); // uer-defined prirority for picking which queue to pop from
     public:
+        FrontEndPrioritizer() = default;
         UrlObj getUrl();
         void putUrl();
     };
@@ -68,16 +90,25 @@ class UrlFrontier
                                         domainQueues;
         UrlObj obtainRandUrl();
     public:
+        BackendPolitenessPolicy( ) = default;
         UrlObj getMostOkayUrl();
     };
+
     FrontEndPrioritizer frontEnd;
     BackendPolitenessPolicy backEnd;
+    SetOfUrls set;
 
+    UrlFrontier();
+    UrlFrontier( const char * );
     
     static constexpr std::size_t frontQueueSize = 1024;
     // "To keep craling threds busy, 3 times as many backeended queus as crawler threads"
-    class Impl;
-    APESEARCH::unique_ptr<Impl> impl;
+    //class Impl;
+    //APESEARCH::unique_ptr<Impl> impl;
+
+
+    static unsigned ratingOfTopLevelDomain( const char * );
+
 public:
     UrlFrontier() = default;
     void run();
