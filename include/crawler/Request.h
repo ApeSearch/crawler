@@ -45,12 +45,13 @@ class Request
       serverError = 5
    };
 
+   //e.g. Accept: text/plain, text/html
    struct FieldTerminator {
          FieldTerminator() = default;
          inline bool operator()(char a) {
             switch(a) 
             {
-            case '\r':
+            case '\n':
             case ' ':
             case ',':
                return true;
@@ -75,6 +76,11 @@ class Request
    Accept: */*\r\n Accept-Encoding: identity\r\nConnection: close\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
    static constexpr time_t timeoutSec = 30;
+
+   inline void resetState()
+      {
+      gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = false; // Reset state
+      }
 
 public:
    getReqStatus validateStatus( unsigned status );

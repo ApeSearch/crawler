@@ -75,8 +75,9 @@ Result Request::getReqAndParse(const char *urlStr)
          socket->send( req.first(), static_cast<int>( req.second() ) ); // Send get part
          socket->send( fields, fieldSize ); // Send fields
          char *endOfHeader =  endHeaderPtr = getHeader( socket );
-         if ( !endOfHeader ) // If end of file is reached
+         if ( !endOfHeader ) // If end of file is reached w.o. coming across header sentinel
             return Result( getReqStatus::badHtml );
+         resetState(); // set all bites to zero
          res = parseHeader(endOfHeader);
 
          getBody();
@@ -92,7 +93,7 @@ Result Request::getReqAndParse(const char *urlStr)
          }
       } // end while
 
-   return Result();
+   return res;
     
 }  // end parseRequest()  
 
@@ -117,6 +118,15 @@ static char const *safeStrNCmp( char const * start, const char * const end, cons
    return start;
    } // end
 
+static bool strCmp( char const *start, const char * const end, const char* strLookingFor )
+   {
+   for (; *strLookingFor && start != end; ++start, ++strLookingFor )
+      {
+      if ( *strLookingFor != *start )
+         return end;
+      } // end while
+   return !*strLookingFor;
+   }
 // HTTP/1.x 200 OK\r\n
 // HTTP/2.0 200
 int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
@@ -176,18 +186,18 @@ getReqStatus Request::validateStatus( unsigned status )
 
 
 template<class Predicate, class fieldTerminator>
-void processField( char const * headerPtr, char const * const endOfLine, const char* const key, Predicate pred, fieldTerminator func)
+void processField( char const * headerPtr, char const * const endOfLine, const char* const key, Predicate valueProcess, fieldTerminator fieldTerm)
    {
-   const char *ptr;
-   ptr = safeStrNCmp( headerPtr, (char *)endOfLine, key );
-   if ( ptr == endOfLine )
+   headerPtr = safeStrNCmp( headerPtr, (char *)endOfLine, key );
+   if ( headerPtr == endOfLine )
       return;
-   headerPtr = ptr; // update pointer
-   // Found the key, now processing...
-   while ( ( ptr = APESEARCH::findChars( headerPtr, endOfLine, func ) ) != endOfLine )
+
+   // Found the key, now processing value
+   const char *endVal;
+   while ( ( endVal = APESEARCH::findChars( headerPtr, endOfLine, fieldTerm ) ) != endOfLine )
       {
-      pred( headerPtr, ptr++ );
-      headerPtr = ptr;
+      valueProcess( headerPtr, endVal++ );
+      headerPtr = endVal;
       } // end while
    } // end processField
 
@@ -206,6 +216,7 @@ Result Request::parseHeader( char const * const endOfHeader )
       redirect = true;
       }
 
+   // Evaluate each header's fields
    while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) != endOfHeader )
       {
       switch( *headerPtr )
@@ -214,9 +225,9 @@ Result Request::parseHeader( char const * const endOfHeader )
             {
             auto Tpred = [this]( char const * front, char const *end ) 
                {  
-               if ( safeStrNCmp( front, end, "chunked" ) != end )
+               if ( strCmp( front, end, "chunked" ) )
                   chunked = foundChunked = true;
-               else if ( safeStrNCmp( front, end, "gzip" ) != end )
+               else if ( strCmp( front, end, "gzip" ) )
                   gzipped = foundGzipped = true; 
                }; // end pred
             if ( !foundChunked || !foundGzipped )
@@ -227,7 +238,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             {
             auto Cpred = [this]( char const * front, char const * end ) 
                {  
-               if ( safeStrNCmp( front, end, "gzip" ) != end )
+               if ( strCmp( front, end, "gzip" ) )
                   gzipped = foundGzipped = true;
                }; // end pred
             if ( !foundGzipped )

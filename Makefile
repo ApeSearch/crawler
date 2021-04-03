@@ -52,6 +52,8 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS}
 
 test: ${TEST_SRC} 
 
+update:
+
 %.o: %.cpp
 	${CC} ${LDFLAGS} -c $< -o $@
 %.o: %.cc
