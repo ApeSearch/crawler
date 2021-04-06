@@ -1,0 +1,3 @@
+https://www.blog.datahut.co/post/how-to-build-a-web-crawler-from-scratch
+https://leetcode.com/discuss/interview-question/system-design/124657/Facebook-or-System-Design-or-A-web-crawler-that-will-crawl-Wikipedia
+https://www.diffchecker.com/diff

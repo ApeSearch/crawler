@@ -104,21 +104,20 @@ namespace APESEARCH
 
     class Mercator
        {
-      std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       PThreadPool pool; // The main threads that serve tasks
-      APESEARCH::vector< APESEARCH::unique_ptr<Request> > requesters; // Objects tos Requests
       UrlFrontier frontier;
-   
-      SharedQueue< APESEARCH::string > urlBuffers; // Buffers used to hold urls...
+      std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
 
 
-      void urlExtractor();
-      void getRequester( SharedQueue&, APESEARCH::string&& url );
+      void crawler();
+      void parser( std::string&& buffer );
+      void writeToFile( HtmlParser& );
+      //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void cleanUp(); 
     public:
       Mercator( size_t amtOfUrlsSubmitters, size_t amtOfParsers, size_t amtOfFileWriters ) : 
-         pool( amtOfUrlsSubmitters + amtOfParsers + amtOfFileWriters ) {}
+         pool( amtOfUrlsSubmitters + amtOfParsers + amtOfFileWriters ) : liveliness( true ) {}
       void run();
       void user_handler(); // Interacts with user to provide intel, look at stats, and to shutdown
 

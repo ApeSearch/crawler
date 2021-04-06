@@ -1,32 +1,47 @@
 
 #include "../include/crawler/Mercator.h"
+#include "../Parser/HtmlParser.h"
 //#include "../libraries/AS/include/AS/string.h"
 #include <string> // needed to get idea out
 #include <iostream>
 
 // Only need one thread for this since it would otherwise 
 // create contention...
-void APESEARCH::Mercator::urlExtractor()
+void APESEARCH::Mercator::crawler()
    {
+    Request requester;
     APESEARCH::string buffer;
+    Result result;
 
-   // C++ 14
     while( liveliness.load() )
        {
-        buffer = urlBuffers.pop();
-
         frontier.getNextUrl( buffer ); // Writes directly to buffer
         
+        result = requester.getReqAndParse( buffer.c_str() );
+
         // At the end of this task, the buffer will be reinserted back into urlBuffers...
-        pool.submitNoFuture( &Mercator::getRequester, this, urlBuffers, std::move( buffer ) );
+        switch( result.status )
+           {
+            case getReqStatus::successful:
+               pool.submitNoFuture( &Mercator::parser, this, std::move( result ), 
+                  std::move( requester.getResponseBuffer.first() ) );
+               break;
+            case getReqStatus::redirected:
+               frontier.insertNewUrl( std::move( result.url ) );
+               break;
+            default:
+               break;
+           } // end switch
        } // end while
    } // end urlExtractor()
 
-void APESEARCH::Mercator::getRequester( SharedQueue<  >&, APESEARCH::string&& url )
+void APESEARCH::Mercator::parser( std::string&& buffer )
    {
-   
+   HtmlParser parser( buffer.c_str(), buffer.size() );
 
-   }
+   // Handle results by writing to file...
+   writeToFile( parser );
+   } // end parser()
 
 void APESEARCH::Mercator::user_handler()
    {

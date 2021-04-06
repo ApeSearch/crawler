@@ -7,6 +7,7 @@
 #include <cstddef> // for std::size_t
 #include <unordered_map>
 #include <string>
+#include <atomic>
 
 #include "../libraries/AS/include/AS/vector.h"
 #include "../libraries/AS/include/AS/queue.h"
@@ -15,6 +16,7 @@
 #include "../libraries/AS/include/AS/string.h"
 #include "../libraries/AS/include/AS/unique_mmap.h"
 #include "ParsedUrl.h"
+#include <fstream>
 
 #include<chrono>
 
@@ -36,21 +38,21 @@ struct domainTiming
 
 struct UrlObj
 {
-    struct PriorityFields
-    {
-    size_t num;
-    bool seenInBloomFilter;
-    };
+    //struct PriorityFields
+    //{
+    //size_t num;
+    //bool seenInBloomFilter;
+    //};
 
     APESEARCH::string url;
-    //ParsedUrl parsedUrl; can always parse after popping
-    PriorityFields priority; // Indicate which bucket to place priority
+    size_t priority; // Indicate which bucket to place priority
 };
 
 class SetOfUrls
    {
     static constexpr frontierLoc = "VirtualFileSystem/Root/frontier.bin";
     APESEARCH::unique_mmap urls;
+    std::ifstream fin;
     public:
         SetOfUrls();
         SetOfUrls( const char * );
@@ -97,12 +99,13 @@ class UrlFrontier
     FrontEndPrioritizer frontEnd;
     BackendPolitenessPolicy backEnd;
     SetOfUrls set;
+    std::atomic<bool> liveliness;
 
     UrlFrontier();
     UrlFrontier( const char * );
     
     static constexpr std::size_t frontQueueSize = 1024;
-    // "To keep craling threds busy, 3 times as many backeended queus as crawler threads"
+    // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
     //class Impl;
     //APESEARCH::unique_ptr<Impl> impl;
 
@@ -112,6 +115,10 @@ class UrlFrontier
 public:
     UrlFrontier() = default;
     void getNextUrl( APESEARCH::string& buffer );
+    bool insertNewUrl( APESEARCH::string&& url );
+
+
+    void shutdown(); // signals threads to stop
 };
 
 
