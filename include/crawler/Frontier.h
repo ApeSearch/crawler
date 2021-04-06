@@ -111,7 +111,7 @@ class UrlFrontier
 
 public:
     UrlFrontier() = default;
-    void run();
+    void getNextUrl( APESEARCH::string& buffer );
 };
 
 
