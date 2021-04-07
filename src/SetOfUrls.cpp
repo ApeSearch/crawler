@@ -1,6 +1,6 @@
 
 #include "../include/crawler/SetOfUrls.h"
-#include "../libaries/AS/include/AS/unique_mmap.h"
+#include "../libraries/AS/include/AS/unique_mmap.h"
 #include "../libraries/AS/include/AS/File.h"
 #include "../libraries/AS/include/AS/algorithms.h" // for APESEARCH::copy
 

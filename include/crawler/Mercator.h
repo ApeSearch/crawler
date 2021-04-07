@@ -114,6 +114,7 @@ namespace APESEARCH
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void cleanUp(); 
+      void intel();
     public:
       Mercator( size_t amtOfUrlsSubmitters, size_t amtOfParsers, size_t amtOfFileWriters ) : 
          pool( amtOfUrlsSubmitters + amtOfParsers + amtOfFileWriters ) : liveliness( true ) {}

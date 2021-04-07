@@ -48,7 +48,7 @@ void APESEARCH::Mercator::user_handler()
     std::string input;
     do 
        {
-        cin >> input; // Would need to overload operator>> for string here
+        std::cin >> input; // Would need to overload operator>> for string here
         switch( input.front() )
            {
             case 'I':
@@ -66,7 +66,7 @@ void APESEARCH::Mercator::user_handler()
     cleanUp();
    }
 
-void APESEARCH::MERACTOR::cleanUp()
+void APESEARCH::Mercator::cleanUp()
    {
     liveliness.store( false );
     pool.shutdown(); // Blocks until every thread has joined...
