@@ -15,8 +15,11 @@
 #include "../libraries/AS/include/AS/unique_ptr.h"
 #include "../libraries/AS/include/AS/string.h"
 #include "../libraries/AS/include/AS/unique_mmap.h"
+#include "../libraries/AS/include/AS/File.h"
 #include "ParsedUrl.h"
 #include <fstream>
+#include <sys/types.h>
+#include <dirent.h>
 
 #include<chrono>
 
@@ -48,17 +51,32 @@ struct UrlObj
     size_t priority; // Indicate which bucket to place priority
 };
 
+
 class SetOfUrls
    {
-    static constexpr frontierLoc = "VirtualFileSystem/Root/frontier.bin";
-    APESEARCH::unique_mmap urls;
-    std::ifstream fin;
+    static constexpr const char *frontierLoc = "VirtualFileSystem/Root/Frontier";
+    static constexpr size_t maxUrls = 8;
+    APESEARCH::unique_mmap frontOfQueue;
+    APESEARCH::unique_mmap backOfQueue;
+    // A specific dirEntry ( what is returned when reading dirent )
+    APESEARCH::vector<char> cwd;
+    DIR *dir;
+    char *frontQPtr, *backQPtr;
+    unsigned numOfUrlsInserted;
+    File back;
+
+    void startNewFile();
+    bool popNewBatch();
+    void finalizeSection( );
+
     public:
         SetOfUrls();
         SetOfUrls( const char * );
+        ~SetOFUrls();
         UrlObj dequeue();
         void enqueue( const APESEARCH::string &url );
    }; // SetOfUrls
+
 
 class UrlFrontier
 {
@@ -71,9 +89,8 @@ class UrlFrontier
                 APESEARCH::DEFAULT::defaultBuffer< UrlObj, urlsPerPriority>
                                         pQueues;
         char *urlsToCrawl_front; // memory-mapped queue of urls to be crawled
-        //class Impl;
-        //APESEARCH::unique_ptr<Impl> impl;
-        std::size_t pickQueue(); // uer-defined prirority for picking which queue to pop from
+
+        std::size_t pickQueue(); // user-defined prirority for picking which queue to pop from
     public:
         FrontEndPrioritizer() = default;
         UrlObj getUrl();
