@@ -32,7 +32,6 @@ public:
     static constexpr const char *frontierLoc = "VirtualFileSystem/Root/Frontier";
     static constexpr size_t maxUrls = 8;
     unique_mmap frontOfQueue;
-    unique_mmap backOfQueue;
     // A specific dirEntry ( what is returned when reading dirent )
     APESEARCH::vector<char> cwd;
     DIR *dir;

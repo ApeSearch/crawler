@@ -11,9 +11,8 @@
 
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../libraries/AS/include/AS/queue.h"
-#include "../../libraries/AS/include/AS/circular_buffer.h"
-#include "../../libraries/AS/include/AS/unique_ptr.h"
 #include "../../libraries/AS/include/AS/string.h"
+#include "../../libraries/AS/include/AS/circular_buffer.h"
 #include "../../libraries/AS/include/AS/unique_mmap.h"
 #include "../../libraries/AS/include/AS/File.h"
 #include "ParsedUrl.h"

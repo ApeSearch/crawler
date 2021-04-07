@@ -1,11 +1,9 @@
 #include "../include/crawler/Request.h"
 #include <iostream>
-#include "../libraries/AS/include/AS/utility.h" // for APESEARCH::pair
 #include "../libraries/AS/include/AS/Socket.h"
 #include "../include/crawler/SSLSocket.h" // For SSLSocket
 #include "../include/crawler/ParsedUrl.h"
 #include <utility> // for std::move
-using APESEARCH::pair;
 
 #include "../libraries/AS/include/AS/algorithms.h"
 

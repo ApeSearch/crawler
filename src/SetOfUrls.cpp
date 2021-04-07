@@ -3,6 +3,8 @@
 #include "../libraries/AS/include/AS/unique_mmap.h"
 #include "../libraries/AS/include/AS/File.h"
 #include "../libraries/AS/include/AS/algorithms.h" // for APESEARCH::copy
+#include <cstring> // for strlen
+#include <unistd.h> // for getcwd
 
 //--------------------------------------------------------------------------------
 //
@@ -35,9 +37,9 @@ static void shrinkSize( APESEARCH::vector<char>& buffer, const size_t newSize )
  *  Searches a Directory ( dir ) until it either reaches the end ( when readdir returns NULL),
  *  while skipping any non-files and the . and .. directories.
 */
-struct Dirent *getNextDirEntry( DIR *dir )
+struct dirent *getNextDirEntry( DIR *dir )
    {
-   Dirent *dp;
+   struct dirent *dp;
    while( (dp = readdir (dir)) != NULL && 
       ( dp->d_type != DT_REG || !strcmp(dp->d_name, ".") || strcmp(dp->d_name, "..") ) );
    return dp;
@@ -51,13 +53,18 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
 
 SetOfUrls::SetOfUrls( const char *directory ) : cwd( PATH_MAX ), numOfUrlsInserted( 0 )
    {
-   getcwd( cwd, PATH_MAX );
-   shrinkSize( cwd, strlen( cwd.front() ) );
+   getcwd( cwd.begin(), PATH_MAX );
+   for ( char character : cwd )
+      {
+      std::cout << character;
+      }
+   std::cout << '\n';
+   shrinkSize( cwd, strlen( cwd.begin() ) );
 
-   if ( dir = opendir( directory ) == NULL )
+   if ( ( dir = opendir( directory ) ) == NULL )
       {
       perror( directory );
-      std::runtime_error( "VirtualFileSytem couldn't be opened" );
+      throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
       } // end if
    // Skip until a valid file has been reached
    
@@ -79,12 +86,8 @@ SetOfUrls::~SetOfUrls()
 void SetOfUrls::startNewFile()
    {
    // Open a new temp file
-   back = File( cwd, O_TMPFILE | O_RDWR, S_IRUSR | S_IWUSR );
+   back = APESEARCH::File( mkstemp( "lastFile_XXXXXX" ) );
 
-   // Memory map it...
-   backOfQueue = APESEARCH::unique_mmap temp( 0, bytesReq, PROT_READ | PROT_WRITE, MAP_PRIVATE, back.getFD(), 0 );
-   backQPtr = reinterpret_cast< char *>( temp.get() );
-   return temp;
    }
 
 /*
@@ -96,11 +99,12 @@ void SetOfUrls::startNewFile()
 */
 bool SetOfUrls::popNewBatch()
    {
+   struct dirent *dp;
    if ( ( dp = getNextDirEntry( dir ) ) )
       {
-      File file( dp->d_name, O_RDONLY );
+      APESEARCH::File file( dp->d_name, O_RDONLY );
       int fd = file.getFD();
-      frontOfQueue = APESEARCH::unique_mmap( 0, FileSize( fd ), PR  );
+      frontOfQueue = unique_mmap( 0, FileSize( fd ), PROT_READ, MAP_PRIVATE, fd, 0 );
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
       } // end if
    else
@@ -115,7 +119,7 @@ void SetOfUrls::finalizeSection( )
    cwd.push_back( id++ ); // Add a unique identifier
    cwd.push_back( 0 ); // Add null-character
    // Create a hard link
-   linkat( back.getFD(), NULL, AT_FDCWD, &cwd.front(), AT_EMPTY_PATH ); 
+   linkat( back.getFD(), NULL, AT_FDCWD, &cwd.front(), 0 ); 
 
    // Modifies
    startNewFile();
@@ -144,7 +148,7 @@ UrlObj SetOfUrls::dequeue()
       } // end for
 
    UrlObj obj;
-   obj.url = APESEARCH::string( character, frontQPtr );
+   obj.url = APESEARCH::string( start, frontQPtr );
    obj.priority = 69;
 
    // Increment pointer now that url has been copied
@@ -153,37 +157,23 @@ UrlObj SetOfUrls::dequeue()
    return obj;
    }
 
-void enqueue( const APESEARCH::string &url )
+void SetOfUrls::enqueue( const APESEARCH::string &url )
    {
    
    assert( numOfUrlsInserted < SetOfUrls::maxUrls );
 
-   backQPtr = APESEARCH::copy( url.front(), url.end(), backQPtr );
+   write( back.getFD(), url.cbegin(), url.size() );
 
    // Mark as a delimiter
-   *backQPtr++ = '\n';
+   write( back.getFD(), "\n", 1 );
    ++numOfUrlsInserted;
 
    if ( numOfUrlsInserted == SetOfUrls::maxUrls )
       {
       // Used to signify end of file
-      *backQPtr = '\r';
+      write( back.getFD(), "\r", 1 );
       startNewFile();
       numOfUrlsInserted = 0; // Reset
       } // end if
    } // end enqueue()
 
-
-UrlFrontier::UrlFrontier( ) : frontEnd( ), backEnd( ), set()
-   {
-   // Start threads that add to queue...
-   }
-
-UrlFrontier::UrlFrontier( const char *file ) : frontEnd( ), backEnd( ), set( file )
-   {
-   }
-
-void UrlFrontier::run()
-   {
-   
-   }
