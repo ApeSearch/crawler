@@ -6,7 +6,6 @@
 #include <cstring> // for strlen
 #include <unistd.h> // for getcwd
 #include <stdlib.h> // for mkstemp
-#include <libexplain/mkstemp.h>
 
 //--------------------------------------------------------------------------------
 //
@@ -90,11 +89,11 @@ SetOfUrls::~SetOfUrls()
 
 void SetOfUrls::startNewFile()
    {
+   char filename[] = "/tmp/temp.XXXXXX";
    // Open a new temp file
-   int fd = mkstemp( "/tmp/temp.XXXXXX" );
+   int fd = mkstemp( filename );
    if ( fd < 0 )
       {
-      fprintf(stderr, "%s\n", explain_mkstemp(templat));
       std::cerr << "Issue making a temporary file\n" << std::endl;
       throw std::runtime_error( "Issue making a temporary file\n");
       }

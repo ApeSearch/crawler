@@ -2,7 +2,7 @@ CC=g++ -g3 -std=c++17 -Wall -pedantic -Wconversion -Wextra -Wreorder -fno-builti
 CXX=g++ -O3 -DNDEBUG -std=c++1z -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
 CXXFLAGS = -std=c++1z
 
-LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto
+LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread
 # Define certain variables based on system
 ifeq ($(shell uname -s | tr A-Z a-z), darwin)
 	# -I likely means (Include) -L likely means (Library)

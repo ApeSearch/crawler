@@ -1,6 +1,6 @@
 
 #include "../libraries/unit_test_framework/include/unit_test_framework/unit_test_framework.h"
-#include "../include/crawler/Frontier.h"
+#include "../include/crawler/SetOfUrls.h"
 #include <iostream>
 
 TEST( test_SetOfUrls )
