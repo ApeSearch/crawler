@@ -7,12 +7,16 @@ TEST( test_SetOfUrls )
    {
    try
       {
-      SetOfUrls set( "input/dummyUrls.txt" );
+      SetOfUrls set( "tests/input" );
       UrlObj obj( set.dequeue() );
       }
    catch ( std::runtime_error& e )
       {
       std::cout << e.what() << std::endl;
+      ASSERT_TRUE( false );
+      }
+   catch( ... )
+      {
       ASSERT_TRUE( false );
       }
    }

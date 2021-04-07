@@ -5,6 +5,8 @@
 #include "../libraries/AS/include/AS/algorithms.h" // for APESEARCH::copy
 #include <cstring> // for strlen
 #include <unistd.h> // for getcwd
+#include <stdlib.h> // for mkstemp
+#include <libexplain/mkstemp.h>
 
 //--------------------------------------------------------------------------------
 //
@@ -40,8 +42,7 @@ static void shrinkSize( APESEARCH::vector<char>& buffer, const size_t newSize )
 struct dirent *getNextDirEntry( DIR *dir )
    {
    struct dirent *dp;
-   while( (dp = readdir (dir)) != NULL && 
-      ( dp->d_type != DT_REG || !strcmp(dp->d_name, ".") || strcmp(dp->d_name, "..") ) );
+   while( (dp = readdir (dir)) != NULL &&  dp->d_type != DT_REG );
    return dp;
    }
 
@@ -51,23 +52,27 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    }
 
 
-SetOfUrls::SetOfUrls( const char *directory ) : cwd( PATH_MAX ), numOfUrlsInserted( 0 )
+SetOfUrls::SetOfUrls( const char *directory ) : numOfUrlsInserted( 0 )
    {
-   getcwd( cwd.begin(), PATH_MAX );
-   for ( char character : cwd )
-      {
-      std::cout << character;
-      }
-   std::cout << '\n';
-   shrinkSize( cwd, strlen( cwd.begin() ) );
+   getcwd( cwd, PATH_MAX );
+   cwdLength = strlen( cwd );
+   assert(  cwdLength <= PATH_MAX );
+   //shrinkSize( cwd, strlen( cwd.begin() ) );
 
    if ( ( dir = opendir( directory ) ) == NULL )
       {
       perror( directory );
       throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
       } // end if
-   // Skip until a valid file has been reached
    
+   // Skip until a valid file has been reached
+   size_t lengthOfDir = strlen( directory );
+   cwd[ cwdLength++ ] = '/';
+   APESEARCH::copy( directory, directory + lengthOfDir, cwd + cwdLength );
+   cwdLength += lengthOfDir;
+   cwd[ cwdLength++ ] = '/';
+   cwd[ cwdLength ] = '\0'; // for safetly
+
    if ( !popNewBatch() )
       {
       // Signify an empty frontier
@@ -86,7 +91,14 @@ SetOfUrls::~SetOfUrls()
 void SetOfUrls::startNewFile()
    {
    // Open a new temp file
-   back = APESEARCH::File( mkstemp( "lastFile_XXXXXX" ) );
+   int fd = mkstemp( "/tmp/temp.XXXXXX" );
+   if ( fd < 0 )
+      {
+      fprintf(stderr, "%s\n", explain_mkstemp(templat));
+      std::cerr << "Issue making a temporary file\n" << std::endl;
+      throw std::runtime_error( "Issue making a temporary file\n");
+      }
+   back = APESEARCH::File( fd );
 
    }
 
@@ -100,9 +112,12 @@ void SetOfUrls::startNewFile()
 bool SetOfUrls::popNewBatch()
    {
    struct dirent *dp;
+   char buf[PATH_MAX];
    if ( ( dp = getNextDirEntry( dir ) ) )
       {
-      APESEARCH::File file( dp->d_name, O_RDONLY );
+      snprintf(buf, sizeof buf, "%s%s", cwd, dp->d_name );
+      APESEARCH::File file( buf, O_RDONLY );
+      cwd[ cwdLength ] = '\0';
       int fd = file.getFD();
       frontOfQueue = unique_mmap( 0, FileSize( fd ), PROT_READ, MAP_PRIVATE, fd, 0 );
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
@@ -116,10 +131,10 @@ void SetOfUrls::finalizeSection( )
    {
    static unsigned id = 0;
 
-   cwd.push_back( id++ ); // Add a unique identifier
-   cwd.push_back( 0 ); // Add null-character
+   //cwd.push_back( id++ ); // Add a unique identifier
+   //cwd.push_back( 0 ); // Add null-character
    // Create a hard link
-   linkat( back.getFD(), NULL, AT_FDCWD, &cwd.front(), 0 ); 
+   linkat( back.getFD(), NULL, AT_FDCWD, cwd, 0 ); 
 
    // Modifies
    startNewFile();

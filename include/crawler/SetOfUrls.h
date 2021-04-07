@@ -33,7 +33,9 @@ public:
     static constexpr size_t maxUrls = 8;
     unique_mmap frontOfQueue;
     // A specific dirEntry ( what is returned when reading dirent )
-    APESEARCH::vector<char> cwd;
+    //APESEARCH::vector<char> cwd;
+    char cwd[PATH_MAX];
+    size_t cwdLength;
     DIR *dir;
     char *frontQPtr, *backQPtr;
     unsigned numOfUrlsInserted;
