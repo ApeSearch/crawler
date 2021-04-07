@@ -5,7 +5,6 @@
 
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../libraries/AS/include/AS/pthread_pool.h"
-#include "Crawler.h"
 #include "Request.h"
 #include "Frontier.h"
 #include "../../libraries/AS/include/AS/atomic_queue.h"
@@ -50,11 +49,11 @@ namespace APESEARCH
           {
           buffer[ val ] = val;
           }
-       inline void insert( sizie_t index, T&& val ) noexcept
+       inline void insert( size_t index, T&& val ) noexcept
           {
           buffer[ val ] = std::forward<T>( val );
           }
-       inline virtual T& get( size_t )
+       inline virtual T& get( size_t val )
           {
           return buffer[ val ];
           }
@@ -79,13 +78,13 @@ namespace APESEARCH
     template< typename T >
     class SharedQueue
        {
-       atomic_queue< T, circular_buffer< T, dynamicBuffer< T > > queue;
+       atomic_queue< T, circular_buffer< T, dynamicBuffer< T > > > queue;
        semaphore available;
       
        public:
          SharedQueue( std::size_t amountOfResources, T& val ) : 
             queue( circular_buffer< T, 
-            dynamicBuffer< T > >( amountOfResouces, val ) ) {}
+            dynamicBuffer< T > >( amountOfResources, val ) ) {}
          ~SharedQueue( ) {}
 
        void push( T&& val ) noexcept

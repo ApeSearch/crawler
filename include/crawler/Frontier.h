@@ -9,15 +9,15 @@
 #include <string>
 #include <atomic>
 
-#include "../libraries/AS/include/AS/vector.h"
-#include "../libraries/AS/include/AS/queue.h"
-#include "../libraries/AS/include/AS/circular_buffer.h"
-#include "../libraries/AS/include/AS/unique_ptr.h"
-#include "../libraries/AS/include/AS/string.h"
-#include "../libraries/AS/include/AS/unique_mmap.h"
-#include "../libraries/AS/include/AS/File.h"
+#include "../../libraries/AS/include/AS/vector.h"
+#include "../../libraries/AS/include/AS/queue.h"
+#include "../../libraries/AS/include/AS/circular_buffer.h"
+#include "../../libraries/AS/include/AS/unique_ptr.h"
+#include "../../libraries/AS/include/AS/string.h"
+#include "../../libraries/AS/include/AS/unique_mmap.h"
+#include "../../libraries/AS/include/AS/File.h"
 #include "ParsedUrl.h"
-#include <fstream>
+#include "SetOfUrls.h"
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -39,43 +39,7 @@ struct domainTiming
        };
 };
 
-struct UrlObj
-{
-    //struct PriorityFields
-    //{
-    //size_t num;
-    //bool seenInBloomFilter;
-    //};
 
-    APESEARCH::string url;
-    size_t priority; // Indicate which bucket to place priority
-};
-
-
-class SetOfUrls
-   {
-    static constexpr const char *frontierLoc = "VirtualFileSystem/Root/Frontier";
-    static constexpr size_t maxUrls = 8;
-    APESEARCH::unique_mmap frontOfQueue;
-    APESEARCH::unique_mmap backOfQueue;
-    // A specific dirEntry ( what is returned when reading dirent )
-    APESEARCH::vector<char> cwd;
-    DIR *dir;
-    char *frontQPtr, *backQPtr;
-    unsigned numOfUrlsInserted;
-    File back;
-
-    void startNewFile();
-    bool popNewBatch();
-    void finalizeSection( );
-
-    public:
-        SetOfUrls();
-        SetOfUrls( const char * );
-        ~SetOFUrls();
-        UrlObj dequeue();
-        void enqueue( const APESEARCH::string &url );
-   }; // SetOfUrls
 
 
 class UrlFrontier
@@ -84,9 +48,8 @@ class UrlFrontier
     class FrontEndPrioritizer 
     {
         static const constexpr std::size_t urlsPerPriority = 1024;
-        APESEARCH::vector<APESEARCH::queue<UrlObj, 
-                APESEARCH::circular_buffer< UrlObj, 
-                APESEARCH::DEFAULT::defaultBuffer< UrlObj, urlsPerPriority>
+        APESEARCH::vector<APESEARCH::queue<UrlObj, APESEARCH::circular_buffer< UrlObj, 
+                APESEARCH::DEFAULT::defaultBuffer< UrlObj, urlsPerPriority> > > >
                                         pQueues;
         char *urlsToCrawl_front; // memory-mapped queue of urls to be crawled
 
@@ -105,7 +68,7 @@ class UrlFrontier
         std::unordered_map<APESEARCH::string, size_t> backendDomains;
         std::vector<APESEARCH::queue<UrlObj, 
                 APESEARCH::circular_buffer< UrlObj, 
-                APESEARCH::DEFAULT::defaultBuffer< UrlObj, endQueueSize>
+                APESEARCH::DEFAULT::defaultBuffer< UrlObj, endQueueSize> > > >
                                         domainQueues;
         UrlObj obtainRandUrl();
     public:
@@ -118,8 +81,6 @@ class UrlFrontier
     SetOfUrls set;
     std::atomic<bool> liveliness;
 
-    UrlFrontier();
-    UrlFrontier( const char * );
     
     static constexpr std::size_t frontQueueSize = 1024;
     // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
@@ -131,6 +92,7 @@ class UrlFrontier
 
 public:
     UrlFrontier() = default;
+    UrlFrontier( const char * );
     void getNextUrl( APESEARCH::string& buffer );
     bool insertNewUrl( APESEARCH::string&& url );
 
@@ -138,6 +100,7 @@ public:
     void shutdown(); // signals threads to stop
 };
 
+struct Dirent *getNextDirEntry( DIR *dir );
 
 
 

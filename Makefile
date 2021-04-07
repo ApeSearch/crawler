@@ -29,7 +29,7 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-all: LinuxGetUrl test
+all: test
 
 LinuxGetUrl: ${OBJS}
 	${CC} -o $@ $^
@@ -48,7 +48,7 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS}
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
-	${CC} -Dtesting $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
+	${CC} -Dtesting -DDEBUG $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
 
 test: ${TEST_SRC} 
 

@@ -10,7 +10,7 @@
 void APESEARCH::Mercator::crawler()
    {
     Request requester;
-    APESEARCH::string buffer;
+    string buffer;
     Result result;
 
     while( liveliness.load() )

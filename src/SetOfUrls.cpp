@@ -1,5 +1,5 @@
 
-#include "../include/crawler/Frontier.h"
+#include "../include/crawler/SetOfUrls.h"
 #include "../libaries/AS/include/AS/unique_mmap.h"
 #include "../libraries/AS/include/AS/File.h"
 #include "../libraries/AS/include/AS/algorithms.h" // for APESEARCH::copy
@@ -35,7 +35,7 @@ static void shrinkSize( APESEARCH::vector<char>& buffer, const size_t newSize )
  *  Searches a Directory ( dir ) until it either reaches the end ( when readdir returns NULL),
  *  while skipping any non-files and the . and .. directories.
 */
-static struct Dirent *getNextDirEntry( DIR *dir )
+struct Dirent *getNextDirEntry( DIR *dir )
    {
    Dirent *dp;
    while( (dp = readdir (dir)) != NULL && 
