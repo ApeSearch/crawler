@@ -65,7 +65,7 @@ class UrlFrontier
                 APESEARCH::DEFAULT::defaultBuffer< UrlObj, endQueueSize> >;
         APESEARCH::priority_queue<domainTiming, domainTiming::compareTime> backendHeap;
 
-        //std::unordered_map<APESEARCH::string, size_t> backendDomains;
+        std::unordered_map<std::string, size_t> backendDomains;
         APESEARCH::vector< APESEARCH::queue<UrlObj, DefaultBuf> > domainQueues;
         UrlObj obtainRandUrl();
     public:
