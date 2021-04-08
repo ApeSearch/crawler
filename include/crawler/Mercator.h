@@ -11,6 +11,7 @@
 #include "../../libraries/AS/include/AS/condition_variable.h"
 #include "../../libraries/AS/include/AS/as_semaphore.h"
 #include "../../libraries/AS/include/AS/circular_buffer.h"
+#include "../../Parser/HtmlParser.h"
 #include <atomic>
 #include <assert.h>
 
@@ -36,7 +37,13 @@ namespace APESEARCH
        {
        vector<T> buffer;
        typedef T value_type;
-       
+    public:
+       // For default construct objects...
+       dynamicBuffer( const size_t capacity ) : buffer( capacity )
+          {
+          assert( computeTwosPowCeiling( capacity ) == capacity );
+          }
+
        dynamicBuffer( const size_t capacity, T&val ) : buffer( capacity, val )
           {
           assert( computeTwosPowCeiling( capacity ) == capacity );
@@ -47,15 +54,15 @@ namespace APESEARCH
           }
        inline void insert( const T& val, size_t index ) noexcept
           {
-          buffer[ val ] = val;
+          buffer[ index ] = val;
           }
        inline void insert( size_t index, T&& val ) noexcept
           {
-          buffer[ val ] = std::forward<T>( val );
+          buffer[ index ] = std::forward<T>( val );
           }
-       inline virtual T& get( size_t val )
+       inline virtual T& get( size_t index )
           {
-          return buffer[ val ];
+          return buffer[ index ];
           }
        
        inline virtual size_t getCapacity() const
@@ -71,10 +78,11 @@ namespace APESEARCH
           return;
           }
        };
-
+   
     /*
      * Objct used to encapsulate a consumer queue ( the producer queue is the thread pool itself )
     */
+   /*
     template< typename T >
     class SharedQueue
        {
@@ -83,7 +91,7 @@ namespace APESEARCH
       
        public:
          SharedQueue( std::size_t amountOfResources, T& val ) : 
-            queue( circular_buffer< T, 
+            queue( circular_buffer< T,  
             dynamicBuffer< T > >( amountOfResources, val ) ) {}
          ~SharedQueue( ) {}
 
@@ -99,25 +107,27 @@ namespace APESEARCH
            return queue.dequeue().value();
           }
        };
-
-
+   */
+   using CircBuf = circular_buffer< Func, dynamicBuffer< Func > >;
     class Mercator
        {
-      PThreadPool pool; // The main threads that serve tasks
+      PThreadPool<CircBuf> pool; // The main threads that serve tasks
       UrlFrontier frontier;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
 
 
       void crawler();
-      void parser( std::string&& buffer );
-      void writeToFile( HtmlParser& );
+      void parser( const std::string& buffer );
+      void parser(  );
+      void writeToFile( const HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void cleanUp(); 
       void intel();
     public:
-      Mercator( size_t amtOfUrlsSubmitters, size_t amtOfParsers, size_t amtOfFileWriters ) : 
-         pool( amtOfUrlsSubmitters + amtOfParsers + amtOfFileWriters ) : liveliness( true ) {}
+      Mercator( size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
+         pool( CircBuf( amtOfCrawlers + amtOfParsers + amtOfFWriters ), 
+         amtOfCrawlers + amtOfParsers + amtOfFWriters ),  liveliness( true ) {}
       void run();
       void user_handler(); // Interacts with user to provide intel, look at stats, and to shutdown
 

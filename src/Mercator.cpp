@@ -17,17 +17,19 @@ void APESEARCH::Mercator::crawler()
        {
         frontier.getNextUrl( buffer ); // Writes directly to buffer
         
-        result = requester.getReqAndParse( buffer.c_str() );
+        result = requester.getReqAndParse( buffer.cstr() );
 
         // At the end of this task, the buffer will be reinserted back into urlBuffers...
         switch( result.status )
            {
             case getReqStatus::successful:
-               pool.submitNoFuture( &Mercator::parser, this, std::move( result ), 
-                  std::move( requester.getResponseBuffer.first() ) );
+               {
+               pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }]( )
+               { this->parser( buffer ); } );
                break;
+               }
             case getReqStatus::redirected:
-               frontier.insertNewUrl( std::move( result.url ) );
+               frontier.insertNewUrl( APESEARCH::string( result.url.begin(), result.url.end() ) );
                break;
             default:
                break;
@@ -35,7 +37,7 @@ void APESEARCH::Mercator::crawler()
        } // end while
    } // end urlExtractor()
 
-void APESEARCH::Mercator::parser( std::string&& buffer )
+void APESEARCH::Mercator::parser( const std::string& buffer )
    {
    HtmlParser parser( buffer.c_str(), buffer.size() );
 
@@ -66,6 +68,11 @@ void APESEARCH::Mercator::user_handler()
     cleanUp();
    }
 
+void APESEARCH::Mercator::intel()
+   {
+   return;
+   }
+
 void APESEARCH::Mercator::cleanUp()
    {
     liveliness.store( false );
@@ -73,17 +80,7 @@ void APESEARCH::Mercator::cleanUp()
     return;
    } // end cleanUp()
 
-UrlFrontier::UrlFrontier( ) : frontEnd( ), backEnd( ), set()
+void APESEARCH::Mercator::writeToFile( const HtmlParser& parser )
    {
-   // Start threads that add to queue...
-   for loop and then add in 
-   }
-
-UrlFrontier::UrlFrontier( const char *file ) : frontEnd( ), backEnd( ), set( file )
-   {
-   }
-
-void UrlFrontier::run()
-   {
-   
+   return;
    }

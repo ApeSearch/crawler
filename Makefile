@@ -19,6 +19,10 @@ ASSRC=libraries/AS/src
 ASSOURCES=$(wildcard ${ASSRC}/*.cpp)
 ASOBJS=${ASSOURCES:.cpp=.o}
 
+PARSERSOURCES=$(wildcard Parser/*.cpp)
+PARSEROBJS=${PARSERSOURCES:.cpp=.o}
+
+
 FrameWorkSRC=libraries/unit_test_framework/src
 FrameWorkSources=$(wildcard ${FrameWorkSRC}/*.cpp)
 FrameWorkOBJS=$(FrameWorkSources:.cpp=.o)
@@ -44,7 +48,7 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 # 	${CC} -o $@ $^
 
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
-$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS}
+$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
@@ -62,6 +66,8 @@ update:
 debug: CC += -g3 -DDEBUG
 debug: clean all
 
+HtmlParser: Parser/HtmlParser.cpp Parser/HtmlTags.cpp
+	${CC} -DLOCAL -o $@ $^
 
 release: CC=${CXX}
 release: clean all

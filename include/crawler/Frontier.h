@@ -31,14 +31,12 @@ struct domainTiming
 
     struct compareTime
        {
-        bool okToReq( const domainTiming& time )
+        bool okToReq( const domainTiming& lhs, const domainTiming& rhs )
            {
             return true;
            }
        };
 };
-
-
 
 
 class UrlFrontier
@@ -63,12 +61,12 @@ class UrlFrontier
     {
         static constexpr std::size_t endQueueSize = 100;
         static constexpr std::size_t amtEndQueues = 3000; // This assumes 1000 crawlers
-        APESEARCH::priority_queue<domainTiming> backendHeap;
-        std::unordered_map<APESEARCH::string, size_t> backendDomains;
-        std::vector<APESEARCH::queue<UrlObj, 
-                APESEARCH::circular_buffer< UrlObj, 
-                APESEARCH::DEFAULT::defaultBuffer< UrlObj, endQueueSize> > > >
-                                        domainQueues;
+        using DefaultBuf = APESEARCH::circular_buffer< UrlObj, 
+                APESEARCH::DEFAULT::defaultBuffer< UrlObj, endQueueSize> >;
+        APESEARCH::priority_queue<domainTiming, domainTiming::compareTime> backendHeap;
+
+        //std::unordered_map<APESEARCH::string, size_t> backendDomains;
+        APESEARCH::vector< APESEARCH::queue<UrlObj, DefaultBuf> > domainQueues;
         UrlObj obtainRandUrl();
     public:
         BackendPolitenessPolicy( ) = default;
@@ -83,9 +81,6 @@ class UrlFrontier
     
     static constexpr std::size_t frontQueueSize = 1024;
     // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
-    //class Impl;
-    //APESEARCH::unique_ptr<Impl> impl;
-
 
     static unsigned ratingOfTopLevelDomain( const char * );
 
