@@ -89,7 +89,8 @@ SetOfUrls::~SetOfUrls()
 
 void SetOfUrls::startNewFile()
    {
-   char filename[] = "/tmp/temp.XXXXXX";
+   //char filename[] = "/tmp/temp.XXXXXX";
+   char filename[] = "temp.XXXXXX"; // For testing...
    // Open a new temp file
    int fd = mkstemp( filename );
    if ( fd < 0 )
@@ -118,8 +119,10 @@ bool SetOfUrls::popNewBatch()
       APESEARCH::File file( buf, O_RDONLY );
       cwd[ cwdLength ] = '\0';
       int fd = file.getFD();
-      frontOfQueue = unique_mmap( 0, FileSize( fd ), PROT_READ, MAP_PRIVATE, fd, 0 );
+      size_t fileSize = FileSize( fd );
+      frontOfQueue = unique_mmap( 0, fileSize, PROT_READ, MAP_PRIVATE, fd, 0 );
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
+      frontQEnd = frontQPtr + fileSize;
       } // end if
    else
       frontQPtr = nullptr;
@@ -142,32 +145,35 @@ void SetOfUrls::finalizeSection( )
 
 UrlObj SetOfUrls::dequeue()
    {
+   // Ensure that frontQPtr isn't frontQEnd...
+   assert( frontQPtr != frontQEnd );
    if ( !frontQPtr && !popNewBatch() )
       {
        return UrlObj(); // Frontier is empty
       }
-
    char character;
    char *start = frontQPtr;
-   for ( ;( character = *frontQPtr ) != '\n'; ++frontQPtr )
+   while ( ( character = *frontQPtr ) != '\n' )
       {
       // Finished with file and now has to go to new one...
-      if ( character == '\r' )
+      if ( ++frontQPtr == frontQEnd )
          {
-         if ( !popNewBatch() )
+         if ( popNewBatch() )
             start = frontQPtr;
-         else 
+         else
             return UrlObj(); // Frontier is empty
          } // end if
-      } // end for
+      } // end while
 
    UrlObj obj;
    obj.url = APESEARCH::string( start, frontQPtr );
    obj.priority = 69;
 
    // Increment pointer now that url has been copied
-   ++frontQPtr;
-
+   if ( ++frontQPtr == frontQEnd )
+      {
+      popNewBatch();
+      }
    return obj;
    }
 

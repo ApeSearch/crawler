@@ -37,7 +37,7 @@ public:
     char cwd[PATH_MAX];
     size_t cwdLength;
     DIR *dir;
-    char *frontQPtr, *backQPtr;
+    char *frontQPtr, *backQPtr, *frontQEnd;
     unsigned numOfUrlsInserted;
     APESEARCH::File back;
 

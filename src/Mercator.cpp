@@ -1,5 +1,4 @@
 
-/*
 #include "../include/crawler/Mercator.h"
 #include "../Parser/HtmlParser.h"
 //#include "../libraries/AS/include/AS/string.h"
@@ -77,6 +76,7 @@ void APESEARCH::Mercator::cleanUp()
 UrlFrontier::UrlFrontier( ) : frontEnd( ), backEnd( ), set()
    {
    // Start threads that add to queue...
+   for loop and then add in 
    }
 
 UrlFrontier::UrlFrontier( const char *file ) : frontEnd( ), backEnd( ), set( file )
@@ -87,4 +87,3 @@ void UrlFrontier::run()
    {
    
    }
-*/
