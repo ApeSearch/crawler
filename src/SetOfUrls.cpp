@@ -6,6 +6,7 @@
 #include <cstring> // for strlen
 #include <unistd.h> // for getcwd
 #include <stdlib.h> // for mkstemp
+#include <stdio.h> // for unlink() => remove paths
 
 //--------------------------------------------------------------------------------
 //
@@ -38,10 +39,14 @@ static void shrinkSize( APESEARCH::vector<char>& buffer, const size_t newSize )
  *  Searches a Directory ( dir ) until it either reaches the end ( when readdir returns NULL),
  *  while skipping any non-files and the . and .. directories.
 */
-struct dirent *getNextDirEntry( DIR *dir )
+struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
    {
    struct dirent *dp;
    while( (dp = readdir (dir)) != NULL &&  dp->d_type != DT_REG );
+   if ( numOfUrlsInserted )
+      {
+      // fill up with stuff...
+      }
    return dp;
    }
 
@@ -51,7 +56,7 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    }
 
 
-SetOfUrls::SetOfUrls( const char *directory ) : numOfUrlsInserted( 0 )
+SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 )
    {
    getcwd( cwd, PATH_MAX );
    cwdLength = strlen( cwd );
@@ -102,6 +107,12 @@ void SetOfUrls::startNewFile()
 
    }
 
+bool SetOfUrls::removeFile(  )
+   {
+   assert( frontQPtr );
+
+   }
+
 /*
  * REQUIRES: Nothing
  *  MODIFES: frontOfQueue ( opening a new file in the frontier directory )
@@ -111,12 +122,13 @@ void SetOfUrls::startNewFile()
 */
 bool SetOfUrls::popNewBatch()
    {
+   assert( !frontQPtr );
    struct dirent *dp;
-   char buf[PATH_MAX];
    if ( ( dp = getNextDirEntry( dir ) ) )
       {
-      snprintf(buf, sizeof buf, "%s%s", cwd, dp->d_name );
-      APESEARCH::File file( buf, O_RDONLY );
+      // Force the end of 
+      snprintf( frontQFileName, sizeof ( frontQFileName ), "%s%s", cwd, dp->d_name );
+      APESEARCH::File file( frontQFileName, O_RDONLY );
       cwd[ cwdLength ] = '\0';
       int fd = file.getFD();
       size_t fileSize = FileSize( fd );
@@ -124,8 +136,6 @@ bool SetOfUrls::popNewBatch()
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
       frontQEnd = frontQPtr + fileSize;
       } // end if
-   else
-      frontQPtr = nullptr;
    return dp;
    } // end popNewBack()
 
@@ -138,8 +148,7 @@ void SetOfUrls::finalizeSection( )
    // Create a hard link
    linkat( back.getFD(), NULL, AT_FDCWD, cwd, 0 ); 
 
-   // Modifies
-   startNewFile();
+   //startNewFile();
    }
 
 
@@ -149,6 +158,7 @@ UrlObj SetOfUrls::dequeue()
    assert( frontQPtr != frontQEnd );
    if ( !frontQPtr && !popNewBatch() )
       {
+      frontQPtr = nullptr;
        return UrlObj(); // Frontier is empty
       }
    char character;
@@ -158,6 +168,7 @@ UrlObj SetOfUrls::dequeue()
       // Finished with file and now has to go to new one...
       if ( ++frontQPtr == frontQEnd )
          {
+         frontQPtr = nullptr;
          if ( popNewBatch() )
             start = frontQPtr;
          else
@@ -172,6 +183,7 @@ UrlObj SetOfUrls::dequeue()
    // Increment pointer now that url has been copied
    if ( ++frontQPtr == frontQEnd )
       {
+      frontQPtr = nullptr;
       popNewBatch();
       }
    return obj;
@@ -190,8 +202,7 @@ void SetOfUrls::enqueue( const APESEARCH::string &url )
 
    if ( numOfUrlsInserted == SetOfUrls::maxUrls )
       {
-      // Used to signify end of file
-      write( back.getFD(), "\r", 1 );
+      finalizeSection();
       startNewFile();
       numOfUrlsInserted = 0; // Reset
       } // end if

@@ -3,6 +3,8 @@
 #include "../include/crawler/SetOfUrls.h"
 #include <iostream>
 
+void CheckFor
+
 TEST( test_SetOfUrls )
    {
    try
@@ -23,7 +25,7 @@ TEST( test_SetOfUrls )
          ASSERT_EQUAL( obj.priority, 69 );
          } // end for
       obj = set.dequeue();
-      //ASSERT_EQUAL( obj.url, 
+      ASSERT_EQUAL( obj.url, "" );
       }
    catch ( std::runtime_error& e )
       {

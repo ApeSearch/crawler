@@ -9,6 +9,7 @@
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../libraries/AS/include/AS/File.h"
 #include "../../libraries/AS/include/AS/string.h"
+#include "../../libraries/AS/include/AS/mutex.h"
 #include <sys/types.h>
 #include <dirent.h> // for DIR 
 
@@ -37,11 +38,17 @@ public:
     char cwd[PATH_MAX];
     size_t cwdLength;
     DIR *dir;
+    char frontQFileName[PATH_MAX];
     char *frontQPtr, *backQPtr, *frontQEnd;
     unsigned numOfUrlsInserted;
     APESEARCH::File back;
+    
+    // Mutex:
+    APESEARCH::mutex queueLk; // Needed for dealing with backAnd front
 
     void startNewFile();
+    bool removeFile();
+    struct dirent *getNextDirEntry( DIR *dir );
     bool popNewBatch();
     void finalizeSection( );
 
