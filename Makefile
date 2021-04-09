@@ -2,7 +2,7 @@ CC=g++ -g3 -std=c++17 -Wall -pedantic -Wconversion -Wextra -Wreorder -fno-builti
 CXX=g++ -O3 -DNDEBUG -std=c++1z -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
 CXXFLAGS = -std=c++1z
 
-LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto
+LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread
 # Define certain variables based on system
 ifeq ($(shell uname -s | tr A-Z a-z), darwin)
 	# -I likely means (Include) -L likely means (Library)
@@ -19,6 +19,10 @@ ASSRC=libraries/AS/src
 ASSOURCES=$(wildcard ${ASSRC}/*.cpp)
 ASOBJS=${ASSOURCES:.cpp=.o}
 
+PARSERSOURCES=$(wildcard Parser/*.cpp)
+PARSEROBJS=${PARSERSOURCES:.cpp=.o}
+
+
 FrameWorkSRC=libraries/unit_test_framework/src
 FrameWorkSources=$(wildcard ${FrameWorkSRC}/*.cpp)
 FrameWorkOBJS=$(FrameWorkSources:.cpp=.o)
@@ -29,7 +33,7 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-all: LinuxGetUrl test
+all: test
 
 LinuxGetUrl: ${OBJS}
 	${CC} -o $@ $^
@@ -44,13 +48,15 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 # 	${CC} -o $@ $^
 
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
-$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS}
+$(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
-	${CC} -Dtesting $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
+	${CC} -Dtesting -DDEBUG $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
 
 test: ${TEST_SRC} 
+
+update:
 
 %.o: %.cpp
 	${CC} ${LDFLAGS} -c $< -o $@
@@ -60,6 +66,8 @@ test: ${TEST_SRC}
 debug: CC += -g3 -DDEBUG
 debug: clean all
 
+HtmlParser: Parser/HtmlParser.cpp Parser/HtmlTags.cpp
+	${CC} -DLOCAL -o $@ $^
 
 release: CC=${CXX}
 release: clean all

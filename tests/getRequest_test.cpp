@@ -5,7 +5,8 @@
 // Simulates the behavior of a crawler
 int main()
     {
-    const char * const exampleUrl = "https://umich.edu/";
+    //const char * const exampleUrl = "https://umich.edu/";
+    const char * const exampleUrl = "https://www.google.com";
 
     Request requester;
     // Figure out results
@@ -13,4 +14,6 @@ int main()
     assert( result.status == getReqStatus::successful  );
     // Get results
     APESEARCH::pair< std::string, size_t> buff( requester.getResponseBuffer() );
+
+    
     } // end main()

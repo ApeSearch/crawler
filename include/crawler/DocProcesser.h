@@ -3,6 +3,7 @@
 
 #ifndef DOCPROCESSOR_H_APESEARCH
 #define DOCPROCESSOR_H_APESEARCH
+#include <string>
 
 class DocumentProcessor
 {
@@ -19,7 +20,7 @@ class DocumentProcessor
 
     //Returns string of size 65536 unless buffer provided is the same size;
     //Some type of buffer resizing to handoff to Crawler
-    String revertString();
+    std::string revertString();
 
 
 };

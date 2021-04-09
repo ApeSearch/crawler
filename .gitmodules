@@ -4,3 +4,6 @@
 [submodule "libraries"]
 	path = libraries
 	url = git@github.com:ApeSearch/libraries.git
+[submodule "VirtualFileSystem"]
+	path = VirtualFileSystem
+	url = git@github.com:ApeSearch/VirtualFileSystem.git
