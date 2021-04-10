@@ -1,10 +1,11 @@
-#include "../include/crawler/SSLSocket.h"
+#include "../include/crawler/Node.h"
+
+
 #include <iostream>
 
 #define PORT 8080
-#define NODECOUNT 8
 
-Node::Node(vector<string> ips, string loc_ip) : sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip), ip_addresses(ips)
+Node::Node(vector<string> ips, string loc_ip) : sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip)
 {
     constexpr char *pathname = "./storage_files/storage_filei.txt"
     //Get handles to files
@@ -65,12 +66,12 @@ Node::Node(vector<string> ips, string loc_ip) : sockets(ips.size()), addrinfos(i
     } 
     catch(...)
     {
-        std::cerr << "Error in starting up listening port" << '\n';
+        std::cerr << "Error in starting up listening socket" << '\n';
     }
     
     //Call thread with ConnectionHandler
 
-
+    //Call threadpool for Connectors
 
     //Create threadpool for calling recieve()
 
@@ -97,13 +98,13 @@ Node::ConnectionHandler()
         
         try()
         {
+            bool found_ip = false;
             unique_ptr<Socket> ptr = server.accept((struct sockaddr *) &node_addr, &node_len);
             char *ip = inet_ntoa(node_addr.sin_addr);
 
             //TODO strcmp vs make a string operator=
 
-            
-            for (int i = 0; i < NODECOUNT; ++i)
+            for (int i = node_id - 1; 0 < i; --i)
             {
                 if(!strcmp(ip, ips[i].c_str))
                 {
@@ -112,12 +113,20 @@ Node::ConnectionHandler()
                     sockets[i].swap(ptr);
 
                     locks[i].unlock();
+
+                    found_ip = true;
                 }
+            }
+            // If someone with a higher node id tries to connect to me write to std::cer
+            // Also checks if someone who is not allowed to connect tries to connect to me
+            if(!found_ip)
+            {
+                std::cerr << "Connection to unknown ip cancelled, ip: " << ip << '\n';
             }
         }
         catch(...)
         {
-            std::cerr << "Failed accepting call\n";
+            std::cerr << "Failed accepting call on server socket\n";
         }
     }
 
@@ -126,13 +135,50 @@ Node::ConnectionHandler()
 //Try to send n times unless the connection is closed,
 //Then try to create a new socket
 //If sent n times and connection is still open or new connection cannot be made write to swap file
-Node::send( )
+Node::send( Link &link )
 {
+    static const char* const null_char = "\0";
+    static const char* const newline_char = "\n";
 
+    //TODO switch to modulo operation after testing, since we will have 8 nodes.
+    size_t val = hash(link.URL.c_str);
+    int val = val % addrinfos.size();
+
+    if(val == node_id)
+    {
+        //if not in bloom filter
+        //  write to frontier
+
+        // Write(anchor text vector) 
+    }
+    else
+    {
+        
+        if(sockets[val].fd > 0)
+        {
+            try
+            {
+                
+            }
+            catch()
+            {
+                
+            }
+            
+        //  Call send
+        //If send doesn't work retry up to 3 times
+
+        }   
+        
+        //If it doesn't work swap the Socket with -1 fd socket
+        //  Append buffer to appropriate file
+        //  Maybe some type of signal to connector?
+    }
 }
 
 //Constantly reading from sockets
 Node::recieve()
 {
-
+    //Call recieve on socket
+    //  Parse data into url section and 
 }
