@@ -59,7 +59,7 @@ test: ${TEST_SRC}
 update:
 
 %.o: %.cpp
-	${CC} ${LDFLAGS} -c $< -o $@
+	${CC} -D_POSIX_SOURCE -D_LARGE_TIME_API ${LDFLAGS} -c $< -o $@
 %.o: %.cc
 	${CC} -c $< -o $@
 
