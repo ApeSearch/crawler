@@ -38,6 +38,16 @@ static void shrinkSize( APESEARCH::vector<char>& buffer, const size_t newSize )
       buffer.pop_back();
    }
 
+bool SetOfUrls::verifyFile( const char *filename )
+   {
+   char buf[1024];
+   snprintf( buf, sizeof( buf ), "%s%c%s", dirPath, '/', filename );
+   APESEARCH::File temp( buf, O_RDONLY );
+   ssize_t result = lseek( temp.getFD(), off_t( FileSize( temp.getFD() ) - 1 ), SEEK_SET );
+   read( temp.getFD(), buf, 1024 );
+   return *buf == '\r';
+   }
+
 /*
  *  Searches a Directory ( dir ) until it either reaches the end ( when readdir returns NULL),
  *  while skipping any non-files and the . and .. directories.
@@ -53,23 +63,38 @@ struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
    struct dirent *dp;
 {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-   while( (dp = readdir (dir)) != NULL &&  dp->d_type != DT_REG );
+   while( (dp = readdir (dir)) != NULL )
+      {
+      if ( dp->d_type == DT_REG && strcmp( backQPath, dp->d_name ) )
+         {
+         if ( verifyFile( dp->d_name ) )
+            {
+            return dp;
+            }
+         }
+      } // end while
 }
    if ( numOfUrlsInserted.load() )
       {
-   {
+{
       APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
       finalizeSection();
-   } // release bQLk
-   { // Regrabs dirLk to grab the direent
+} // release bQLk
+{ // Regrabs dirLk to grab the direent
       APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-      while( (dp = readdir (dir)) != NULL &&  dp->d_type != DT_REG )
+      while( (dp = readdir (dir)) != NULL )
          {
-         printf("%s\n", dp->d_name);
-         }
+         if ( dp->d_type == DT_REG )
+            {
+            if ( verifyFile( dp->d_name ) )
+               {
+               return dp;
+               }
+            } // end if
+         } // end while
       assert( dp != NULL );
-   }
-      }
+}
+      } // end if
    return dp;
    }
 
@@ -109,6 +134,7 @@ SetOfUrls::~SetOfUrls()
    std::cout << "Running Destructor...\n";
    if ( numOfUrlsInserted )
       {
+      APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
       finalizeSection();
       }
    assert( removeFile( backQPath ) );
@@ -120,7 +146,7 @@ void SetOfUrls::startNewFile()
    {
    assert( !backQLk.try_lock() );
    //char filename[] = "/tmp/temp.XXXXXX";
-   snprintf( backQPath, sizeof( backQPath ), "%s", "temp.XXXXXX" );
+   snprintf( backQPath, sizeof( backQPath ), "%s%c%s", dirPath, '/', "temp.XXXXXX" );
    // Open a new temp file
    int fd = mkstemp( backQPath );
    if ( fd < 0 )
@@ -173,16 +199,21 @@ bool SetOfUrls::popNewBatch()
 // and enqueue
 void SetOfUrls::finalizeSection( )
    {
+   
+   // Write to help signify this is a right file...
+   write( back.getFD(), "\r", 1 );
+
    static std::size_t globalCnt = 0;
    assert( !backQLk.try_lock() );
    char finalPath[PATH_MAX];
    std::chrono::time_point<std::chrono::system_clock> timeNow = std::chrono::system_clock::now();
    std::time_t converted = std::chrono::system_clock::to_time_t( timeNow );
-   snprintf( finalPath, sizeof( finalPath ), "%s%zu%s", "urlSlice" , globalCnt++, std::ctime( &converted ) );
+   snprintf( finalPath, sizeof( finalPath ), "%s%c%s%zu%s", dirPath, '/', "urlSlice" , globalCnt++, std::ctime( &converted ) );
    APESEARCH::replace( finalPath, finalPath + strlen( finalPath ), ' ', '-' ); // replace spaces with -
-
+   APESEARCH::replace( finalPath, finalPath + strlen( finalPath ), '\n', '\0' ); 
    // Create a hard link
-   if ( linkat( AT_FDCWD, backQPath, dir->__dd_fd, finalPath, 0 ) < 0 )
+   if ( rename( backQPath, finalPath ) < 0 )
+   //if ( linkat( AT_FDCWD, backQPath, dir->__dd_fd, finalPath, 0 ) < 0 )
       {
       perror("Issue with finalizeSection:");
       throw std::runtime_error( "Issue with finalizeSection" );
@@ -191,8 +222,6 @@ void SetOfUrls::finalizeSection( )
 
    numOfUrlsInserted.store(0);
    
-   // Remove temporary file
-   assert( removeFile( backQPath ) );
 
    // Grab lock for DIR
    // Dir entries have now been changed

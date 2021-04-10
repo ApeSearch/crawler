@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #ifndef SETOFURLS_H_APE_SEACH
@@ -56,6 +54,7 @@ public:
     struct dirent *getNextDirEntry( DIR *dir );
     bool popNewBatch();
     void finalizeSection( );
+    bool verifyFile( const char * );
 
     public:
         SetOfUrls();
