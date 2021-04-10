@@ -11,7 +11,7 @@ class Node
 {
 private:
     APESEARCH::unique_ptr<Socket> server;
-    APESEARCH::vector<struct addrinfo> addrinfos;
+    APESEARCH::vector<struct sockaddr_in> addrinfos;
     APESEARCH::vector<APESEARCH::unique_ptr<Socket>> sockets;
     APESEARCH::vector<APESEARCH::File> storage_files;
     APESEARCH::vector<APESEARCH::mutex> locks; //Used for sends, and atomic updates to storage_files

@@ -34,7 +34,7 @@ Node::Node(APESEARCH::vector<APESEARCH::string> ips, APESEARCH::string loc_ip) :
     //Create addrinfo structures for connecting
     for(int i = 0; i < ips.size(); ++i)
     {
-        struct addrinfo &addr = addrinfos[i];
+        struct sockaddr_in &addr = addrinfos[i];
         memset(&(addr), 0, sizeof(addr));
         addr.sin_family = AF_INET;    /* select internet protocol */
         addr.sin_port = htons(PORT);         /* set the port # */
@@ -50,7 +50,7 @@ Node::Node(APESEARCH::vector<APESEARCH::string> ips, APESEARCH::string loc_ip) :
         {
         try
             {
-            Socket *sock = new Socket((sockaddr_in)addrinfos[i]);
+            Socket *sock = new Socket(addrinfos[i]);
             unique_ptr<Socket> ptr(sock);
             sockets[i].swap(ptr);
             }
