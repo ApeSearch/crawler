@@ -2,6 +2,7 @@
 
 
 #include <iostream>
+using APESEARCH::unique_ptr;
 
 #define PORT 8080
 
@@ -15,18 +16,17 @@ Node::Node(vector<string> ips, string loc_ip) : sockets(ips.size()), addrinfos(i
         pathname[28] = '0' + i;
 
         try
-        { 
+            { 
             //Make sure that we never have more than one process appending unto these files.
             storage_files.emplace_back(File(pathname, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600));
-        }
+            }
         catch(failure &fail)
-        {
+            {
             //If you fail here we got nothing to do except manual debug
             std::cerr << "Failed opening node storage file " << pathname << '\n';
             //TODO probably need to exit immediatly since you don't have communication storage space
             exit(1);
-        }
-
+            }
     }
 
     //Create addrinfo structures for connecting
@@ -45,19 +45,19 @@ Node::Node(vector<string> ips, string loc_ip) : sockets(ips.size()), addrinfos(i
 
     //Premptive to connect to other nodes that have larger ids
     for(int i = node_id + 1; i < ip_addresses.size(); ++i)
-    {
-            try
+        {
+        try
             {
-                Socket *sock = new Socket(addrinfos[i]);
-                unique_ptr<Socket> ptr(sock);
-                sockets[i].swap(ptr);
+            Socket *sock = new Socket(addrinfos[i]);
+            unique_ptr<Socket> ptr(sock);
+            sockets[i].swap(ptr);
             }
-            //TODO make custom catch
-            catch(...)
+        //TODO make custom catch
+        catch(...)
             {
-                std::cerr << "Failed connecting to ip: " << ips[i] << '\n';
+            std::cerr << "Failed connecting to ip: " << ips[i] << '\n';
             }
-    }
+        }
 
     //Create server socket
     try
@@ -88,7 +88,7 @@ Node::~Node()
 
 //Use socket accept to get new sockets
 //Use fine grained locking to switch out sockets.
-Node::ConnectionHandler()
+void Node::connectionHandler()
 {
     //Since accept will block this is not spinning
     while(true)
@@ -96,7 +96,7 @@ Node::ConnectionHandler()
         struct sockaddr_in node_addr;
         socklen_t node_len = sizeof(node_addr);
         
-        try()
+        try
         {
             bool found_ip = false;
             unique_ptr<Socket> ptr = server.accept((struct sockaddr *) &node_addr, &node_len);
@@ -106,10 +106,9 @@ Node::ConnectionHandler()
 
             for (int i = node_id - 1; 0 < i; --i)
             {
-                if(!strcmp(ip, ips[i].c_str))
-                {
-                    locks[i].lock();
-
+                if(!strcmp(ip, ips[i].cstr()))
+                    {
+                    APESEARCH::unique_mutex<APESEARCH::mutex> lk( locks[i] );
                     sockets[i].swap(ptr);
 
                     locks[i].unlock();
@@ -177,7 +176,7 @@ Node::send( Link &link )
 }
 
 //Constantly reading from sockets
-Node::recieve()
+void Node::receive()
 {
     //Call recieve on socket
     //  Parse data into url section and 
