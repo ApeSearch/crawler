@@ -71,7 +71,6 @@ TEST( test_SetOfUrls )
       set.enqueue( "https://www.youtube.com/watch?v=oHg5SJYRHA0" );
       ASSERT_EQUAL( set.numOfUrlsInserted.load(), 1u );
       obj = set.dequeue();
-      //APESEARCH:: string( "https://www.youtube.com/watch?v=oHg5SJYRHA0" );
       ASSERT_EQUAL( obj.url, "https://www.youtube.com/watch?v=oHg5SJYRHA0" );
       ASSERT_EQUAL( obj.priority, 69 );
       }

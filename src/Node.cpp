@@ -8,7 +8,7 @@ using APESEARCH::unique_ptr;
 
 #define PORT 8080
 
-Node::Node(APESEARCH::vector<APESEARCH::string> ips, APESEARCH::string loc_ip) : sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip)
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip) : sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip)
 {
     constexpr char *pathname = "./storage_files/storage_filei.txt";
     //Get handles to files
@@ -31,33 +31,28 @@ Node::Node(APESEARCH::vector<APESEARCH::string> ips, APESEARCH::string loc_ip) :
             }
     }
 
+/*
     //Create addrinfo structures for connecting
     for(int i = 0; i < ips.size(); ++i)
     {
         struct sockaddr_in &addr = addrinfos[i];
         memset(&(addr), 0, sizeof(addr));
-        addr.sin_family = AF_INET;    /* select internet protocol */
-        addr.sin_port = htons(PORT);         /* set the port # */
-        addr.sin_addr.s_addr = inet_addr(ips[i].cstr()) /* set the addr */
+        addr.sin_family = AF_INET;    // select internet protocol 
+        addr.sin_port = htons(PORT);         // set the port # 
+        addr.sin_addr.s_addr = inet_addr(ips[i].cstr()) // set the addr
 
         if(ips[i] == local_ip)
             node_id = i;
     }
-
+*/
 
     //Premptive to connect to other nodes that have larger ids
     for(int i = node_id + 1; i < ips.size(); ++i)
         {
         try
             {
-            Socket *sock = new Socket(addrinfos[i]);
-            unique_ptr<Socket> ptr(sock);
-            sockets[i].swap(ptr);
-            }
-        //TODO make custom catch
-        catch(...)
-            {
-            std::cerr << "Failed connecting to ip: " << ips[i] << '\n';
+            //unique_ptr<Socket> ptr(sock);
+            //sockets[i].swap(ptr);
             }
         }
 
@@ -104,7 +99,7 @@ void Node::connectionHandler()
         try
         {
             unique_ptr<Socket> ptr = server->accept((struct sockaddr *) &node_addr, &node_len);
-            char *ip = inet_ntoa(node_addr.sin_addr);
+            char *ip; //= inet_ntoa(node_addr.sin_addr);
 
             //TODO strcmp vs make a string operator=
 
