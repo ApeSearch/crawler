@@ -84,6 +84,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
    assert( *directory == '/' );
    getcwd( cwd, PATH_MAX );
 
+   // Copy name into a buffer so it can be used later to close and reopen
    snprintf( dirPath, sizeof( dirPath ), "%s%s", cwd, directory );
    if ( ( dir = opendir( dirPath ) ) == NULL )
       {
@@ -91,7 +92,6 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
       throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
       } // end if
    
-   // Copy name into a buffer so it can be used later to close and reopen
 
    if ( !popNewBatch() )
       {
@@ -176,15 +176,13 @@ void SetOfUrls::finalizeSection( )
    static std::size_t globalCnt = 0;
    assert( !backQLk.try_lock() );
    char finalPath[PATH_MAX];
-   char sysTime[1024];
    std::chrono::time_point<std::chrono::system_clock> timeNow = std::chrono::system_clock::now();
    std::time_t converted = std::chrono::system_clock::to_time_t( timeNow );
-   snprintf( sysTime, sizeof( sysTime ), "%s%zu%s", "urlSlice" , globalCnt++, std::ctime( &converted ) );
-   APESEARCH::replace( sysTime, sysTime + strlen( sysTime ), ' ', '-' ); // replace spaces with -
-   //snprintf( finalPath, sizeof( finalPath ), "%s%s%c", dirPath, sysTime, '\0' );
+   snprintf( finalPath, sizeof( finalPath ), "%s%zu%s", "urlSlice" , globalCnt++, std::ctime( &converted ) );
+   APESEARCH::replace( finalPath, finalPath + strlen( finalPath ), ' ', '-' ); // replace spaces with -
 
    // Create a hard link
-   if ( linkat( AT_FDCWD, backQPath, dir->__dd_fd, sysTime, 0 ) < 0 )
+   if ( linkat( AT_FDCWD, backQPath, dir->__dd_fd, finalPath, 0 ) < 0 )
       {
       perror("Issue with finalizeSection:");
       throw std::runtime_error( "Issue with finalizeSection" );

@@ -1,8 +1,8 @@
+#pragma once
 
 #ifndef PARSEDURL_H_APESEARCH
 #define PARSEDURL_H_APESEARCH
-
-#pragma once
+#include <stdio.h>
 
 namespace {
    template<typename First, typename Second>
