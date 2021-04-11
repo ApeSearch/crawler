@@ -64,7 +64,7 @@ struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
    APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
    while( (dp = readdir (dir)) != NULL )
       {
-      if ( dp->d_type == DT_REG && strcmp( backQName, dp->d_name ) )
+      if ( dp->d_type == DT_REG && !strncmp( "urlSlice", dp->d_name, 8 ) && strcmp( backQName, dp->d_name ) )
          {
          if ( verifyFile( dp->d_name ) )
             {
