@@ -1,5 +1,7 @@
 #include "../include/crawler/Database.h"
 #include <stdlib.h>
+#include <iostream>
+
 //#include <linux/limits.h>
 
 #define NUM_OF_FILES 256
@@ -15,12 +17,13 @@ Database::Database()
         try
         {
             snprintf( path, sizeof( path ), "%s%d%s", anchor_root.cstr(), i, ".txt" );
-            anchorFiles.emplace_back( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
+            anchorFiles.emplace_back( path, O_RDWR | O_CREAT | O_EXCL | O_APPEND, (mode_t) 0600 );
             snprintf( path, sizeof( path ), "%s%d%s", parsed_root.cstr(), i, ".txt" );
-            parsedFiles.emplace_back( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
+            parsedFiles.emplace_back( path, O_RDWR | O_CREAT | O_EXCL | O_APPEND , (mode_t) 0600 );
         }
-        catch(...)
+        catch(APESEARCH::File::failure &f)
         {
+            std::cerr << f.getErrorNumber();
             exit(1);
         }
     }

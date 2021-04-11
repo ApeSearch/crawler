@@ -87,7 +87,7 @@ public:
     //Start listening server
     //Check if swap files exist and how much data they have in them currently
     //Must have ips in some ordering!
-    Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip, SetOfUrls&, Database &db);
+    Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip, SetOfUrls& _set, Database &db);
     ~Node();
 
     //1 dedicated thread-blocking
@@ -98,6 +98,8 @@ public:
     //If cannot send write to local file
     //
     void send(Link &link);
+
+    void sender(int i);
 
     // 7 dedicated threads non-blocking
     void receive(int i);

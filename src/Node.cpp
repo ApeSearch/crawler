@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #define FILESIZE_CHECKPOINT 65536
-#define MAXTHREADS 15
+#define MAXTHREADS 32
 #define BLOOMFILTER
 
 using APESEARCH::unique_ptr;
@@ -18,7 +18,7 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip,
     sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip), set( _set ), bloomFilter()
     ,pool( Node::CircBuf( MAXTHREADS ), MAXTHREADS, MAXTHREADS ), dataBase(db)
 {
-    APESEARCH::string pathname = "./storage_files/storage_file";
+    APESEARCH::string pathname = "./storageFiles/storage_file";
     char path[PATH_MAX];
     //Get handles to files
     for(int i = 0; i < ips.size(); ++i)
@@ -53,21 +53,6 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip,
             node_id = i;
     }
 
-
-    //Premptive to connect to other nodes that have larger ids
-    for(int i = node_id + 1; i < ips.size(); ++i)
-        {
-            try
-                {
-                unique_ptr<Socket> ptr(new Socket(addrinfos[i]));
-                sockets[i].swap(ptr);
-                }
-            catch(...)
-            {
-                std::cerr << "Could not connect to: " << ips[i] << '\n';
-            }
-        }
-
     //Create server socket on your node_id
     try
     {
@@ -87,13 +72,25 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip,
        };
     pool.submitNoFuture( connHandler );
 
-    //Call threadpool for 7 threads Connectors
-    for ( unsigned n = 0; n < ips.size() - 1; ++n )
+    //Call threadpool for Connectors
+    for ( unsigned i = node_id + 1; i < ips.size(); ++i )
        {
-        std::cout << "lol" << std::endl;
-       } // end forvoid addAnchorFile(Link &link);
+            auto conn = [this]( int i )
+            { this->Node::connector( i ); };
+            pool.submitNoFuture(conn, i);
+       } 
+
+    //Call threadpool for Senders
+    for ( unsigned i = 0; i < ips.size(); ++i )
+       {
+            auto sen = [this]( int i )
+            { this->Node::sender( i ); };
+            pool.submitNoFuture(sen, i);
+       } 
 
 }
+
+Node::~Node(){}
 
 void Node::connector( int i )
 {
@@ -109,6 +106,11 @@ void Node::connector( int i )
             {
                 unique_ptr<Socket> ptr(new Socket(addrinfos[i]));
                 sockets[i].swap(ptr);
+
+                auto func = [this]( int i )
+                { this->Node::receive( i ); };
+                pool.submitNoFuture(func, i);
+
                 return;
             }
             catch(...)
@@ -168,6 +170,37 @@ void Node::connectionHandler()
 
 }
 
+void Node::sender(int i)
+{
+    while(true)
+    {
+        sleep( 30u );
+        APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
+        if(sockets[i]->getFD() > 0)
+        {
+            ssize_t file_size = lseek(storage_files[i].getFD(), 0, SEEK_END); //find the size
+            lseek(storage_files[i].getFD(), 0, SEEK_SET); //Reset
+            try
+            {
+                unique_mmap mappedFile( file_size, PROT_READ, MAP_SHARED, storage_files[i].getFD(), 0 );
+                sockets[i]->send( (const char *) mappedFile.get(), file_size);
+                storage_files[i].truncate(0);
+            }
+            catch(...)
+            {
+                unique_ptr<Socket> ptr(new Socket());
+                ptr.swap(sockets[i]);
+                if(i > node_id)
+                    {
+                    auto func = [this]( int i )
+                    { this->connector( i ); };
+                    pool.submitNoFuture(func, i );
+                    }
+            }
+        }
+    }
+}
+
 //Try to send n times unless the connection is closed,
 //Then try to create a new socket
 //If sent n times and connection is still open or new connection cannot be made write to swap file
@@ -194,15 +227,11 @@ void Node::send( Link &link )
     if(val == node_id)
     {
         //TODO
-        //if not in bloom filter
         if(new_link)
         {
             //  TODO write to frontier
         }
-
-        // TODO Write(anchor text vector) to database
         dataBase.addAnchorFile(link);
-        
     }
     else{
         
@@ -215,35 +244,7 @@ void Node::send( Link &link )
             storage_files[val].write(link.anchorText[i].cstr(), link.anchorText[i].size());
             storage_files[val].write(space_char, 1);            
         }
-        storage_files[val].write(null_char, 1);
-        
-        
-        ssize_t file_size = lseek(storage_files[val].getFD(), 0, SEEK_END); //find the size
-        lseek(storage_files[val].getFD(), 0, SEEK_SET); //Reset
-
-        if(file_size > FILESIZE_CHECKPOINT && sockets[val]->getFD() > 0 )
-        {
-            try
-            {
-                unique_mmap mappedFile( file_size, PROT_READ, MAP_SHARED, storage_files[val].getFD(), 0 );
-                sockets[val]->send( (const char *) mappedFile.get(), file_size);
-                lseek(storage_files[val].getFD(), 0, SEEK_SET); //Reset
-                storage_files[val].truncate(0);
-            }
-            catch(...)
-            {
-                unique_ptr<Socket> ptr(new Socket());
-                ptr.swap(sockets[val]);
-                if(val > node_id)
-                    {
-                    auto func = [this]( int val )
-                    { this->connector( val ); };
-                    pool.submitNoFuture(func, val );
-                    }
-            }
-            
-        }
-         
+        storage_files[val].write(null_char, 1);   
     }
 }
 
