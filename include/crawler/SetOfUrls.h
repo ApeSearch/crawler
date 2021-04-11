@@ -54,7 +54,7 @@ public:
     struct dirent *getNextDirEntry( DIR *dir );
     bool popNewBatch();
     void finalizeSection( );
-    bool verifyFile( const char * );
+    bool verifyFile( const char * ) const;
     bool forceWrite();
 
     public:

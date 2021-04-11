@@ -29,15 +29,12 @@ static size_t FileSize( int f )
    }
       
 /*
- * Shrinks a char vector to newSize
+ * REQUIRES: filename is a valid file
+ * MODIFIES: Nothing
+ *  EFFECTS: Verifies that a specific file is one that is part of the frontier
+ *           by checking the last character ( which should be '\r' ).
 */
-static void shrinkSize( APESEARCH::vector<char>& buffer, const size_t newSize )
-   {
-   while( newSize < buffer.size() )
-      buffer.pop_back();
-   }
-
-bool SetOfUrls::verifyFile( const char *filename )
+bool SetOfUrls::verifyFile( const char *filename ) const
    {
    char buf[1024];
    snprintf( buf, sizeof( buf ), "%s%c%s", dirPath, '/', filename );
@@ -53,7 +50,7 @@ bool SetOfUrls::forceWrite()
    if ( retval )
       {
       APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
-      finalizeSection();
+      finalizeSection(); // Forcefully write to file
       } // end if
 
    return retval;
@@ -105,6 +102,7 @@ SetOfUrls::~SetOfUrls()
       // Looks for a valid url...
       if ( APESEARCH::find( frontQPtr, frontQEnd, '\n' ) != frontQEnd )
          {
+         ++numOfUrlsInserted;
       {
          APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
          startNewFile();
@@ -117,7 +115,7 @@ SetOfUrls::~SetOfUrls()
          } // end if
          assert( removeFile( frontQFileName ) );
       } // end if
-   removeFile( backQPath);
+   removeFile( backQPath );
    closedir( dir );
    } // end destructor
 
@@ -220,7 +218,7 @@ bool SetOfUrls::popNewBatch()
 void SetOfUrls::finalizeSection( )
    {
    assert( !backQLk.try_lock() );
-   //assert( numOfUrlsInserted.load() > 0 );
+   assert( numOfUrlsInserted.load() > 0 );
 
    // Write to help signify this is a right file...
    write( back.getFD(), "\r", 1 );
