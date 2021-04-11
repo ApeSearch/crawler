@@ -10,7 +10,9 @@ static void setUpInput()
    {
    char path[PATH_MAX];
    getcwd( dirPath, PATH_MAX );
-   snprintf( dirPath, sizeof( dirPath ), "%s%s", dirPath, "/tests/input" );
+   size_t length = strlen( dirPath );
+   snprintf( dirPath + length, sizeof( dirPath ) - length, "%s", "/tests/input" );
+   printf("Opening directory: %s\n", dirPath);
 
    DIR *dir = opendir( dirPath );
    ASSERT_NOT_EQUAL( dir, nullptr );

@@ -7,7 +7,6 @@
 #include <unistd.h> // for getcwd
 #include <stdlib.h> // for mkstemp
 #include <stdio.h> // for unlink() => remove paths
-#include <stdio.h>
 #include <chrono>
 #include <ctime>
 
@@ -147,6 +146,7 @@ void SetOfUrls::startNewFile()
    assert( !backQLk.try_lock() );
    //char filename[] = "/tmp/temp.XXXXXX";
    snprintf( backQPath, sizeof( backQPath ), "%s%c%s", dirPath, '/', "temp.XXXXXX" );
+   //snprintf( backQPath, sizeof( backQPath ), "%s", "temp.XXXXXX" );
    // Open a new temp file
    int fd = mkstemp( backQPath );
    if ( fd < 0 )
@@ -206,19 +206,20 @@ void SetOfUrls::finalizeSection( )
    static std::size_t globalCnt = 0;
    assert( !backQLk.try_lock() );
    char finalPath[PATH_MAX];
+   char buf[1024];
    std::chrono::time_point<std::chrono::system_clock> timeNow = std::chrono::system_clock::now();
    std::time_t converted = std::chrono::system_clock::to_time_t( timeNow );
    snprintf( finalPath, sizeof( finalPath ), "%s%c%s%zu%s", dirPath, '/', "urlSlice" , globalCnt++, std::ctime( &converted ) );
    APESEARCH::replace( finalPath, finalPath + strlen( finalPath ), ' ', '-' ); // replace spaces with -
    APESEARCH::replace( finalPath, finalPath + strlen( finalPath ), '\n', '\0' ); 
-   // Create a hard link
+
    if ( rename( backQPath, finalPath ) < 0 )
-   //if ( linkat( AT_FDCWD, backQPath, dir->__dd_fd, finalPath, 0 ) < 0 )
       {
       perror("Issue with finalizeSection:");
       throw std::runtime_error( "Issue with finalizeSection" );
       }  // end if
    fprintf( stderr, "Written %s to disk\n", finalPath );
+   //assert( removeFile( backQPath ) );
 
    numOfUrlsInserted.store(0);
    

@@ -1,13 +1,15 @@
 #include "../include/crawler/Database.h"
 #include <stdlib.h>
+//#include <linux/limits.h>
 
 #define NUM_OF_FILES 256
+#define MAX_PATH 1024
 
 Database::Database()
 {
     APESEARCH::string anchor_root = "./anchorFiles/anchorFile";
     APESEARCH::string parsed_root = "./parsedFiles/parsedFile";
-    char path[PATH_MAX];
+    char path[MAX_PATH];
     for(int i = 0; i < NUM_OF_FILES; i++)
     {   
         try

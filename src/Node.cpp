@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#define _LARGE_FILE_API 
 
 #define FILESIZE_CHECKPOINT 65536
 #define MAXTHREADS 15
