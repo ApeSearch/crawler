@@ -9,17 +9,36 @@
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/HashTable/include/HashTable/FNV.h"
 
+struct DBBucket
+   {
+   DBBucket() = default;
+   DBBucket( size_t index );
+   ~DBBucket() {}
+   DBBucket( DBBucket&& other ) : parsedFile( std::move( other.parsedFile ) ), anchorFile( std::move( other.parsedFile ) ) {}
+
+   DBBucket& operator=( DBBucket&& other )
+      {
+      APESEARCH::swap( parsedFile, other.parsedFile );
+      APESEARCH::swap( anchorFile, other.anchorFile );
+      return *this;
+      }
+
+   APESEARCH::mutex anchor_lock;
+   APESEARCH::mutex parsed_lock;
+   APESEARCH::File parsedFile;
+   APESEARCH::File anchorFile;
+   };
+
 class Database 
 {
+    
     public:
         Database();
         ~Database();
         void addAnchorFile(Link &link);
-        void addParsedFile();
+        void addParsedFile(HtmlParser &parser);
     private:
-        APESEARCH::vector<APESEARCH::File> parsedFiles;
-        APESEARCH::vector<APESEARCH::File> anchorFiles;
-        APESEARCH::vector<APESEARCH::mutex> database_locks;
+        APESEARCH::vector<DBBucket> file_vector;
         FNV hash;
 };
 
