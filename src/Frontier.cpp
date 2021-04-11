@@ -6,9 +6,9 @@ std::size_t UrlFrontier::FrontEndPrioritizer::pickQueue()
     return 1;
    }
 
-UrlObj UrlFrontier::FrontEndPrioritizer::getUrl()
+UrlObj UrlFrontier::FrontEndPrioritizer::getUrl( SetOfUrls& set )
    {
-    return UrlObj();
+    return set.dequeue();
    }
 
 void UrlFrontier::FrontEndPrioritizer::putUrl()
@@ -18,11 +18,13 @@ void UrlFrontier::FrontEndPrioritizer::putUrl()
 
 UrlObj UrlFrontier::BackendPolitenessPolicy::obtainRandUrl()
    {
-    return UrlObj();
+   
+   return UrlObj();
    }
 
 UrlObj UrlFrontier::BackendPolitenessPolicy::getMostOkayUrl()
    {
+    
     return UrlObj();
    }
 
@@ -35,11 +37,29 @@ UrlFrontier::UrlFrontier( const char *directory ) : set( directory )
    {
    }
 
-void UrlFrontier::getNextUrl( APESEARCH::string& buffer )
+APESEARCH::string UrlFrontier::getNextUrl( )
    {
-    return;
+    UrlObj obj( backEnd.getMostOkayUrl() );
+    return obj.url;
    }
 bool UrlFrontier::insertNewUrl( APESEARCH::string&& url )
    {
     return true;
+   }
+
+bool UrlFrontier::BackendPolitenessPolicy::insertTiming( domainTiming&& timing  )
+   {
+   std::string str( timing.domain.begin(), timing.domain.end() );
+   std::unordered_map<std::string, size_t>::iterator itr;
+{
+   APESEARCH::unique_lock<APESEARCH::mutex> uniqMapLk( mapLk );
+   itr = backendDomains.find( str );
+} // ~uniqMapLk
+   if ( itr != backendDomains.end() )
+      {
+      APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
+      backendHeap.emplace( std::forward<domainTiming>( timing ) );
+      return true;
+      } // end if
+   return false;
    }

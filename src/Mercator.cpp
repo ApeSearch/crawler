@@ -5,6 +5,31 @@
 #include <string> // needed to get idea out
 #include <iostream>
 
+#define MULTIPLE 10
+
+std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono::time_point<std::chrono::system_clock>& start, 
+      const std::chrono::time_point<std::chrono::system_clock>& end )
+   {
+   auto startMs = std::chrono::time_point_cast<std::chrono::milliseconds>( start );
+   auto endMs = std::chrono::time_point_cast<std::chrono::milliseconds>( end );
+
+   auto startVal = startMs.time_since_epoch();
+   auto endVal = endMs.time_since_epoch();
+
+   long duration = endVal.count() - startVal.count();
+
+   assert( duration >= 0 );
+
+   duration *= MULTIPLE;
+
+   long newStart = endVal.count() + duration;
+
+   std::chrono::milliseconds dur( newStart );
+   std::chrono::time_point<std::chrono::system_clock> dt( dur );
+
+   return dt;
+   } // end getNewTime
+
 // Only need one thread for this since it would otherwise 
 // create contention...
 void APESEARCH::Mercator::crawler()
@@ -15,11 +40,15 @@ void APESEARCH::Mercator::crawler()
 
     while( liveliness.load() )
        {
-        frontier.getNextUrl( buffer ); // Writes directly to buffer
-        
+        buffer = frontier.getNextUrl( ); // Writes directly to buffer
+        std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
         result = requester.getReqAndParse( buffer.cstr() );
-
         // At the end of this task, the buffer will be reinserted back into urlBuffers...
+        std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+
+        std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
+      
+        frontier.backEnd.insertTiming( domainTiming( whenCanCrawlAgain, std::move( buffer ) ) );
         switch( result.status )
            {
             case getReqStatus::successful:

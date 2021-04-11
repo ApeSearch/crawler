@@ -63,7 +63,6 @@ public:
         ~SetOfUrls();
         UrlObj dequeue();
         void enqueue( const APESEARCH::string &url );
-        void enqueue( APESEARCH::string &&url );
    }; // SetOfUrls
 
 #endif

@@ -243,7 +243,6 @@ void SetOfUrls::finalizeSection( )
    fprintf( stderr, "File temp has now been renamed from %s to %s\n", backQPath, finalPath );
    fprintf( stderr, "Written %s to disk\n", finalPath );
 #endif
-   //assert( removeFile( backQPath ) );
 
    numOfUrlsInserted.store(0);
    
@@ -306,11 +305,6 @@ UrlObj SetOfUrls::dequeue()
       popNewBatch();
       }
    return obj;
-   }
-
-void SetOfUrls::enqueue( APESEARCH::string &&url )
-   {
-   enqueue( url );
    }
 
 void SetOfUrls::enqueue( const APESEARCH::string &url )
