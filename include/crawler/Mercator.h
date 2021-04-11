@@ -12,6 +12,7 @@
 #include "../../libraries/AS/include/AS/as_semaphore.h"
 #include "../../libraries/AS/include/AS/circular_buffer.h"
 #include "../../Parser/HtmlParser.h"
+#include "Node.h"
 #include <atomic>
 #include <assert.h>
 
@@ -114,6 +115,7 @@ namespace APESEARCH
       PThreadPool<CircBuf> pool; // The main threads that serve tasks
       UrlFrontier frontier;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
+      //Node networkNode;
 
 
       void crawler();

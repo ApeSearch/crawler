@@ -21,19 +21,29 @@
 #include <dirent.h>
 
 #include<chrono>
+#include<ctime>
 
 struct domainTiming
 {
     //Indicates moment when crawlable. Value is computed based on current time
     std::chrono::time_point<std::chrono::system_clock> timeWCanCrawl; 
+    //std::time_t timeWCanCrawl;
     APESEARCH::string domain;
-    //TODO implement comparator
+
+    domainTiming() = default;
+
+    domainTiming( const std::chrono::time_point<std::chrono::system_clock>& _time, APESEARCH::string&& _domain )
+       : timeWCanCrawl( _time ), domain( _domain ) {}
+    
+    //domainTiming( domainTiming&& other ) : timeWCanCrawl( std::move( other.timeWCanCrawl ) ), domain( std::move( other.domain ) ) {}
+    domainTiming( const domainTiming& other ) : timeWCanCrawl( other.timeWCanCrawl ), domain( other.domain ) {}
 
     struct compareTime
        {
-        bool okToReq( const domainTiming& lhs, const domainTiming& rhs )
+        // needs to be greater since we want a min heap
+        bool operator()( const domainTiming& lhs, const domainTiming& rhs )
            {
-            return true;
+            return lhs.timeWCanCrawl > rhs.timeWCanCrawl;
            }
        };
 };
@@ -48,12 +58,11 @@ class UrlFrontier
         APESEARCH::vector<APESEARCH::queue<UrlObj, APESEARCH::circular_buffer< UrlObj, 
                 APESEARCH::DEFAULT::defaultBuffer< UrlObj, urlsPerPriority> > > >
                                         pQueues;
-        char *urlsToCrawl_front; // memory-mapped queue of urls to be crawled
 
         std::size_t pickQueue(); // user-defined prirority for picking which queue to pop from
     public:
         FrontEndPrioritizer() = default;
-        UrlObj getUrl();
+        UrlObj getUrl( SetOfUrls& );
         void putUrl();
     };
 
@@ -63,18 +72,21 @@ class UrlFrontier
         static constexpr std::size_t amtEndQueues = 3000; // This assumes 1000 crawlers
         using DefaultBuf = APESEARCH::circular_buffer< UrlObj, 
                 APESEARCH::DEFAULT::defaultBuffer< UrlObj, endQueueSize> >;
-        APESEARCH::priority_queue<domainTiming, domainTiming::compareTime> backendHeap;
+        APESEARCH::priority_queue<domainTiming, 
+            APESEARCH::BinaryPQ<domainTiming, domainTiming::compareTime >, 
+            domainTiming::compareTime> backendHeap;
+        APESEARCH::mutex pqLk;
 
         std::unordered_map<std::string, size_t> backendDomains;
+        APESEARCH::mutex mapLk;
         APESEARCH::vector< APESEARCH::queue<UrlObj, DefaultBuf> > domainQueues;
         UrlObj obtainRandUrl();
     public:
         BackendPolitenessPolicy( ) = default;
         UrlObj getMostOkayUrl();
+        bool insertTiming( domainTiming&& timing  );
     };
 
-    FrontEndPrioritizer frontEnd;
-    BackendPolitenessPolicy backEnd;
     SetOfUrls set;
     std::atomic<bool> liveliness;
 
@@ -85,28 +97,15 @@ class UrlFrontier
     static unsigned ratingOfTopLevelDomain( const char * );
 
 public:
+    FrontEndPrioritizer frontEnd;
+    BackendPolitenessPolicy backEnd;
     UrlFrontier() = default;
     UrlFrontier( const char * );
-    void getNextUrl( APESEARCH::string& buffer );
+    APESEARCH::string getNextUrl( );
     bool insertNewUrl( APESEARCH::string&& url );
 
 
     void shutdown(); // signals threads to stop
 };
-
-struct Dirent *getNextDirEntry( DIR *dir );
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif
