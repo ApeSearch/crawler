@@ -94,5 +94,11 @@ TEST( test_SetOfUrls )
       }
   
    }
+   TEST( test_SetOfUrls_After )
+      {
+      SetOfUrls set( "/tests/input" );
+      UrlObj obj( set.dequeue() );
+      ASSERT_EQUAL( obj.url, "" );
+      }
 
 TEST_MAIN()

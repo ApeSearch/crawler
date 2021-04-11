@@ -47,68 +47,17 @@ bool SetOfUrls::verifyFile( const char *filename )
    return *buf == '\r';
    }
 
-/*
- *  Searches a Directory ( dir ) until it either reaches the end ( when readdir returns NULL),
- *  while skipping any non-files and the . and .. directories.
- * 
- * REQUIRES: Nothing
- * MODIFIES: DIR *dir (through readdir and finalizeSection), back ( through finalizeSection->startNewFile ),
- *           numOfUrlsInserted ( through finalizeSection )
- *  EFFECTS: Searches through DIR *dir's direntries for a file that can be memory-mapped for urls.
- *           Returns a pointer to it, else returns an empty one ( where direntry * is a nullptr )
-*/
-struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
+bool SetOfUrls::forceWrite()
    {
-   struct dirent *dp;
-{
-   APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-   while( (dp = readdir (dir)) != NULL )
+   bool retval = numOfUrlsInserted.load() > 0;
+   if ( retval )
       {
-      if ( dp->d_type == DT_REG && !strncmp( "urlSlice", dp->d_name, 8 ) && strcmp( backQName, dp->d_name ) )
-         {
-         if ( verifyFile( dp->d_name ) )
-            {
-            return dp;
-            }
-         else 
-            {
-            char filename[1024];
-            snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
-            removeFile( filename );
-            }
-         }
-      } // end while
-}
-   if ( numOfUrlsInserted.load() )
-      {
-{
       APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
       finalizeSection();
-} // release bQLk
-{ // Regrabs dirLk to grab the direent
-      APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-      while( (dp = readdir (dir)) != NULL )
-         {
-         if ( dp->d_type == DT_REG )
-            {
-            if ( verifyFile( dp->d_name ) && strcmp( backQName, dp->d_name ) )
-               {
-               return dp;
-               }
-            else 
-            {
-            char filename[1024];
-            snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
-            removeFile( filename );
-            }
-            } // end if
-         } // end while
-      assert( dp != NULL );
-}
       } // end if
-   return dp;
-   }
 
+   return retval;
+   }
 
 SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    {
@@ -142,15 +91,71 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
 
 SetOfUrls::~SetOfUrls()
    {
-   std::cout << "Running Destructor...\n";
+#ifdef DEBUG
+   std::cerr << "Running Destructor...\n";
+#endif
    if ( numOfUrlsInserted )
       {
       APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
       finalizeSection();
       }
+   // Write the rest of front of queue into a different place...
+   if ( frontQPtr )
+      {
+      // Looks for a valid url...
+      if ( APESEARCH::find( frontQPtr, frontQEnd, '\n' ) != frontQEnd )
+         {
+      {
+         APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
+         startNewFile();
+      }
+         back.write( frontQPtr, frontQEnd - frontQPtr );
+      {
+         APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
+         finalizeSection();
+      }        
+         } // end if
+         assert( removeFile( frontQFileName ) );
+      } // end if
    removeFile( backQPath);
    closedir( dir );
+   } // end destructor
+
+/*
+ *  Searches a Directory ( dir ) until it either reaches the end ( when readdir returns NULL),
+ *  while skipping any non-files and the . and .. directories.
+ * 
+ * REQUIRES: Nothing
+ * MODIFIES: DIR *dir (through readdir and finalizeSection), back ( through finalizeSection->startNewFile ),
+ *           numOfUrlsInserted ( through finalizeSection )
+ *  EFFECTS: Searches through DIR *dir's direntries for a file that can be memory-mapped for urls.
+ *           Returns a pointer to it, else returns an empty one ( where direntry * is a nullptr )
+*/
+struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
+   {
+   struct dirent *dp;
+   do
+   {
+      APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
+      while( (dp = readdir (dir)) != NULL )
+         {
+         if ( dp->d_type == DT_REG && !strncmp( "urlSlice", dp->d_name, 8 ) )
+            {
+            if ( verifyFile( dp->d_name ) )
+               break;
+            else // Possible something bad happened to this file
+               {
+               char filename[1024];
+               snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
+               removeFile( filename );
+               }
+            }
+         } // end while
+   } while ( forceWrite() );
+   return dp;
    }
+
+
 
 // Assumes lock is held
 void SetOfUrls::startNewFile()
@@ -158,7 +163,6 @@ void SetOfUrls::startNewFile()
    assert( !backQLk.try_lock() );
    //char filename[] = "/tmp/temp.XXXXXX";
    snprintf( backQPath, sizeof( backQPath ), "%s%c%s", dirPath, '/', "temp.XXXXXX" );
-   backQName = strstr( backQPath, "temp." );
    //snprintf( backQPath, sizeof( backQPath ), "%s", "temp.XXXXXX" );
    // Open a new temp file
    int fd = mkstemp( backQPath );
@@ -168,14 +172,17 @@ void SetOfUrls::startNewFile()
       throw std::runtime_error( "Issue making a temporary file\n");
       }
    back = APESEARCH::File( fd );
-
+#ifdef DEBUG
    fprintf( stderr, "Starting new file%s\n", backQPath );
+#endif
    } // end startNewFile()
 
 bool SetOfUrls::removeFile( const char *fileName )
    {
    assert( fileName );
+#ifdef DEBUG
    fprintf( stderr, "Removing file %s from disk\n", fileName );
+#endif
    return !remove( fileName );
    }
 
@@ -212,7 +219,9 @@ bool SetOfUrls::popNewBatch()
 // and enqueue
 void SetOfUrls::finalizeSection( )
    {
-   
+   assert( !backQLk.try_lock() );
+   //assert( numOfUrlsInserted.load() > 0 );
+
    // Write to help signify this is a right file...
    write( back.getFD(), "\r", 1 );
 
@@ -231,8 +240,10 @@ void SetOfUrls::finalizeSection( )
       perror("Issue with finalizeSection:");
       throw std::runtime_error( "Issue with finalizeSection" );
       }  // end if
+#ifdef DEBUG
    fprintf( stderr, "File temp has now been renamed from %s to %s\n", backQPath, finalPath );
    fprintf( stderr, "Written %s to disk\n", finalPath );
+#endif
    //assert( removeFile( backQPath ) );
 
    numOfUrlsInserted.store(0);
