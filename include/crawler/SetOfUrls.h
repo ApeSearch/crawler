@@ -37,6 +37,7 @@ public:
     char cwd[PATH_MAX];
     char dirPath[PATH_MAX];
     char backQPath[PATH_MAX];
+    char const *backQName;
     char frontQFileName[PATH_MAX];
     char const *frontQPtr, *frontQEnd;
     DIR *dir;

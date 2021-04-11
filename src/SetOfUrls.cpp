@@ -64,11 +64,17 @@ struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
    APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
    while( (dp = readdir (dir)) != NULL )
       {
-      if ( dp->d_type == DT_REG && strcmp( backQPath, dp->d_name ) )
+      if ( dp->d_type == DT_REG && strcmp( backQName, dp->d_name ) )
          {
          if ( verifyFile( dp->d_name ) )
             {
             return dp;
+            }
+         else 
+            {
+            char filename[1024];
+            snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
+            removeFile( filename );
             }
          }
       } // end while
@@ -85,10 +91,16 @@ struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
          {
          if ( dp->d_type == DT_REG )
             {
-            if ( verifyFile( dp->d_name ) )
+            if ( verifyFile( dp->d_name ) && strcmp( backQName, dp->d_name ) )
                {
                return dp;
                }
+            else 
+            {
+            char filename[1024];
+            snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
+            removeFile( filename );
+            }
             } // end if
          } // end while
       assert( dp != NULL );
@@ -136,7 +148,7 @@ SetOfUrls::~SetOfUrls()
       APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
       finalizeSection();
       }
-   assert( removeFile( backQPath ) );
+   removeFile( backQPath);
    closedir( dir );
    }
 
@@ -146,6 +158,7 @@ void SetOfUrls::startNewFile()
    assert( !backQLk.try_lock() );
    //char filename[] = "/tmp/temp.XXXXXX";
    snprintf( backQPath, sizeof( backQPath ), "%s%c%s", dirPath, '/', "temp.XXXXXX" );
+   backQName = strstr( backQPath, "temp." );
    //snprintf( backQPath, sizeof( backQPath ), "%s", "temp.XXXXXX" );
    // Open a new temp file
    int fd = mkstemp( backQPath );
@@ -218,22 +231,16 @@ void SetOfUrls::finalizeSection( )
       perror("Issue with finalizeSection:");
       throw std::runtime_error( "Issue with finalizeSection" );
       }  // end if
+   fprintf( stderr, "File temp has now been renamed from %s to %s\n", backQPath, finalPath );
    fprintf( stderr, "Written %s to disk\n", finalPath );
    //assert( removeFile( backQPath ) );
 
    numOfUrlsInserted.store(0);
    
-
    // Grab lock for DIR
    // Dir entries have now been changed
    APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-   closedir( dir );
-   dir = opendir( dirPath );
-   if ( dir == NULL )
-      {
-      perror( dirPath );
-      throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
-      } // end if
+   rewinddir( dir );
 
    // Need to start new file while dir lock is held
    startNewFile();
@@ -262,13 +269,7 @@ UrlObj SetOfUrls::dequeue()
          assert( removeFile( frontQFileName ) );
       {
          APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-         closedir( dir );
-         dir = opendir( dirPath );
-         if ( dir == NULL )
-            {
-            perror( dirPath );
-            throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
-            } // end if
+         rewinddir( dir );
       }
          frontQPtr = nullptr;
          if ( popNewBatch() )
@@ -289,13 +290,7 @@ UrlObj SetOfUrls::dequeue()
       assert( removeFile( frontQFileName ) );
    {
       APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-      closedir( dir );
-      dir = opendir( dirPath );
-      if ( dir == NULL )
-         {
-         perror( dirPath );
-         throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
-         } // end if
+      rewinddir( dir );
    }
       frontQPtr = nullptr;
       popNewBatch();
