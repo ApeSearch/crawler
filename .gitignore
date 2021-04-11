@@ -31,6 +31,8 @@
 *.out
 tests/bin/*
 tests/std_bin/*
+tests/parsedFiles
+tests/anchorFiles
 *.app
 
 others
