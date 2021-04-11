@@ -30,14 +30,7 @@ Database::Database()
     {   
         try
         {
-<<<<<<< HEAD
             file_vector.emplace_back( i );
-=======
-            snprintf( path, sizeof( path ), "%s%d%s", anchor_root.cstr(), i, ".txt" );
-            anchorFiles.emplace_back( path, O_RDWR | O_CREAT | O_EXCL | O_APPEND, (mode_t) 0600 );
-            snprintf( path, sizeof( path ), "%s%d%s", parsed_root.cstr(), i, ".txt" );
-            parsedFiles.emplace_back( path, O_RDWR | O_CREAT | O_EXCL | O_APPEND , (mode_t) 0600 );
->>>>>>> dca571db1225cf4d01bec51a24eaa56e54263e1f
         }
         catch(APESEARCH::File::failure &f)
         {
