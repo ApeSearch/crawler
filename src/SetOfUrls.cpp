@@ -146,6 +146,7 @@ struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
                char filename[1024];
                snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
                removeFile( filename );
+               rewinddir( dir );
                }
             }
          } // end while
@@ -226,7 +227,7 @@ void SetOfUrls::finalizeSection( )
    static std::size_t globalCnt = 0;
    assert( !backQLk.try_lock() );
    char finalPath[PATH_MAX];
-   char buf[1024];
+
    std::chrono::time_point<std::chrono::system_clock> timeNow = std::chrono::system_clock::now();
    std::time_t converted = std::chrono::system_clock::to_time_t( timeNow );
    snprintf( finalPath, sizeof( finalPath ), "%s%c%s%zu%s", dirPath, '/', "urlSlice" , globalCnt++, std::ctime( &converted ) );
