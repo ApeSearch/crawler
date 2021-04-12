@@ -1,4 +1,4 @@
-
+//url -Hash---> machine, domain ---Hash2---> merc_queue
 #pragma once
 
 #ifndef NODE_H_AS

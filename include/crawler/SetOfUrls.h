@@ -8,6 +8,7 @@
 #include "../../libraries/AS/include/AS/File.h"
 #include "../../libraries/AS/include/AS/string.h"
 #include "../../libraries/AS/include/AS/mutex.h"
+#include "../libraries/AS/include/AS/condition_variable.h"
 #include <sys/types.h>
 #include <dirent.h> // for DIR 
 #include <atomic>
@@ -22,7 +23,7 @@ struct UrlObj
 
     APESEARCH::string url;
     size_t priority; // Indicate which bucket to place priority
-};
+}; // end UrlObj
 
 class SetOfUrls
    {
@@ -48,6 +49,7 @@ public:
     APESEARCH::mutex dirLk;
     APESEARCH::mutex frntQLk;
     APESEARCH::mutex backQLk;
+    APESEARCH::condition_variable cv;
 
     void startNewFile();
     bool removeFile( const char * );
@@ -56,12 +58,14 @@ public:
     void finalizeSection( );
     bool verifyFile( const char * ) const;
     bool forceWrite();
-
+    inline UrlObj helperDeq();
     public:
         SetOfUrls();
         SetOfUrls( const char * );
         ~SetOfUrls();
         UrlObj dequeue();
+        UrlObj blockingDequeue();
+        const char *front();
         void enqueue( const APESEARCH::string &url );
    }; // SetOfUrls
 

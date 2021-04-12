@@ -41,6 +41,11 @@ class ParsedUrl
          return pair<const char *, size_t>( getRequest, static_cast<size_t> ( reqSize ) );
       } // end formRequest()
 
+      ParsedUrl( ParsedUrl&& other ) : CompleteUrl( other.CompleteUrl ), 
+         Service( other.Service ), Host( other.Host ), Port( other.Port ), Path( other.Path )
+         {
+         other.Path = other.getRequest = nullptr;
+         }
 
       ParsedUrl( const char *url )
          {
