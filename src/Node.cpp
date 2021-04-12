@@ -173,8 +173,7 @@ void Node::sender(int i)
         APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
         if(sockets[i]->getFD() > 0)
         {
-            ssize_t file_size = lseek(storage_files[i].getFD(), 0, SEEK_END); //find the size
-            lseek(storage_files[i].getFD(), 0, SEEK_SET); //Reset
+            ssize_t file_size = storage_files[i].fileSize();
             try
             {
                 unique_mmap mappedFile( file_size, PROT_READ, MAP_SHARED, storage_files[i].getFD(), 0 );
