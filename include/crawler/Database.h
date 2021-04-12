@@ -31,14 +31,15 @@ struct DBBucket
 
 class Database 
 {
-    
+#ifdef DEBUG
+    public:
+#endif
+    APESEARCH::vector<DBBucket> file_vector;
     public:
         Database();
         ~Database();
         void addAnchorFile(Link &link);
         void addParsedFile(HtmlParser &parser);
-    private:
-        APESEARCH::vector<DBBucket> file_vector;
         FNV hash;
 };
 
