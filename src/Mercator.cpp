@@ -35,26 +35,26 @@ std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono
 void APESEARCH::Mercator::crawler()
    {
     Request requester;
-    string buffer;
+    string url;
     Result result;
 
     while( liveliness.load() )
        {
-        buffer = frontier.getNextUrl( ); // Writes directly to buffer
+        url = frontier.getNextUrl( ); // Writes directly to buffer
         std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
-        result = requester.getReqAndParse( buffer.cstr() );
+        result = requester.getReqAndParse( url.cstr() );
         // At the end of this task, the buffer will be reinserted back into urlBuffers...
         std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
 
         std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
       
-        frontier.backEnd.insertTiming( domainTiming( whenCanCrawlAgain, std::move( buffer ) ) );
+        frontier.backEnd.insertTiming( domainTiming( whenCanCrawlAgain, std::move( url ) ) );
         switch( result.status )
            {
             case getReqStatus::successful:
                {
-               pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }]( )
-               { this->parser( buffer ); } );
+               pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }, url{ std::move( url ) } ]( )
+               { this->parser( buffer, url ); } );
                break;
                }
             case getReqStatus::redirected:
@@ -66,9 +66,9 @@ void APESEARCH::Mercator::crawler()
        } // end while
    } // end urlExtractor()
 
-void APESEARCH::Mercator::parser( const std::string& buffer )
+void APESEARCH::Mercator::parser( const std::string& buffer, const APESEARCH::string &url )
    {
-   HtmlParser parser( buffer.c_str(), buffer.size(), "" );
+   HtmlParser parser( buffer.c_str(), buffer.size(), url );
 
    // Handle results by writing to file...
    writeToFile( parser );
