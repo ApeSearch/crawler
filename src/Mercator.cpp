@@ -49,8 +49,8 @@ void crawlWebsite( APESEARCH::string& buffer )
             pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ parsedUrl.Host, parsedUrl.Port } ](  ) 
             { this->frontier.backEnd.insertTiming( time, buffer ) } );
 
-            pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }]( )
-            { this->parser( buffer ); } );
+            pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }, url{ std::move( buffer ) } ]( )
+            { this->parser( buffer, url ); } );
             break;
             }
          case getReqStatus::redirected:
@@ -69,7 +69,7 @@ void crawlWebsite( APESEARCH::string& buffer )
 void APESEARCH::Mercator::crawler()
    {
     Request requester;
-    string buffer;
+    string url;
     Result result;
 
     while( liveliness.load() )
@@ -79,9 +79,9 @@ void APESEARCH::Mercator::crawler()
        } // end while
    } // end urlExtractor()
 
-void APESEARCH::Mercator::parser( const std::string& buffer )
+void APESEARCH::Mercator::parser( const std::string& buffer, const APESEARCH::string &url )
    {
-   HtmlParser parser( buffer.c_str(), buffer.size(), "" );
+   HtmlParser parser( buffer.c_str(), buffer.size(), url );
 
    // Handle results by writing to file...
    writeToFile( parser );

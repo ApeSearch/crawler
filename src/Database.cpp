@@ -39,9 +39,8 @@ Database::Database()
         }
     }
 }
-Database::~Database()
-{
-}
+Database::~Database(){}
+
 
 void Database::addAnchorFile(Link &link){
     if(link.anchorText.empty())
