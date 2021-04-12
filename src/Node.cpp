@@ -6,9 +6,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define FILESIZE_CHECKPOINT 65536
 #define MAXTHREADS 32
 #define BLOOMFILTER
+#define BUFFERSIZE 65536
 
 using APESEARCH::unique_ptr;
 
@@ -23,7 +23,7 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip,
     //Get handles to files
     for(int i = 0; i < ips.size(); ++i)
     {
-        //TODO decide on pathnames 
+        
         snprintf( path, sizeof( path ), "%s%d%s", pathname.cstr(), i, ".txt" );
         try
             { 
@@ -34,13 +34,11 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip,
             {
             //If you fail here we got nothing to do except manual debug
             std::cerr << "Failed opening node storage file " << pathname << '\n';
-            //TODO probably need to exit immediatly since you don't have communication storage space
+            
             exit(1);
             }
     }
 
-
-    
     for(int i = 0; i < ips.size(); ++i)
     {
         struct sockaddr_in &addr = addrinfos[i];
@@ -137,9 +135,6 @@ void Node::connectionHandler()
         try
         {
             unique_ptr<Socket> ptr = sockets[node_id]->accept((struct sockaddr *) &node_addr, &node_len);
-            char *ip; //= inet_ntoa(node_addr.sin_addr);
-
-            //TODO strcmp vs make a string operator=
 
             for (int i = node_id - 1; 0 <= i; --i)
             {
@@ -159,7 +154,7 @@ void Node::connectionHandler()
             // Also checks if someone who is not allowed to connect tries to connect to me
             if(!found_ip)
             {
-                std::cerr << "Connection to unknown ip cancelled, ip: " << ip << '\n';
+                std::cerr << "Connection to unknown ip cancelled, ip \n";
             }
         }
         catch(...)
@@ -209,7 +204,6 @@ void Node::send( Link &link )
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
-    //TODO switch to modulo operation after testing, since we will have 8 nodes.
     size_t val = hash(link.URL.cstr());
     val = val % addrinfos.size();
     bool new_link = false;
@@ -257,13 +251,13 @@ void Node::receive(int i)
         fd = sockets[i]->getFD();
     }
 
-    char buffer[FILESIZE_CHECKPOINT];
+    char buffer[BUFFERSIZE];
     Link linkOf;
     size_t bytesRead;
     bool is_url = true;
     while(true)
     {
-        bytesRead = recv(fd, buffer, FILESIZE_CHECKPOINT, 0);
+        bytesRead = recv(fd, buffer, BUFFERSIZE, 0);
 
         for (size_t i = 0; i < bytesRead; ++i)
         {

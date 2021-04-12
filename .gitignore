@@ -33,6 +33,14 @@ tests/bin/*
 tests/std_bin/*
 *.app
 
+#Storaging files
+storageFiles/*
+parsedFiles/*
+anchorFiles/*
+
+#bloomfilter
+bloomFilter.bin
+
 others
 
 #dSYM directories

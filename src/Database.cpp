@@ -17,9 +17,9 @@ Database::Database()
         try
         {
             snprintf( path, sizeof( path ), "%s%d%s", anchor_root.cstr(), i, ".txt" );
-            anchorFiles.emplace_back( path, O_RDWR | O_CREAT | O_EXCL | O_APPEND, (mode_t) 0600 );
+            anchorFiles.emplace_back( path, O_RDWR | O_CREAT | O_APPEND, (mode_t) 0600 );
             snprintf( path, sizeof( path ), "%s%d%s", parsed_root.cstr(), i, ".txt" );
-            parsedFiles.emplace_back( path, O_RDWR | O_CREAT | O_EXCL | O_APPEND , (mode_t) 0600 );
+            parsedFiles.emplace_back( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
         }
         catch(APESEARCH::File::failure &f)
         {
@@ -28,9 +28,8 @@ Database::Database()
         }
     }
 }
-Database::~Database()
-{
-}
+Database::~Database(){}
+
 
 void Database::addAnchorFile(Link &link){
     if(link.anchorText.empty())
