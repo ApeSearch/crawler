@@ -68,7 +68,7 @@ void APESEARCH::Mercator::crawler()
 
 void APESEARCH::Mercator::parser( const std::string& buffer )
    {
-   HtmlParser parser( buffer.c_str(), buffer.size() );
+   HtmlParser parser( buffer.c_str(), buffer.size(), "" );
 
    // Handle results by writing to file...
    writeToFile( parser );
