@@ -123,7 +123,7 @@ UrlFrontier::BackendPolitenessPolicy::BackendPolitenessPolicy( const size_t numO
 // otherwise, insert into any queue up to the one in which 
 // map lock -> queue lock
 void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPrioritizer& frontEnd, SetOfUrls& set, 
-   const size_t index, std::string&& domain )
+   const size_t index, const std::string& domain )
    {
    APESEARCH::unique_lock< APESEARCH::mutex > qLk( domainQueues[ index ].queueWLk.queueLk );
    std::unordered_map< std::string, size_t >::iterator itr;
@@ -160,7 +160,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
                domainsMap.erase( itr );
                } // end if
             // Insert a new entry to map
-            domainMap.emplace( std::piecewise_construct, 
+            domainsMap.emplace( std::piecewise_construct, 
                std::tuple<char *, char*>(  parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
             backEndLk = APESEARCH::unique_lock< APESEARCH::mutex >( domainQueues[ index ].queueWLk.queueLk );
             uniqMLk.unlock(); // Must happen after obtaining the queue lock
@@ -224,7 +224,7 @@ APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolic
    // wait until time has reached the past before popping...
    while ( cvHeap.wait_until( uniqPQLk, backendHeap.top().timeWCanCrawl, 
       [this](){ return backendHeap.top().timeWCanCrawl < 
-         std::chrono::time_point_cast<std::chrono::milliseconds>( std::chrono::system_clock::now() ) } ) );
+         std::chrono::time_point_cast<std::chrono::milliseconds>( std::chrono::system_clock::now() ); } ) );
    
    // Pop Queue...
    index = backendHeap.top().index;
@@ -243,14 +243,16 @@ APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolic
    return APESEARCH::pair< APESEARCH::string, size_t >( url, isEmpty ? index : domainQueues.size()  );
    } // getMostOkayUrl()
 
-UrlFrontier::UrlFrontier( const size_t numOfCrawlerThreads ) : set( ),  backEnd( numOfCrawlerThreads * 3 ), liveliness( true )
+UrlFrontier::UrlFrontier( const size_t numOfCrawlerThreads ) : set( ), pool( FrontierCircBuf(  numOfCrawlerThreads * 3 ), numOfCrawlerThreads * 3, numOfCrawlerThreads * 6 )
+   ,backEnd( numOfCrawlerThreads * 3 ), liveliness( true )
    {
    // Need to start up threads...
    startUp();
    }
 
 
-UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThreads ) : set( directory ), backEnd( numOfCrawlerThreads * 3 ), liveliness( true )
+UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThreads ) : set( directory ),  pool( FrontierCircBuf(  numOfCrawlerThreads * 3 ), numOfCrawlerThreads * 3, numOfCrawlerThreads * 6 )
+   ,backEnd( numOfCrawlerThreads * 3 ), liveliness( true )
    {
    // Need to start up threads...
    startUp();
@@ -269,7 +271,7 @@ void UrlFrontier::startUp()
 
    // Have each backend Queue attempt to fill up queue
    auto fillUpQueues = [this] ( const size_t index )
-      { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, std::string() ) };
+      { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, std::string() ); };
    for ( unsigned n = 0; n < backEnd.domainQueues.size(); ++n )  
       pool.submitNoFuture( fillUpQueues, n );
 
@@ -277,7 +279,7 @@ void UrlFrontier::startUp()
 
 APESEARCH::string UrlFrontier::getNextUrl( )
    {
-   APESEARCH::pair< APESEARCH::string, size_t > retObj( backEnd.getMostOkayUrl( frontEnd ,set, pool ) );
+   APESEARCH::pair< APESEARCH::string, size_t > retObj( backEnd.getMostOkayUrl( set ) );
    assert( !retObj.first().empty() );
 
    // Check if queue is empty...
@@ -287,10 +289,9 @@ APESEARCH::string UrlFrontier::getNextUrl( )
       APESEARCH::unique_lock< APESEARCH::mutex > uniqQLk( backEnd.domainQueues[ ind ].queueWLk.queueLk );
       assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
 
-      auto func = [ this ]( const size_t index, std::string&&domain )
-         { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, 
-            std::forward< std::string>( domain ) ); };
-      pool.submitNoFuture( func, ind, std::move( backEnd.domainQueues[ ind ].domain ) );
+      auto func = [ this, domain{ std::move( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )
+         { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, domain ); };
+      pool.submitNoFuture( func, ind );
       } // end if
 
    return retObj.first();

@@ -116,9 +116,9 @@ class UrlFrontier
         // Member Functions
         BackendPolitenessPolicy( const size_t numOfQueues );
         void fillUpEmptyBackQueue( FrontEndPrioritizer& frontEnd, SetOfUrls& set, 
-            const size_t index, std::string&& domain );
+            const size_t index, const std::string& domain );
         APESEARCH::pair< APESEARCH::string, size_t > getMostOkayUrl( SetOfUrls& );
-        bool insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
+        void insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
     };
 
     using FrontierCircBuf = APESEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
@@ -134,8 +134,7 @@ class UrlFrontier
 public:
     FrontEndPrioritizer frontEnd;
     BackendPolitenessPolicy backEnd;
-    UrlFrontier() = default;
-    //UrlFrontier(  );
+    UrlFrontier( const size_t numOfCrawlerThreads );
     UrlFrontier( const char *, const size_t numOfCrawlerThreads );
     APESEARCH::string getNextUrl( );
     // Will assume that bloom filter is already accounted for ( Node actually owns the bloomfilter here )

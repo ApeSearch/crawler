@@ -322,7 +322,7 @@ UrlObj SetOfUrls::blockingDequeue()
       url = helperDeq();
    } while ( url.url.empty() );
    
-   return obj;
+   return url;
    }
 
 const char *SetOfUrls::front( )

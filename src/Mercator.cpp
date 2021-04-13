@@ -7,7 +7,7 @@
 
 #define MULTIPLE 10
 
-static std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono::time_point<std::chrono::system_clock>& start, 
+std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono::time_point<std::chrono::system_clock>& start, 
       const std::chrono::time_point<std::chrono::system_clock>& end )
    {
    auto startMs = std::chrono::time_point_cast<std::chrono::milliseconds>( start );
@@ -36,10 +36,10 @@ APESEARCH::Mercator::~Mercator()
    }
 
 
-void APESEARCH::Mercator::crawlWebsite( APESEARCH::string& buffer )
+void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& buffer )
    {
    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
-   result = requester.getReqAndParse( buffer.cstr() );
+   Result result = requester.getReqAndParse( buffer.cstr() );
    // At the end of this task, the buffer will be reinserted back into urlBuffers...
    std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
    
@@ -51,17 +51,17 @@ void APESEARCH::Mercator::crawlWebsite( APESEARCH::string& buffer )
             ParsedUrl parsedUrl( buffer.cstr() );
             // This should be the case
             assert( *parsedUrl.Host ); 
-            pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ parsedUrl.Host, parsedUrl.Port } ](  ) 
-            { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ) } );
-
-            pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }, url{ std::move( buffer ) } ]( )
+            pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
+            { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );
+            std::string buf( requester.getResponseBuffer().first().begin(), requester.getResponseBuffer().first().end() );
+            pool.submitNoFuture( [this, buffer{ std::move( buf ) }, url{ std::move( buffer ) } ]( )
             { this->parser( buffer, url ); } );
             break;
             }
          case getReqStatus::redirected:
             {
-            buffer = result.url;
-            return crawlWebsite( buffer ); // Try again with new url
+            buffer = APESEARCH::string( result.url.begin(), result.url.end() );
+            return crawlWebsite( requester, buffer ); // Try again with new url
             }
             break;
          default:
@@ -75,12 +75,11 @@ void APESEARCH::Mercator::crawler()
    {
     Request requester;
     string url;
-    Result result;
 
     while( liveliness.load() )
        {
         url = frontier.getNextUrl( ); // Writes directly to buffer
-        crawlWebsite( url );
+        crawlWebsite( requester, url );
        } // end while
    } // end urlExtractor()
 

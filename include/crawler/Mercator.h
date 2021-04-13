@@ -73,10 +73,9 @@ namespace APESEARCH
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
-      void crawlWebsite( APESEARCH::string& buffer );
+      void crawlWebsite( Request& requester, APESEARCH::string& buffer );
       void crawler();
       void parser( const std::string& buffer, const APESEARCH::string &url );
-      void parser(  );
       void writeToFile( const HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly

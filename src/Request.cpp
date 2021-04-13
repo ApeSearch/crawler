@@ -61,7 +61,7 @@ Result Request::getReqAndParse(const char *urlStr)
 {
     ParsedUrl url( urlStr );
     Address address(url.Host, "80");
-    pair<const char *, size_t> req = url.getReqStr();
+    APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = strcmp(url.Service, "http://"); // 0 if http 1 if https
     int attempts = 0;
     Result res;
