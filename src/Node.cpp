@@ -116,7 +116,6 @@ void Node::connector( int i )
                 std::cerr << "Could not connect to Node: " << i << '\n';
             }
         }
-        sleep( 30u );
     }
 }
 
