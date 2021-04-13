@@ -1,5 +1,4 @@
 
-#pragma once
 
 #ifndef NODE_H_AS
 #define NODE_H_AS 

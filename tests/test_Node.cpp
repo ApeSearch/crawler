@@ -15,6 +15,7 @@ TEST(start_up)
 
     Node node(ips, local, set, db);
     //const char * const exampleUrl = "https://umich.edu/";
+    sleep(30u);
 }
 
 
