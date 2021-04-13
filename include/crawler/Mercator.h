@@ -4,6 +4,7 @@
 #define AS_MERCATOR_H
 
 #include "../../libraries/AS/include/AS/vector.h"
+#include "../../libraries/AS/include/AS/string.h"
 #include "../../libraries/AS/include/AS/pthread_pool.h"
 #include "Request.h"
 #include "Frontier.h"
@@ -119,7 +120,7 @@ namespace APESEARCH
 
 
       void crawler();
-      void parser( const std::string& buffer );
+      void parser( const std::string& buffer, const APESEARCH::string &url );
       void parser(  );
       void writeToFile( const HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
