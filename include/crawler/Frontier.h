@@ -8,6 +8,9 @@
 #include <unordered_map>
 #include <string>
 #include <atomic>
+#include<chrono>
+#include<ctime>
+#include <sys/types.h>
 
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../libraries/AS/include/AS/queue.h"
@@ -17,13 +20,10 @@
 #include "../../libraries/AS/include/AS/File.h"
 #include "../../libraries/AS/include/AS/as_semaphore.h"
 #include "../../libraries/AS/include/AS/Pthread_pool.h"
+#include "../../libraries/AS/include/AS/utility.h"
 #include "ParsedUrl.h"
 #include "SetOfUrls.h"
-#include <sys/types.h>
-#include <dirent.h>
 
-#include<chrono>
-#include<ctime>
 
 #define NUMOFFRONTQUEUES 1
 
@@ -36,8 +36,8 @@ struct domainTiming
 
     domainTiming() = default;
 
-    domainTiming( const std::chrono::time_point<std::chrono::system_clock>& _time, const unsigned _domain )
-        : timeWCanCrawl( _time ), index( _domain ) {}
+    domainTiming( const std::chrono::time_point<std::chrono::system_clock>& _time, const unsigned _index )
+        : timeWCanCrawl( _time ), index( _index ) {}
     
     //domainTiming( domainTiming&& other ) : timeWCanCrawl( std::move( other.timeWCanCrawl ) ), domain( std::move( other.domain ) ) {}
     domainTiming( const domainTiming& other ) : timeWCanCrawl( other.timeWCanCrawl ), index( other.index ) {}
@@ -70,29 +70,37 @@ class UrlFrontier
     class FrontEndPrioritizer 
     {
     public:
+        // Member Variables
         static const constexpr std::size_t urlsPerPriority = 1024;
         APESEARCH::vector< QueueWLock< urlsPerPriority > > pQueues;
+        APESEARCH::semaphore empty;
+        APESEARCH::semaphore full;
+
+
+        // Member Functions
         inline std::size_t pickQueue(); // user-defined prirority for picking which queue to pop from
         UrlObj helperReadInUrl( SetOfUrls& set, std::atomic<bool>& liveliness );
         // Thread that is continously trying to keep QueueWLock full at all times
         void readInUrl( SetOfUrls& set, std::atomic<bool>& );
-
-        APESEARCH::semaphore empty;
-        APESEARCH::semaphore full;
-
-        FrontEndPrioritizer( size_t numOfQueues = NUMOFFRONTQUEUES ) : pQueues( numOfQueues ), empty( QueueWLock::urlsPerPriority * numOfQueues ), full( 0 ) {}
         APESEARCH::string getUrl();
+
+        FrontEndPrioritizer( size_t numOfQueues = NUMOFFRONTQUEUES ) : 
+            pQueues( numOfQueues ), empty( QueueWLock::urlsPerPriority * numOfQueues ), full( 0 ) {}
     };
 
     class BackendPolitenessPolicy
     {
     public:
+        // Member Variables
         static constexpr std::size_t endQueueSize = 100;
         struct BackEndQueue
             {
             QueueWLock< endQueueSize > queueWLk;
+            std::string domain; // Used for insert timing to check once it's been woken up that queue it's sleeping on still has the same domain
             APESEARCH::condition_variable queueCV;
+            bool timeStampInDomain = false;
             };
+    
         static constexpr std::size_t amtEndQueues = 3000; // This assumes 1000 crawlers
         APESEARCH::priority_queue<domainTiming, 
             APESEARCH::BinaryPQ<domainTiming, domainTiming::compareTime >, 
@@ -101,27 +109,28 @@ class UrlFrontier
         std::unordered_map<std::string, size_t> domainsMap;
         APESEARCH::mutex pqLk;
         APESEARCH::mutex mapLk;
+        // for priority queue
         APESEARCH::semaphore semaHeap;
-        APESEARCH::condition_variable cvHeap; // for priority queue
+        APESEARCH::condition_variable cvHeap; 
 
-        UrlObj obtainRandUrl();
-
-        BackendPolitenessPolicy() = default;
+        // Member Functions
         BackendPolitenessPolicy( const size_t numOfQueues );
-        void fillUpEmptyBackQueue( const size_t);
-        domainTiming getMostOkayUrl( SetOfUrls& );
-        bool insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const APESEARCH::string& );
+        void fillUpEmptyBackQueue( FrontEndPrioritizer& frontEnd, SetOfUrls& set, 
+            const size_t index, std::string&& domain );
+        APESEARCH::pair< APESEARCH::string, size_t > getMostOkayUrl( SetOfUrls& );
+        bool insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
     };
 
-    SetOfUrls set;
     using FrontierCircBuf = APSEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
-      APESEARCH::PThreadPool<FrontierCircBuf> pool; // The main threads that serve tasks
+    SetOfUrls set;
+    APESEARCH::PThreadPool<FrontierCircBuf> pool; // The main threads that serve tasks
     std::atomic<bool> liveliness;
     
     static constexpr std::size_t frontQueueSize = 1024;
     // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
-    static unsigned ratingOfTopLevelDomain( const char * );
+    //static unsigned ratingOfTopLevelDomain( const char * );
 
+    void startUp(); // Starts up threads...
 public:
     FrontEndPrioritizer frontEnd;
     BackendPolitenessPolicy backEnd;

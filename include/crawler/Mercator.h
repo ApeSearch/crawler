@@ -72,19 +72,21 @@ namespace APESEARCH
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
-
+      void crawlWebsite( APESEARCH::string& buffer );
       void crawler();
       void parser( const std::string& buffer, const APESEARCH::string &url );
       void parser(  );
       void writeToFile( const HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
-      void cleanUp(); 
       void intel();
+      void cleanUp(); 
     public:
       Mercator( size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
          pool( CircBuf( amtOfCrawlers + amtOfParsers + amtOfFWriters ), 
-         amtOfCrawlers + amtOfParsers + amtOfFWriters ),  liveliness( true ) {}
+         amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 2 ), 
+         frontier( amtOfCrawlers ), liveliness( true ) {}
+      ~Mercator();
       void run();
       void user_handler(); // Interacts with user to provide intel, look at stats, and to shutdown
 

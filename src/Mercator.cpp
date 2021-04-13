@@ -8,7 +8,7 @@
 
 #define MULTIPLE 10
 
-std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono::time_point<std::chrono::system_clock>& start, 
+static std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono::time_point<std::chrono::system_clock>& start, 
       const std::chrono::time_point<std::chrono::system_clock>& end )
    {
    auto startMs = std::chrono::time_point_cast<std::chrono::milliseconds>( start );
@@ -31,7 +31,13 @@ std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono
    return dt;
    } // end getNewTime
 
-void crawlWebsite( APESEARCH::string& buffer )
+APESEARCH::Mercator::~Mercator()
+   {
+   cleanUp();
+   }
+
+
+void APESEARCH::Mercator::crawlWebsite( APESEARCH::string& buffer )
    {
    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
    result = requester.getReqAndParse( buffer.cstr() );
@@ -47,7 +53,7 @@ void crawlWebsite( APESEARCH::string& buffer )
             // This should be the case
             assert( *parsedUrl.Host ); 
             pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ parsedUrl.Host, parsedUrl.Port } ](  ) 
-            { this->frontier.backEnd.insertTiming( time, buffer ) } );
+            { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ) } );
 
             pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }, url{ std::move( buffer ) } ]( )
             { this->parser( buffer, url ); } );
@@ -74,8 +80,8 @@ void APESEARCH::Mercator::crawler()
 
     while( liveliness.load() )
        {
-        buffer = frontier.getNextUrl( ); // Writes directly to buffer
-        crawlWebsite( buffer );
+        url = frontier.getNextUrl( ); // Writes directly to buffer
+        crawlWebsite( url );
        } // end while
    } // end urlExtractor()
 
