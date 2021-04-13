@@ -78,7 +78,7 @@ class Node
    SetOfUrls& set;
    Bloomfilter bloomFilter;
    APESEARCH::mutex bloomFilter_lock;
-   APESEARCH::PThreadPool< CircBuf > pool;
+   APESEARCH::PThreadPool< APESEARCH::circular_buffer<APESEARCH::Func, APESEARCH::DEFAULT::defaultBuffer<APESEARCH::Func, 32u>> > pool;
    Database& dataBase; 
     
 

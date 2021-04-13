@@ -16,7 +16,7 @@ using APESEARCH::unique_ptr;
 
 Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip, SetOfUrls& _set, Database &db) : 
     sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip), set( _set ), bloomFilter()
-    ,pool( Node::CircBuf( MAXTHREADS ), MAXTHREADS, MAXTHREADS ), dataBase(db)
+    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db)
 {
     APESEARCH::string pathname = "./storageFiles/storage_file";
     char path[PATH_MAX];
