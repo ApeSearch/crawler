@@ -63,12 +63,13 @@ void Database::addAnchorFile(Link &link){
             file_vector[index].anchorFile.write(link.anchorText[i].cstr(), link.anchorText[i].size());
             file_vector[index].anchorFile.write(space_char, 1);
         }
+        file_vector[index].anchorFile.write(newline_char, 1);
         file_vector[index].anchorFile.write(null_char, 1);
     }
 }
 
-void Database::addParsedFile(HtmlParser &parsed)        //url, words, titleWords, headingWords, boldWords, base, numParagraphs, numHeadings, numSentences 
-{
+void Database::addParsedFile(HtmlParser &parsed)        //url, parsed text, base, num paragraphs, num headings, num sentences
+{                                                       //space delimited between words, newline delimited between sections, null character at end
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
@@ -78,44 +79,32 @@ void Database::addParsedFile(HtmlParser &parsed)        //url, words, titleWords
     index = index % file_vector.size();
 
     APESEARCH::unique_lock<APESEARCH::mutex> lk( file_vector[index].parsed_lock );
-    file_vector[index].parsedFile. write(parsed.url.cstr(), parsed.url.size());
-    file_vector[index].parsedFile.write(newline_char, 1);
-    for(size_t i = 0; i < parsed.words.size(); i++){
-        file_vector[index].parsedFile.write(parsed.words[i].cstr(), parsed.words[i].size());
-        file_vector[index].parsedFile.write(space_char, 1);
-    }
-    file_vector[index].parsedFile.write(newline_char, 1);
-    for(size_t i = 0; i < parsed.titleWords.size(); i++){
-        file_vector[index].parsedFile.write(parsed.titleWords[i].cstr(), parsed.titleWords[i].size());
-        file_vector[index].parsedFile.write(space_char, 1);
-    }
-    file_vector[index].parsedFile.write(newline_char, 1);
-    for(size_t i = 0; i < parsed.headingWords.size(); i++){
-        file_vector[index].parsedFile.write(parsed.headingWords[i].cstr(), parsed.headingWords[i].size());
-        file_vector[index].parsedFile.write(space_char, 1);
-    }
-    file_vector[index].parsedFile.write(newline_char, 1);
-    for(size_t i = 0; i < parsed.boldWords.size(); i++){
-        file_vector[index].parsedFile.write(parsed.boldWords[i].cstr(), parsed.boldWords[i].size());
-        file_vector[index].parsedFile.write(space_char, 1);
-    }
-    file_vector[index].parsedFile.write(newline_char, 1);
-    file_vector[index].parsedFile.write(parsed.base.cstr(), parsed.base.size());
-    file_vector[index].parsedFile.write(newline_char, 1);
-    file_vector[index].parsedFile.write(parsed.base.cstr(), parsed.base.size());
+    file_vector[index].parsedFile. write(parsed.url.cstr(), parsed.url.size()); //url
     file_vector[index].parsedFile.write(newline_char, 1);
 
-    size_t size = snprintf( temp, sizeof( temp ), "%d", parsed.numParagraphs);
+    for(size_t i = 0; i < parsed.parsed_text.size(); i++){ // parsed text
+        file_vector[index].parsedFile.write(parsed.parsed_text[i].text.cstr(), parsed.parsed_text[i].text.size());
+        file_vector[index].parsedFile.write(space_char, 1);
+        size_t size = snprintf( temp, sizeof( temp ), "%d", parsed.parsed_text[i].type);
+        file_vector[index].parsedFile.write(temp, size);
+        file_vector[index].parsedFile.write(space_char, 1);
+    }
+    file_vector[index].parsedFile.write(newline_char, 1);
+
+    file_vector[index].parsedFile.write(parsed.base.cstr(), parsed.base.size()); //base
+    file_vector[index].parsedFile.write(newline_char, 1);
+
+    size_t size = snprintf( temp, sizeof( temp ), "%d", parsed.numParagraphs); //num paragraphs
     file_vector[index].parsedFile.write(temp, size);
     file_vector[index].parsedFile.write(newline_char, 1);
 
-    size = snprintf( temp, sizeof( temp ), "%d", parsed.numHeadings);
+    size = snprintf( temp, sizeof( temp ), "%d", parsed.numHeadings); //num headings
     file_vector[index].parsedFile.write(temp, size);
     file_vector[index].parsedFile.write(newline_char, 1);
 
-    size = snprintf( temp, sizeof( temp ), "%d", parsed.numSentences);
+    size = snprintf( temp, sizeof( temp ), "%d", parsed.numSentences); //num sentences
     file_vector[index].parsedFile.write(temp, size);
     file_vector[index].parsedFile.write(newline_char, 1);
 
-    file_vector[index].parsedFile.write(null_char, 1);
+    file_vector[index].parsedFile.write(null_char, 1); // null
 }
