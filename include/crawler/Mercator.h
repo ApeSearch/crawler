@@ -16,6 +16,7 @@
 #include "DynamicBuffer.h"
 #include <atomic>
 #include <assert.h>
+#include "ParsedUrl.h"
 
 /*
  * The general flow of this design is to seperate out

@@ -19,10 +19,11 @@
 #include "../../libraries/AS/include/AS/unique_mmap.h"
 #include "../../libraries/AS/include/AS/File.h"
 #include "../../libraries/AS/include/AS/as_semaphore.h"
-#include "../../libraries/AS/include/AS/Pthread_pool.h"
+#include "../../libraries/AS/include/AS/pthread_pool.h"
 #include "../../libraries/AS/include/AS/utility.h"
 #include "ParsedUrl.h"
 #include "SetOfUrls.h"
+#include "DynamicBuffer.h"
 
 
 #define NUMOFFRONTQUEUES 1
@@ -59,7 +60,6 @@ struct QueueWLock
                 APESEARCH::DEFAULT::defaultBuffer< APESEARCH::string, _Sizeu> > > pQueue;
     APESEARCH::mutex queueLk;
     bool isInsertedToHeap = false;
-    lockedQueue( ) = default;
    };
 
 
@@ -85,7 +85,7 @@ class UrlFrontier
         APESEARCH::string getUrl();
 
         FrontEndPrioritizer( size_t numOfQueues = NUMOFFRONTQUEUES ) : 
-            pQueues( numOfQueues ), empty( QueueWLock::urlsPerPriority * numOfQueues ), full( 0 ) {}
+            pQueues( numOfQueues ), empty( FrontEndPrioritizer::urlsPerPriority * numOfQueues ), full( 0 ) {}
     };
 
     class BackendPolitenessPolicy
@@ -121,7 +121,7 @@ class UrlFrontier
         bool insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
     };
 
-    using FrontierCircBuf = APSEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
+    using FrontierCircBuf = APESEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
     SetOfUrls set;
     APESEARCH::PThreadPool<FrontierCircBuf> pool; // The main threads that serve tasks
     std::atomic<bool> liveliness;

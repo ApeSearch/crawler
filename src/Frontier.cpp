@@ -20,8 +20,8 @@ static std::chrono::time_point<std::chrono::system_clock> newTime(  )
    {
    auto startMs = std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() );
 
-   lone conversion = startMs.time_since_epoch().count();
-   conversion += 10s;
+   long conversion = startMs.time_since_epoch().count();
+   conversion += 10;
 
    std::chrono::seconds dur( conversion );
    return std::chrono::time_point<std::chrono::system_clock>( dur );
@@ -44,7 +44,7 @@ UrlObj UrlFrontier::FrontEndPrioritizer::helperReadInUrl( SetOfUrls& set, std::a
       {
       urlOf = set.blockingDequeue( ); // Potentially blocking
       APESEARCH::unique_lock<APESEARCH::mutex> lk( pQueues[ urlOf.priority ].queueLk );
-      if ( pQueues[ urlOf.priority ].pQueue.size() == QueueWLock::urlsPerPriority )
+      if ( pQueues[ urlOf.priority ].pQueue.size() == FrontEndPrioritizer::urlsPerPriority )
          set.enqueue( urlOf.url );
       else
          break;
@@ -67,8 +67,8 @@ void UrlFrontier::FrontEndPrioritizer::readInUrl( SetOfUrls& set, std::atomic<bo
    while( liveliness.load() )
       {
       empty.down();
-      url = helperReadInUrl(); // Runs until it gets for a queue that's not empty
-      pQueues[ url.priority ].push( std::move( url.url ) );
+      url = helperReadInUrl( set, liveliness ); // Runs until it gets for a queue that's not empty
+      pQueues[ url.priority ].pQueue.push( std::move( url.url ) );
       full.up();
       } // end while
    } // end readInUrl()
@@ -78,20 +78,24 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
    {
    // Will always be guaranteed a url
    full.down(); 
-   unsigned ind = pickQueue();
+   size_t ind = pickQueue();
    APESEARCH::unique_lock<APESEARCH::mutex> lk( pQueues[ ind ].queueLk );
-   auto *queue = nullptr;
+
+   APESEARCH::queue<APESEARCH::string, APESEARCH::circular_buffer< APESEARCH::string, 
+                APESEARCH::DEFAULT::defaultBuffer< APESEARCH::string, urlsPerPriority> > > *queue = nullptr;
+
    if ( pQueues[ ind ].pQueue.empty() )
       {
       lk.unlock();
       std::cout << "Empty fill in with an asynchronous thread\n";
       // Start from the highest priority all the way to zero
-      for ( int n = pQueues.size() - 1; n >= 0; --n ) 
+      int n;
+      for ( n = int ( pQueues.size() - 1 ); n >= 0; --n ) 
          {
          // Skip the own queue
-         if ( n != ind )
+         if ( n != ( int )ind )
             {
-            lk = APESEARCH::unique_lock<APESEARCH::mutex> qlk( pQueues[ ( unsigned ) n  ].queueLk );
+            lk = APESEARCH::unique_lock<APESEARCH::mutex> ( pQueues[ ( unsigned ) n  ].queueLk );
             if ( !pQueues[ ( unsigned ) n ].pQueue.empty() )
                queue = &pQueues[ ( unsigned ) n ].pQueue;
 
@@ -102,7 +106,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
    else
       queue = &pQueues[ ind ].pQueue;
    
-   assert( queue && pQueue->empty() );
+   assert( queue && queue->empty() );
    APESEARCH::string url( std::move( queue->front() ) );
    queue->pop();
    // There is one less url in the frontend queue now( ask to fill er up )
@@ -111,7 +115,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
    } // end getUrl()
 
 UrlFrontier::BackendPolitenessPolicy::BackendPolitenessPolicy( const size_t numOfQueues )
-   :  domainQueues( numOfQueues ). semaHeap( 0 ) { }
+   :  domainQueues( numOfQueues ), semaHeap( 0 ) { }
 
 // No need for lock since it's impossible for another thread to pop from this queue
 // Inserts its another time domain if new, otherwise, 
@@ -122,7 +126,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
    const size_t index, std::string&& domain )
    {
    APESEARCH::unique_lock< APESEARCH::mutex > qLk( domainQueues[ index ].queueWLk.queueLk );
-   APESEARCH::unordered_map< std::string, size_t >::iterator itr;
+   std::unordered_map< std::string, size_t >::iterator itr;
 
    auto& queue = domainQueues[ index ].queueWLk.pQueue;
    for ( ;queue.empty(); qLk.lock() )

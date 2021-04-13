@@ -8,13 +8,14 @@
 
 TEST(start_up)
 {
-    Database db = Database();
-    SetOfUrls set = SetOfUrls();
+    Database db;
+    SetOfUrls set;
     APESEARCH::vector<APESEARCH::string> ips = {"127.0.0.1", "192.168.1.100"};
     APESEARCH::string local = "127.0.0.1";
 
     Node node(ips, local, set, db);
     //const char * const exampleUrl = "https://umich.edu/";
+    sleep(30u);
 }
 
 
