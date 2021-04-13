@@ -120,7 +120,6 @@ void Node::connector( int i )
                 std::cerr << "Could not connect to Node: " << i << '\n';
             }
         }
-        sleep( 30u );
     }
 }
 
@@ -173,7 +172,7 @@ void Node::sender(int i)
 {
     while(true)
     {
-        sleep( 30u );
+        sleep( 10u );
         APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
         if(sockets[i]->getFD() > 0)
         {
