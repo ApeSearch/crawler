@@ -61,8 +61,10 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    }
 
 
-SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 )
+SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 ), liveliness( true )
    {
+   if ( !directory )
+      directory = SetOfUrls::frontierLoc;
    assert( *directory == '/' );
    getcwd( cwd, PATH_MAX );
 
@@ -88,6 +90,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
 
 SetOfUrls::~SetOfUrls()
    {
+   shutdown( );
 #ifdef DEBUG
    std::cerr << "Running Destructor...\n";
 #endif
@@ -323,9 +326,9 @@ UrlObj SetOfUrls::blockingDequeue()
    APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
    do
    {
-      cv.wait( uniqLk, [this]( ){ return frontQPtr || popNewBatch(); } );
+      cv.wait( uniqLk, [this]( ){ return !liveliness.load() || frontQPtr || popNewBatch(); } );
       url = helperDeq();
-   } while ( url.url.empty() );
+   } while ( liveliness.load() && url.url.empty() );
    
    return url;
    }

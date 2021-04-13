@@ -75,6 +75,8 @@ class UrlFrontier
         APESEARCH::vector< QueueWLock< urlsPerPriority > > pQueues;
         APESEARCH::semaphore empty;
         APESEARCH::semaphore full;
+        SetOfUrls& setRef;
+        std::atomic<bool>& liveliness;
 
 
         // Member Functions
@@ -84,8 +86,9 @@ class UrlFrontier
         void readInUrl( SetOfUrls& set, std::atomic<bool>& );
         APESEARCH::string getUrl();
 
-        FrontEndPrioritizer( size_t numOfQueues = NUMOFFRONTQUEUES ) : 
-            pQueues( numOfQueues ), empty( FrontEndPrioritizer::urlsPerPriority * numOfQueues ), full( 0 ) {}
+        FrontEndPrioritizer( SetOfUrls& _set, std::atomic<bool>& boolean, size_t numOfQueues = NUMOFFRONTQUEUES ) : 
+            pQueues( numOfQueues ), empty( FrontEndPrioritizer::urlsPerPriority * numOfQueues ), full( 0 ), setRef( _set ), liveliness( boolean ) {}
+        ~FrontEndPrioritizer( );
     };
 
     class BackendPolitenessPolicy
@@ -112,11 +115,14 @@ class UrlFrontier
         // for priority queue
         APESEARCH::semaphore semaHeap;
         APESEARCH::condition_variable cvHeap; 
+        SetOfUrls& setRef;
+        std::atomic<bool>& liveliness;
 
         // Member Functions
-        BackendPolitenessPolicy( const size_t numOfQueues );
+        BackendPolitenessPolicy( const size_t numOfQueues, SetOfUrls& _set, std::atomic<bool>& );
         void fillUpEmptyBackQueue( FrontEndPrioritizer& frontEnd, SetOfUrls& set, 
             const size_t index, const std::string& domain );
+        ~BackendPolitenessPolicy( );
         APESEARCH::pair< APESEARCH::string, size_t > getMostOkayUrl( SetOfUrls& );
         void insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
     };
@@ -136,6 +142,7 @@ public:
     BackendPolitenessPolicy backEnd;
     UrlFrontier( const size_t numOfCrawlerThreads );
     UrlFrontier( const char *, const size_t numOfCrawlerThreads );
+    ~UrlFrontier( );
     APESEARCH::string getNextUrl( );
     // Will assume that bloom filter is already accounted for ( Node actually owns the bloomfilter here )
     bool insertNewUrl( APESEARCH::string&& url );
@@ -144,3 +151,5 @@ public:
 };
 
 #endif
+
+std::chrono::time_point<std::chrono::system_clock> newTime( );

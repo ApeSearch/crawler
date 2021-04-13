@@ -50,6 +50,7 @@ public:
     APESEARCH::mutex frntQLk;
     APESEARCH::mutex backQLk;
     APESEARCH::condition_variable cv;
+    std::atomic< bool >liveliness;
 
     void startNewFile();
     bool removeFile( const char * );
@@ -60,6 +61,11 @@ public:
     bool forceWrite();
     inline UrlObj helperDeq();
     public:
+    void shutdown( )
+        {
+        liveliness.store( false );
+        cv.notify_one( );
+        } // end shutdown( )
         SetOfUrls();
         SetOfUrls( const char * );
         ~SetOfUrls();

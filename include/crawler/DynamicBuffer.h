@@ -17,12 +17,12 @@ namespace APESEARCH
        // For default construct objects...
        dynamicBuffer( const size_t capacity ) : buffer( capacity )
           {
-          assert( computeTwosPowCeiling( capacity ) == capacity );
+          //assert( computeTwosPowCeiling( capacity ) == capacity );
           }
 
        dynamicBuffer( const size_t capacity, T&val ) : buffer( capacity, val )
           {
-          assert( computeTwosPowCeiling( capacity ) == capacity );
+          //assert( computeTwosPowCeiling( capacity ) == capacity );
           }
        inline value_type *getBuffer() noexcept
           {
