@@ -60,13 +60,13 @@ TEST( test_SetOfUrls )
          {
          obj = set.dequeue();
          ASSERT_EQUAL( obj.url, APESEARCH::string("https://www.blog.datahut.co/post/how-to-build-a-web-crawler-from-scratch") );
-         ASSERT_EQUAL( obj.priority, 69 );
+         ASSERT_EQUAL( obj.priority, 0 );
          obj = set.dequeue();
          ASSERT_EQUAL( obj.url, "https://leetcode.com/discuss/interview-question/system-design/124657/Facebook-or-System-Design-or-A-web-crawler-that-will-crawl-Wikipedia" );
-         ASSERT_EQUAL( obj.priority, 69 );
+         ASSERT_EQUAL( obj.priority, 0 );
          obj = set.dequeue();
          ASSERT_EQUAL( obj.url, "https://www.diffchecker.com/diff" );
-         ASSERT_EQUAL( obj.priority, 69 );
+         ASSERT_EQUAL( obj.priority, 0 );
          } // end for
       obj = set.dequeue();
       ASSERT_EQUAL( obj.url, "" );
@@ -74,7 +74,7 @@ TEST( test_SetOfUrls )
       ASSERT_EQUAL( set.numOfUrlsInserted.load(), 1u );
       obj = set.dequeue();
       ASSERT_EQUAL( obj.url, "https://www.youtube.com/watch?v=oHg5SJYRHA0" );
-      ASSERT_EQUAL( obj.priority, 69 );
+      ASSERT_EQUAL( obj.priority, 0 );
       }
    catch ( std::runtime_error& e )
       {

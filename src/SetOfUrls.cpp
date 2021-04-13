@@ -255,6 +255,11 @@ void SetOfUrls::finalizeSection( )
    startNewFile();
    }
 
+static unsigned calcPriority( const APESEARCH::string& )
+   {
+   return 0;
+   }
+
 inline UrlObj SetOfUrls::helperDeq()
    {
    assert( !frntQLk.try_lock() );
@@ -288,7 +293,7 @@ inline UrlObj SetOfUrls::helperDeq()
    UrlObj obj;
    assert( start && frontQPtr && start < frontQPtr );
    obj.url = APESEARCH::string( start, frontQPtr );
-   obj.priority = 0; // All have a priority of 0
+   obj.priority = calcPriority( obj.url ); // All have a priority of 0
    
    // Increment pointer now that url has been copied
    if ( ++frontQPtr == frontQEnd )
