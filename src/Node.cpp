@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MAXTHREADS 32
+#define MAXTHREADS 4
 #define BLOOMFILTER
 #define BUFFERSIZE 65536
 
@@ -15,9 +15,13 @@ using APESEARCH::unique_ptr;
 #define PORT 8080
 
 Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip, SetOfUrls& _set, Database &db) : 
-    sockets(ips.size()), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip), set( _set ), bloomFilter()
-    ,pool( Node::CircBuf( MAXTHREADS ), MAXTHREADS, MAXTHREADS ), dataBase(db)
+    sockets(), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip), set( _set ), bloomFilter()
+    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db)
 {
+    sockets.reserve( ips.size() );
+    for ( unsigned n = 0; n < ips.size(); ++n )
+        sockets.emplace_back( new Socket() );        
+       
     APESEARCH::string pathname = "./storageFiles/storage_file";
     char path[PATH_MAX];
     //Get handles to files
@@ -116,7 +120,6 @@ void Node::connector( int i )
                 std::cerr << "Could not connect to Node: " << i << '\n';
             }
         }
-        sleep( 30u );
     }
 }
 
@@ -169,7 +172,7 @@ void Node::sender(int i)
 {
     while(true)
     {
-        sleep( 30u );
+        sleep( 10u );
         APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
         if(sockets[i]->getFD() > 0)
         {

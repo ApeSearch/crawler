@@ -30,39 +30,56 @@ std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono
    return dt;
    } // end getNewTime
 
+APESEARCH::Mercator::~Mercator()
+   {
+   cleanUp();
+   }
+
+
+void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& buffer )
+   {
+   std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+   Result result = requester.getReqAndParse( buffer.cstr() );
+   // At the end of this task, the buffer will be reinserted back into urlBuffers...
+   std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+   
+   switch( result.status )
+         {
+         case getReqStatus::successful:
+            {
+            std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
+            ParsedUrl parsedUrl( buffer.cstr() );
+            // This should be the case
+            assert( *parsedUrl.Host ); 
+            pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
+            { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );
+            std::string buf( requester.getResponseBuffer().first().begin(), requester.getResponseBuffer().first().end() );
+            pool.submitNoFuture( [this, buffer{ std::move( buf ) }, url{ std::move( buffer ) } ]( )
+            { this->parser( buffer, url ); } );
+            break;
+            }
+         case getReqStatus::redirected:
+            {
+            buffer = APESEARCH::string( result.url.begin(), result.url.end() );
+            return crawlWebsite( requester, buffer ); // Try again with new url
+            }
+            break;
+         default:
+            break;
+         } // end switch
+   } // end crawlWebsite()
+
 // Only need one thread for this since it would otherwise 
 // create contention...
 void APESEARCH::Mercator::crawler()
    {
     Request requester;
     string url;
-    Result result;
 
     while( liveliness.load() )
        {
         url = frontier.getNextUrl( ); // Writes directly to buffer
-        std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
-        result = requester.getReqAndParse( url.cstr() );
-        // At the end of this task, the buffer will be reinserted back into urlBuffers...
-        std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
-
-        std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
-      
-        frontier.backEnd.insertTiming( domainTiming( whenCanCrawlAgain, std::move( url ) ) );
-        switch( result.status )
-           {
-            case getReqStatus::successful:
-               {
-               pool.submitNoFuture( [this, buffer{ requester.getResponseBuffer().first() }, url{ std::move( url ) } ]( )
-               { this->parser( buffer, url ); } );
-               break;
-               }
-            case getReqStatus::redirected:
-               frontier.insertNewUrl( APESEARCH::string( result.url.begin(), result.url.end() ) );
-               break;
-            default:
-               break;
-           } // end switch
+        crawlWebsite( requester, url );
        } // end while
    } // end urlExtractor()
 

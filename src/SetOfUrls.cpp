@@ -61,8 +61,10 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    }
 
 
-SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 )
+SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 ), liveliness( true )
    {
+   if ( !directory )
+      directory = SetOfUrls::frontierLoc;
    assert( *directory == '/' );
    getcwd( cwd, PATH_MAX );
 
@@ -88,6 +90,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
 
 SetOfUrls::~SetOfUrls()
    {
+   shutdown( );
 #ifdef DEBUG
    std::cerr << "Running Destructor...\n";
 #endif
@@ -255,19 +258,21 @@ void SetOfUrls::finalizeSection( )
    startNewFile();
    }
 
-
-// Front -> back -> directory lock (possible)
-UrlObj SetOfUrls::dequeue()
+static unsigned calcPriority( const APESEARCH::string& )
    {
+   return 0;
+   }
+
+inline UrlObj SetOfUrls::helperDeq()
+   {
+   assert( !frntQLk.try_lock() );
+
    // Ensure that frontQPtr isn't frontQEnd...
-   APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
-   if ( frontQPtr )
-      assert( frontQPtr != frontQEnd );
+   assert( !frontQPtr || frontQPtr != frontQEnd );
+
    if ( !frontQPtr && !popNewBatch() )
-      {
-      frontQPtr = nullptr;
        return UrlObj(); // Frontier is empty
-      }
+
    char character;
    char const *start = frontQPtr;
    while ( ( character = *frontQPtr ) != '\n' )
@@ -291,8 +296,8 @@ UrlObj SetOfUrls::dequeue()
    UrlObj obj;
    assert( start && frontQPtr && start < frontQPtr );
    obj.url = APESEARCH::string( start, frontQPtr );
-   obj.priority = 69;
-
+   obj.priority = calcPriority( obj.url ); // All have a priority of 0
+   
    // Increment pointer now that url has been copied
    if ( ++frontQPtr == frontQEnd )
       {
@@ -307,6 +312,59 @@ UrlObj SetOfUrls::dequeue()
    return obj;
    }
 
+// Front -> back -> directory lock (possible)
+UrlObj SetOfUrls::dequeue()
+   {
+   APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
+   return helperDeq();
+   }
+
+// Front -> back -> directory lock (possible)
+UrlObj SetOfUrls::blockingDequeue()
+   {
+   UrlObj url;
+   APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
+   do
+   {
+      cv.wait( uniqLk, [this]( ){ return !liveliness.load() || frontQPtr || popNewBatch(); } );
+      url = helperDeq();
+   } while ( liveliness.load() && url.url.empty() );
+   
+   return url;
+   }
+
+const char *SetOfUrls::front( )
+   {
+   APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
+   assert( !frontQPtr || frontQPtr != frontQEnd );
+
+   if ( !frontQPtr && !popNewBatch() )
+      return nullptr;
+
+   char character;
+   char const *start = frontQPtr;
+   char const *ptr = frontQPtr;
+   while ( ( character = *ptr ) != '\n' )
+      {
+      // Finished with file and now has to go to new one...
+      if ( ++ptr == frontQEnd )
+         {
+         assert( removeFile( frontQFileName ) );
+      {
+         APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
+         rewinddir( dir );
+      }
+         frontQPtr = nullptr;
+         if ( popNewBatch() )
+            start = ptr = frontQPtr;
+         else
+            return nullptr;
+         } // end if
+      } // end while
+   return start;
+   }
+
+
 void SetOfUrls::enqueue( const APESEARCH::string &url )
    {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
@@ -317,6 +375,7 @@ void SetOfUrls::enqueue( const APESEARCH::string &url )
    // Mark as a delimiter
    write( back.getFD(), "\n", 1 );
    ++numOfUrlsInserted;
+   cv.notify_one(); // Notify any potentially waiting threads
 
    if ( numOfUrlsInserted == SetOfUrls::maxUrls )
       {

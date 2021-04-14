@@ -3,6 +3,7 @@
 #ifndef PARSEDURL_H_APESEARCH
 #define PARSEDURL_H_APESEARCH
 #include <stdio.h>
+#include "../../libraries/AS/include/AS/utility.h"
 
 namespace {
    template<typename First, typename Second>
@@ -36,11 +37,16 @@ class ParsedUrl
       char *getRequest;
       int reqSize;
 
-      pair<const char *, size_t> getReqStr() 
+      APESEARCH::pair<const char *, size_t> getReqStr() 
       {
-         return pair<const char *, size_t>( getRequest, static_cast<size_t> ( reqSize ) );
+         return APESEARCH::pair<const char *, size_t>( getRequest, static_cast<size_t> ( reqSize ) );
       } // end formRequest()
 
+      ParsedUrl( ParsedUrl&& other ) : CompleteUrl( other.CompleteUrl ), 
+         Service( other.Service ), Host( other.Host ), Port( other.Port ), Path( other.Path )
+         {
+         other.Path = other.getRequest = nullptr;
+         }
 
       ParsedUrl( const char *url )
          {

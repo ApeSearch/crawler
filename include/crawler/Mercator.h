@@ -6,16 +6,17 @@
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../libraries/AS/include/AS/string.h"
 #include "../../libraries/AS/include/AS/pthread_pool.h"
-#include "Request.h"
-#include "Frontier.h"
 #include "../../libraries/AS/include/AS/atomic_queue.h"
 #include "../../libraries/AS/include/AS/condition_variable.h"
 #include "../../libraries/AS/include/AS/as_semaphore.h"
-#include "../../libraries/AS/include/AS/circular_buffer.h"
 #include "../../Parser/HtmlParser.h"
+#include "Request.h"
+#include "Frontier.h"
 #include "Node.h"
+#include "DynamicBuffer.h"
 #include <atomic>
 #include <assert.h>
+#include "ParsedUrl.h"
 
 /*
  * The general flow of this design is to seperate out
@@ -33,53 +34,6 @@
 */
 namespace APESEARCH
    {
-   
-   template< typename T>
-    class dynamicBuffer : public Buffer<T>
-       {
-       vector<T> buffer;
-       typedef T value_type;
-    public:
-       // For default construct objects...
-       dynamicBuffer( const size_t capacity ) : buffer( capacity )
-          {
-          assert( computeTwosPowCeiling( capacity ) == capacity );
-          }
-
-       dynamicBuffer( const size_t capacity, T&val ) : buffer( capacity, val )
-          {
-          assert( computeTwosPowCeiling( capacity ) == capacity );
-          }
-       inline value_type *getBuffer() noexcept
-          {
-          return &buffer.front();
-          }
-       inline void insert( const T& val, size_t index ) noexcept
-          {
-          buffer[ index ] = val;
-          }
-       inline void insert( size_t index, T&& val ) noexcept
-          {
-          buffer[ index ] = std::forward<T>( val );
-          }
-       inline virtual T& get( size_t index )
-          {
-          return buffer[ index ];
-          }
-       
-       inline virtual size_t getCapacity() const
-          {
-          return buffer.size();
-          }
-       inline virtual T *begin() noexcept
-          {
-          return &buffer.front();
-          }
-       void print( std::ostream& os, const size_t , const size_t sizeOf ) const
-          {
-          return;
-          }
-       };
    
     /*
      * Objct used to encapsulate a consumer queue ( the producer queue is the thread pool itself )
@@ -110,6 +64,7 @@ namespace APESEARCH
           }
        };
    */
+
    using CircBuf = circular_buffer< Func, dynamicBuffer< Func > >;
     class Mercator
        {
@@ -118,25 +73,29 @@ namespace APESEARCH
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
-
+      void crawlWebsite( Request& requester, APESEARCH::string& buffer );
       void crawler();
       void parser( const std::string& buffer, const APESEARCH::string &url );
-      void parser(  );
       void writeToFile( const HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
-      void cleanUp(); 
       void intel();
+      void cleanUp(); 
     public:
       Mercator( size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
          pool( CircBuf( amtOfCrawlers + amtOfParsers + amtOfFWriters ), 
-         amtOfCrawlers + amtOfParsers + amtOfFWriters ),  liveliness( true ) {}
+         amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 2 ), 
+         frontier( amtOfCrawlers ), liveliness( true ) {}
+      ~Mercator();
       void run();
       void user_handler(); // Interacts with user to provide intel, look at stats, and to shutdown
 
 
       };
    } // end namesapce APESEARCH
+
+std::chrono::time_point<std::chrono::system_clock> getNewTime( const std::chrono::time_point<std::chrono::system_clock>&, 
+      const std::chrono::time_point<std::chrono::system_clock>&);
 
 
 
