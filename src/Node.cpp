@@ -27,7 +27,7 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket())
 
 }
 
-Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, Database &db) : set( _set ), bloomFilter()
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db) : frontier( fron ), bloomFilter()
     ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db)
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
@@ -242,12 +242,11 @@ void Node::write( Link &link )
     }
     if(val == node_id)
     {
-        //TODO
+        dataBase.addAnchorFile(link);
         if(new_link)
         {
-            //  TODO write to frontier
+            frontier.insertNewUrl( std::move( link.URL ) );
         }
-        dataBase.addAnchorFile(link);
     }
     else{
         
@@ -296,11 +295,15 @@ void Node::receiver(int index)
                     APESEARCH::unique_lock<APESEARCH::mutex> lk( bloomFilter_lock );                   
                     found = bloomFilter.contains(linkOf.URL);
                 }
+                
+                dataBase.addAnchorFile(linkOf);
+
                 if(!found)
                 {
-                    //TODO Write to Frontier
+                    frontier.insertNewUrl( std::move( linkOf.URL ) );
                 }
-                dataBase.addAnchorFile(linkOf);
+                linkOf = Link();
+                continue;
             }
             else if(buffer[i] == ' ')
             {

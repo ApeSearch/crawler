@@ -11,10 +11,10 @@
 TEST(start_up)
 {
     Database db;
-    SetOfUrls set;
+    UrlFrontier frontier( 1 );
     APESEARCH::vector<APESEARCH::string> ips = {"127.0.0.1", "192.168.1.100"};
 
-    Node node(ips, 1, set, db);
+    Node node(ips, 1, frontier, db);
     //const char * const exampleUrl = "https://umich.edu/";
     sleep(30u);
 }

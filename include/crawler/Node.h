@@ -16,7 +16,8 @@
 #include "../../libraries/AS/include/AS/pthread_pool.h"
 #include "../../libraries/AS/include/AS/circular_buffer.h"
 #include "../../libraries/bloomFilter/include/bloomFilter/BloomFilter.h"
-#include "SetOfUrls.h"
+#include "Frontier.h"
+//#include "SetOfUrls.h"
 #include "Database.h"
 #include "DynamicBuffer.h"
 
@@ -76,7 +77,7 @@ class Node
    APESEARCH::string local_ip;
    int node_id;
    FNV hash;
-   SetOfUrls& set;
+   UrlFrontier& frontier;
    Bloomfilter bloomFilter;
    APESEARCH::mutex bloomFilter_lock;
    APESEARCH::PThreadPool< APESEARCH::circular_buffer<APESEARCH::Func, APESEARCH::DEFAULT::defaultBuffer<APESEARCH::Func, 32u>> > pool;
@@ -88,7 +89,7 @@ public:
     //Start listening server
     //Check if swap files exist and how much data they have in them currently
     //Must have ips in some ordering!
-    Node(APESEARCH::vector<APESEARCH::string> &ips, int node_id, SetOfUrls& _set, Database &db);
+    Node(APESEARCH::vector<APESEARCH::string> &ips, int node_id, UrlFrontier& _frontier, Database &db);
     ~Node();
 
     //1 dedicated thread-blocking
