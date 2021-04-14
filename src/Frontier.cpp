@@ -73,11 +73,11 @@ void UrlFrontier::FrontEndPrioritizer::readInUrl( SetOfUrls& set, std::atomic<bo
       empty.down();
       url = helperReadInUrl( set, liveliness ); // Runs until it gets for a queue that's not empty
 
-      if ( url.url.empty( ) )
-         continue;
-
-      pQueues[ url.priority ].pQueue.push( std::move( url.url ) );
-      full.up();
+      if ( !url.url.empty( ) )
+         {
+         pQueues[ url.priority ].pQueue.push( std::move( url.url ) );
+         full.up();
+         }
       } // end while
    } // end readInUrl()
 

@@ -13,7 +13,7 @@
 
 using APESEARCH::unique_ptr;
 
-NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket())
+NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket()), writer_semaphore(0)
 {
     APESEARCH::string pathname = "./storageFiles/storage_file";
     char path[PATH_MAX];
@@ -28,7 +28,7 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket())
 }
 
 Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db) : frontier( fron ), bloomFilter()
-    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db)
+    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db), node_id(id)
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
     node_buckets.reserve( ips.size() );
@@ -114,6 +114,7 @@ void Node::connect( int index )
 //Use fine grained locking to switch out sockets.
 void Node::connectionHandler()
 {
+    std::cerr << "Connection handler is running \n";
     //Since accept will block this is not spinning
     while(true)
     {
@@ -160,16 +161,21 @@ void Node::connectionHandler()
 
 void Node::sender(int index)
 {
+    std::cerr << "Sender is running to send on Node: " << index << '\n';
     while(true)
     {
         sleep( 1u );
-        std::cout << "Sender activated to send to Node: " << index << '\n';
+        std::cerr << "Sender activated to send to Node: " << index << '\n';
         node_buckets[index].socket_lock.lock();
         int fd = node_buckets[index].socket->getFD();
         node_buckets[index].socket_lock.unlock();
 
+
+        node_buckets[index].writer_semaphore.down();
         node_buckets[index].high_prio_lock();
         ssize_t file_size = node_buckets[index].storage_file.fileSize();
+        
+
         unique_mmap mappedFile;
         try
         {
@@ -179,42 +185,50 @@ void Node::sender(int index)
         {
             node_buckets[index].high_prio_unlock();
             std::cerr << "VERY BAD ERROR ALERT NIKOLA unique_mmap failed on file: " << index << '\n';
-            continue;
+            exit(1);
         }
         //Send call 
         if( 0 > ::send(fd, mappedFile.get(), file_size, 0))
         {
+            //Allow writer retries
+            
             //Send fail
             node_buckets[index].high_prio_unlock(); 
             APESEARCH::unique_lock<APESEARCH::mutex> lck(node_buckets[index].socket_lock);
             
-            //Someone else changed it beforehand failsafe for recieve
-            if(fd != node_buckets[index].socket->getFD() ||  node_buckets[index].socket->getFD() != -1)
-                continue;
+            //Else Someone else changed it beforehand failsafe for recieve
+            if( fd == node_buckets[index].socket->getFD() )
+                {
+                //Declare it invalid
+                unique_ptr<Socket> ptr(new Socket());
+                node_buckets[index].socket.swap(ptr);
 
-            //Declare it invalid
-            unique_ptr<Socket> ptr(new Socket());
-            node_buckets[index].socket.swap(ptr);
-
-            if(node_id < index)
-            {   
-                // We must connect to this socket
-                connect(index);
-            }
-            else
-            {
-                //Wait for connector to notify you
-                node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
-            }
-            continue;
+                if(node_id < index)
+                {   
+                    std::cerr << "Sender is connecting to Node: " << index << '\n';
+                    // We must connect to this socket
+                    connect(index);
+                }
+                else
+                {
+                    std::cerr << "Sender is waiting for connection to Node: " << index << '\n';
+                    //Wait for connector to notify you
+                    node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
+                }
+                }  // end if
+            // Allow to try again
+            node_buckets[index].writer_semaphore.up();
         }
         else
         {
             //Send succeeded
             if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
+            {
                 std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
+                exit(1);
+            }
+            node_buckets[index].high_prio_unlock();
         }
-        node_buckets[index].high_prio_unlock();
     }
 }
 
@@ -236,7 +250,7 @@ void Node::write( Link &link )
             new_link = true;
             bloomFilter.insert( link.URL );
         } // end if
-        else if(link.anchorText.empty()) {
+        else if(link.anchorText.empty() || link.URL.empty()) {
             return;
         } // end else
     }
@@ -260,7 +274,7 @@ void Node::write( Link &link )
             node_buckets[val].storage_file.write(space_char, 1);            
         }
         node_buckets[val].storage_file.write(null_char, 1);   
-        
+        node_buckets[val].writer_semaphore.up();
         node_buckets[val].low_prio_unlock();
     }
 }
@@ -268,20 +282,19 @@ void Node::write( Link &link )
 //Constantly reading from sockets
 void Node::receiver(int index)
 {
-
+    std::cerr << "Reciever is running to send on Node: " << index << '\n';
     node_buckets[index].socket_lock.lock();
     int fd = node_buckets[index].socket->getFD();
     node_buckets[index].socket_lock.unlock();
-
     char buffer[BUFFERSIZE];
     Link linkOf;
-    size_t bytesRead;
+    int bytesRead = 0;
     bool is_url = true;
     while(true)
     {
         bytesRead = recv(fd, buffer, BUFFERSIZE, 0);
 
-        for (size_t i = 0; i < bytesRead; ++i)
+        for (int i = 0; i < bytesRead; ++i)
         {
             if(buffer[i] == '\n')
             {
@@ -336,11 +349,13 @@ void Node::receiver(int index)
 
             if(node_id < index)
             {   
+                std::cerr << "Reciever is connecting to Node: " << index << '\n';
                 // We must connect to this socket
                 connect(index);
             }
             else
             {
+                std::cerr << "Reciever is waiting for connection to Node: " << index << '\n';
                 //Wait for connector to notify you
                 node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
             }
