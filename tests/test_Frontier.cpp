@@ -31,8 +31,18 @@ void insert( UrlFrontier& frontier, const APESEARCH::string& url )
    {
    std::this_thread::sleep_for(std::chrono::seconds{1});
    ParsedUrl parsedUrl( url.cstr() );
-   frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>
+   bool ret = frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>
    ( std::chrono::system_clock::now() ), std::string( parsedUrl.Host, parsedUrl.Port ) );
+   ASSERT_TRUE( ret );
+   }
+
+void insertFail( UrlFrontier& frontier, const APESEARCH::string& url )
+   {
+   std::this_thread::sleep_for(std::chrono::seconds{1});
+   ParsedUrl parsedUrl( url.cstr() );
+   bool ret = frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>
+   ( std::chrono::system_clock::now() ), std::string( parsedUrl.Host, parsedUrl.Port ) );
+   ASSERT_FALSE( ret );
    }
 
 TEST( test_frontier )
@@ -51,6 +61,8 @@ TEST( test_frontier )
     auto futureObj = pool.submit( insert, std::ref( frontier ), std::ref( str ) );
     futureObj.get( );
     url = frontier.getNextUrl( );
+    pool.submitNoFuture( insertFail, std::ref( frontier ), std::ref( str ) );
+    frontier.insertNewUrl( "https://en.wikipedia.org/wiki/Peer-to-peer" );
     ASSERT_EQUAL( url, "http://www.example.com/dogs/poodles/poodle2.html" );
     }
 

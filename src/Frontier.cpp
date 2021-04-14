@@ -234,7 +234,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
 
 // queue lock -> priority queue lock
 // map lock -> queue lock 
-void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time_point<std::chrono::system_clock>& time, const std::string& domain )
+bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time_point<std::chrono::system_clock>& time, const std::string& domain )
    {
    APESEARCH::unique_lock<APESEARCH::mutex> uniqMapLk( mapLk );
    // Basically forget about it... ( if itr == domainsMap.end( ) )
@@ -254,7 +254,8 @@ void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
          return ( !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain ); };
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
 
-      if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain )
+      // If this is the case, then !domainQueues[ ind ].queueWLk.pQueue.empty()
+      if ( domain == domainQueues[ ind ].domain )
          {
          if ( !domainQueues[ ind ].timeStampInDomain )
             {
@@ -262,10 +263,13 @@ void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
             backendHeap.emplace( time, itr->second );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
+            return true;
             }
-         return;
+         // Indicates failure
+         return false;
          } // end if
       } // end while
+   return false;
    } // end insertTiming()
 
 APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolicy::getMostOkayUrl( SetOfUrls& set )

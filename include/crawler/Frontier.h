@@ -124,7 +124,7 @@ class UrlFrontier
             const size_t index, const std::string& domain );
         ~BackendPolitenessPolicy( );
         APESEARCH::pair< APESEARCH::string, size_t > getMostOkayUrl( SetOfUrls& );
-        void insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
+        bool insertTiming( const std::chrono::time_point<std::chrono::system_clock>&, const std::string& );
     };
 
     using FrontierCircBuf = APESEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
