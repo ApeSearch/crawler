@@ -370,7 +370,7 @@ void SetOfUrls::enqueue( const APESEARCH::string &url )
    APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
    assert( numOfUrlsInserted.load() < SetOfUrls::maxUrls && !url.empty() );
 
-   write( back.getFD(), url.cbegin(), url.size() );
+   back.write( url.cbegin(), url.size() );
 
    // Mark as a delimiter
    write( back.getFD(), "\n", 1 );

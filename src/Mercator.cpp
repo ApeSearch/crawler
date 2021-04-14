@@ -53,6 +53,7 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
             assert( *parsedUrl.Host ); 
             pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
             { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );
+
             std::string buf( requester.getResponseBuffer().first().begin(), requester.getResponseBuffer().first().end() );
             pool.submitNoFuture( [this, buffer{ std::move( buf ) }, url{ std::move( buffer ) } ]( )
             { this->parser( buffer, url ); } );

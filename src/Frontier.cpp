@@ -245,7 +245,9 @@ void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
       auto cond = [this, &domain, ind]() -> bool {
          return !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain; };
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
-
+      std::cout << "Domain: " << domainQueues[ ind ].domain << std::endl;
+      std::cout << "Passed Domain: " << domain << std::endl;
+      std::cout << "Is empty or not: " << domainQueues[ ind ].queueWLk.pQueue.empty() << std::endl;
       if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain )
          {
          APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
