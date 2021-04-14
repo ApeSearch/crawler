@@ -251,15 +251,19 @@ void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
 
       assert( domain == domainQueues[ ind ].domain );
       auto cond = [this, &domain, ind]() -> bool {
-         return !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain; };
+         return ( !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain ); };
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
 
-      if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain && !domainQueues[ ind ].timeStampInDomain )
+      if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain )
          {
-         APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
-         backendHeap.emplace( time, itr->second );
-         domainQueues[ ind ].timeStampInDomain = true;
-         semaHeap.up(); // Okay for waiting threads to proceed
+         if ( !domainQueues[ ind ].timeStampInDomain )
+            {
+            APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
+            backendHeap.emplace( time, itr->second );
+            domainQueues[ ind ].timeStampInDomain = true;
+            semaHeap.up(); // Okay for waiting threads to proceed    
+            }
+         return;
          } // end if
       } // end while
    } // end insertTiming()
