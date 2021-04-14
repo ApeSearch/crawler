@@ -8,6 +8,35 @@
 #define MAX_PATH 1024
 #define MAX_INT_LENGTH 100
 
+
+void fillVectors(APESEARCH::vector<size_t> &titleWords, 
+APESEARCH::vector<size_t> &headingWords, APESEARCH::vector<size_t> &boldWords, HtmlParser &parsed){
+    
+    for(size_t i = 0; i < parsed.parsed_text.size(); i++){
+        if(parsed.parsed_text[i].type == titleWord){
+            titleWords.push_back(i);
+        }
+        else if(parsed.parsed_text[i].type == headingWord){
+            headingWords.push_back(i);
+        }
+        else if(parsed.parsed_text[i].type == boldWord){
+            boldWords.push_back(i);
+        }
+    }
+}
+
+void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
+    static const char* const newline_char = "\n";
+    static const char* const space_char = " ";
+    char temp[MAX_INT_LENGTH];
+    for(int i = 0; i < indexes.size(); i++){
+        size_t size = snprintf( temp, sizeof( temp ), "%d", indexes[i]);
+        file.write(temp, size);
+        file.write(space_char, 1);
+    }
+    file.write(newline_char, 1);
+}
+
 DBBucket::DBBucket(size_t index){
     static const APESEARCH::string anchor_root = "./tests/anchorFiles/anchorFile";
     static const APESEARCH::string parsed_root = "./tests/parsedFiles/parsedFile";
@@ -73,22 +102,28 @@ void Database::addParsedFile(HtmlParser &parsed)        //url, parsed text, base
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
     char temp[MAX_INT_LENGTH];
+    APESEARCH::vector<size_t> titleWords;
+    APESEARCH::vector<size_t> headingWords;
+    APESEARCH::vector<size_t> boldWords;
+
+    fillVectors(titleWords, headingWords, boldWords, parsed);
 
     size_t index = hash(parsed.url.cstr());
     index = index % file_vector.size();
 
     APESEARCH::unique_lock<APESEARCH::mutex> lk( file_vector[index].parsed_lock );
-    file_vector[index].parsedFile. write(parsed.url.cstr(), parsed.url.size()); //url
+    file_vector[index].parsedFile.write(parsed.url.cstr(), parsed.url.size()); //url
     file_vector[index].parsedFile.write(newline_char, 1);
 
     for(size_t i = 0; i < parsed.parsed_text.size(); i++){ // parsed text
         file_vector[index].parsedFile.write(parsed.parsed_text[i].text.cstr(), parsed.parsed_text[i].text.size());
         file_vector[index].parsedFile.write(space_char, 1);
-        size_t size = snprintf( temp, sizeof( temp ), "%d", parsed.parsed_text[i].type);
-        file_vector[index].parsedFile.write(temp, size);
-        file_vector[index].parsedFile.write(space_char, 1);
     }
     file_vector[index].parsedFile.write(newline_char, 1);
+
+    writeIndex(titleWords, file_vector[index].parsedFile);
+    writeIndex(headingWords, file_vector[index].parsedFile);
+    writeIndex(boldWords, file_vector[index].parsedFile);
 
     file_vector[index].parsedFile.write(parsed.base.cstr(), parsed.base.size()); //base
     file_vector[index].parsedFile.write(newline_char, 1);
@@ -107,3 +142,4 @@ void Database::addParsedFile(HtmlParser &parsed)        //url, parsed text, base
 
     file_vector[index].parsedFile.write(null_char, 1); // null
 }
+
