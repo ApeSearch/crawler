@@ -9,57 +9,48 @@
 #define MAXTHREADS 4
 #define BLOOMFILTER
 #define BUFFERSIZE 65536
+#define PORT 6666
 
 using APESEARCH::unique_ptr;
 
-#define PORT 8080
-
-Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip, SetOfUrls& _set, Database &db) : 
-    sockets(), addrinfos(ips.size()), locks(ips.size()), local_ip(loc_ip), set( _set ), bloomFilter()
-    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db)
+NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket())
 {
-    sockets.reserve( ips.size() );
-    for ( unsigned n = 0; n < ips.size(); ++n )
-        sockets.emplace_back( new Socket() );        
-       
     APESEARCH::string pathname = "./storageFiles/storage_file";
     char path[PATH_MAX];
-    //Get handles to files
-    for(int i = 0; i < ips.size(); ++i)
-    {
-        
-        snprintf( path, sizeof( path ), "%s%d%s", pathname.cstr(), i, ".txt" );
-        try
-            { 
-            //Make sure that we never have more than one process appending unto these files.
-            storage_files.emplace_back( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
-            }
-        catch(APESEARCH::File::failure &fail)
+    snprintf( path, sizeof( path ), "%s%d%s", pathname.cstr(), index, ".txt" );
+    storage_file = APESEARCH::File( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
+
+    memset(&(addr), 0, sizeof(addr));
+    addr.sin_family = AF_INET;    // select internet protocol 
+    addr.sin_port = htons(PORT);         // set the port # 
+    addr.sin_addr.s_addr = inet_addr(ip); // set the addr
+
+}
+
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, Database &db) : set( _set ), bloomFilter()
+    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db)
+{
+    //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
+    node_buckets.reserve( ips.size() );
+    for(int i = 0; i < ips.size(); i++)
+        {   
+            try
             {
-            //If you fail here we got nothing to do except manual debug
-            std::cerr << "Failed opening node storage file " << pathname << '\n';
-            
-            exit(1);
+                node_buckets.emplace_back( i, ips[i].cstr());
             }
-    }
-
-    for(int i = 0; i < ips.size(); ++i)
-    {
-        struct sockaddr_in &addr = addrinfos[i];
-        memset(&(addr), 0, sizeof(addr));
-        addr.sin_family = AF_INET;    // select internet protocol 
-        addr.sin_port = htons(PORT);         // set the port # 
-        addr.sin_addr.s_addr = inet_addr(ips[i].cstr()); // set the addr
-
-        if(ips[i] == local_ip)
-            node_id = i;
-    }
+            catch(APESEARCH::File::failure &f)
+            {
+                std::cerr << "Failed on creating storage files\n";
+                std::cerr << f.getErrorNumber();
+                exit(1);
+            }
+        }
 
     //Create server socket on your node_id
     try
     {
         unique_ptr<Socket> ptr(new Socket(PORT));
-        sockets[node_id].swap(ptr);
+        node_buckets[node_id].socket.swap(ptr);
     } 
     catch(...)
     {
@@ -74,50 +65,46 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, APESEARCH::string &loc_ip,
        };
     pool.submitNoFuture( connHandler );
 
-    //Call threadpool for Connectors
-    for ( unsigned i = node_id + 1; i < ips.size(); ++i )
-       {
-            auto conn = [this]( int i )
-            { this->Node::connector( i ); };
-            pool.submitNoFuture(conn, i);
-       } 
-
     //Call threadpool for Senders
     for ( unsigned i = 0; i < ips.size(); ++i )
        {
-            auto sen = [this]( int i )
-            { this->Node::sender( i ); };
-            pool.submitNoFuture(sen, i);
-       } 
-
+           if(i != node_id)
+            {
+                auto sen = [this]( int i )
+                { this->Node::sender( i ); };
+                pool.submitNoFuture(sen, i);
+            }
+       }
+    //Call threadpool for Receivers
+    for ( unsigned i = 0; i < ips.size(); ++i )
+       {
+           if(i != node_id)
+            {
+                auto rec = [this]( int i )
+                { this->Node::receiver( i ); };
+                pool.submitNoFuture(rec, i);
+            }
+       }
 }
 
 Node::~Node(){}
 
-void Node::connector( int i )
+
+void Node::connect( int index )
 {
     while(true)
     {
+        std::cerr << "Trying to connect to Node: " << index << '\n';
         {
-            APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
-
-            if(sockets[i]->getFD() > 0)
-                return;
-
             try
             {
-                unique_ptr<Socket> ptr(new Socket(addrinfos[i]));
-                sockets[i].swap(ptr);
-
-                auto func = [this]( int i )
-                { this->Node::receive( i ); };
-                pool.submitNoFuture(func, i);
-
+                unique_ptr<Socket> ptr(new Socket(node_buckets[index].addr));
+                node_buckets[index].socket.swap(ptr);
                 return;
             }
             catch(...)
             {
-                std::cerr << "Could not connect to Node: " << i << '\n';
+                std::cerr << "Could not connect to Node: " << index << '\n';
             }
         }
     }
@@ -132,24 +119,27 @@ void Node::connectionHandler()
     {
         struct sockaddr_in node_addr;
         socklen_t node_len = sizeof(node_addr);
+        memset(&(node_addr), 0, node_len);
         
         bool found_ip = false;
 
         try
         {
-            unique_ptr<Socket> ptr = sockets[node_id]->accept((struct sockaddr *) &node_addr, &node_len);
+            std::cerr<< "Before " << node_addr.sin_addr.s_addr << '\n';
+
+            unique_ptr<Socket> ptr = node_buckets[node_id].socket->accept((struct sockaddr *) &node_addr, &node_len);
+
+            std::cerr << "After "<< node_addr.sin_addr.s_addr << '\n';
 
             for (int i = node_id - 1; 0 <= i; --i)
             {
-                if( node_addr.sin_addr.s_addr == addrinfos[i].sin_addr.s_addr )
+                if( node_addr.sin_addr.s_addr == node_buckets[node_id].addr.sin_addr.s_addr )
                     {
-                    APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
-                    sockets[i].swap(ptr);
-                    
-                    auto func = [this]( int i )
-                        { this->Node::receive( i ); };
-                    pool.submitNoFuture(func, i);
+                    node_buckets[i].socket_lock.lock();
+                    node_buckets[i].socket.swap(ptr);
                     found_ip = true;
+                    node_buckets[i].cv.notify_all();
+                    node_buckets[i].socket_lock.unlock();
                     break;
                 }
             }
@@ -168,58 +158,88 @@ void Node::connectionHandler()
 
 }
 
-void Node::sender(int i)
+void Node::sender(int index)
 {
     while(true)
     {
-        sleep( 10u );
-        APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
-        if(sockets[i]->getFD() > 0)
+        sleep( 1u );
+        std::cout << "Sender activated to send to Node: " << index << '\n';
+        node_buckets[index].socket_lock.lock();
+        int fd = node_buckets[index].socket->getFD();
+        node_buckets[index].socket_lock.unlock();
+
+        node_buckets[index].high_prio_lock();
+        ssize_t file_size = node_buckets[index].storage_file.fileSize();
+        unique_mmap mappedFile;
+        try
         {
-            ssize_t file_size = storage_files[i].fileSize();
-            try
-            {
-                unique_mmap mappedFile( file_size, PROT_READ, MAP_SHARED, storage_files[i].getFD(), 0 );
-                sockets[i]->send( (const char *) mappedFile.get(), file_size);
-                storage_files[i].truncate(0);
-            }
-            catch(...)
-            {
-                unique_ptr<Socket> ptr(new Socket());
-                ptr.swap(sockets[i]);
-                if(i > node_id)
-                    {
-                    auto func = [this]( int i )
-                    { this->connector( i ); };
-                    pool.submitNoFuture(func, i );
-                    }
-            }
+            mappedFile = unique_mmap( file_size, PROT_READ, MAP_SHARED, node_buckets[index].storage_file.getFD(), 0 );
         }
+        catch(...)
+        {
+            node_buckets[index].high_prio_unlock();
+            std::cerr << "VERY BAD ERROR ALERT NIKOLA unique_mmap failed on file: " << index << '\n';
+            continue;
+        }
+        //Send call 
+        if( 0 > ::send(fd, mappedFile.get(), file_size, 0))
+        {
+            //Send fail
+            node_buckets[index].high_prio_unlock(); 
+            APESEARCH::unique_lock<APESEARCH::mutex> lck(node_buckets[index].socket_lock);
+            
+            //Someone else changed it beforehand failsafe for recieve
+            if(fd != node_buckets[index].socket->getFD() ||  node_buckets[index].socket->getFD() != -1)
+                continue;
+
+            //Declare it invalid
+            unique_ptr<Socket> ptr(new Socket());
+            node_buckets[index].socket.swap(ptr);
+
+            if(node_id < index)
+            {   
+                // We must connect to this socket
+                connect(index);
+            }
+            else
+            {
+                //Wait for connector to notify you
+                node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
+            }
+            continue;
+        }
+        else
+        {
+            //Send succeeded
+            if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
+                std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
+        }
+        node_buckets[index].high_prio_unlock();
     }
 }
 
 //Try to send n times unless the connection is closed,
 //Then try to create a new socket
 //If sent n times and connection is still open or new connection cannot be made write to swap file
-void Node::send( Link &link )
+void Node::write( Link &link )
 {
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
     size_t val = hash(link.URL.cstr());
-    val = val % addrinfos.size();
+    val = val % node_buckets.size();
     bool new_link = false;
-{
-    APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( bloomFilter_lock );
-    if(!bloomFilter.contains(link.URL))
-       {
-        new_link = true;
-        bloomFilter.insert( link.URL );
-       } // end if
-    else if(link.anchorText.empty()) {
-        return;
-    } // end else
-}
+    {
+        APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( bloomFilter_lock );
+        if(!bloomFilter.contains(link.URL))
+        {
+            new_link = true;
+            bloomFilter.insert( link.URL );
+        } // end if
+        else if(link.anchorText.empty()) {
+            return;
+        } // end else
+    }
     if(val == node_id)
     {
         //TODO
@@ -231,27 +251,28 @@ void Node::send( Link &link )
     }
     else{
         
-        APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[val] );
+        node_buckets[val].low_prio_lock();
 
-        storage_files[val].write(link.URL.cstr(), link.URL.size());
-        storage_files[val].write(newline_char, 1);
+        node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size());
+        node_buckets[val].storage_file.write(newline_char, 1);
         for (size_t i = 0; i < link.anchorText.size(); i++)
         {
-            storage_files[val].write(link.anchorText[i].cstr(), link.anchorText[i].size());
-            storage_files[val].write(space_char, 1);            
+            node_buckets[val].storage_file.write(link.anchorText[i].cstr(), link.anchorText[i].size());
+            node_buckets[val].storage_file.write(space_char, 1);            
         }
-        storage_files[val].write(null_char, 1);   
+        node_buckets[val].storage_file.write(null_char, 1);   
+        
+        node_buckets[val].low_prio_unlock();
     }
 }
 
 //Constantly reading from sockets
-void Node::receive(int i)
+void Node::receiver(int index)
 {
-    int fd;
-    {
-        APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
-        fd = sockets[i]->getFD();
-    }
+
+    node_buckets[index].socket_lock.lock();
+    int fd = node_buckets[index].socket->getFD();
+    node_buckets[index].socket_lock.unlock();
 
     char buffer[BUFFERSIZE];
     Link linkOf;
@@ -279,10 +300,7 @@ void Node::receive(int i)
                 {
                     //TODO Write to Frontier
                 }
-                    
                 dataBase.addAnchorFile(linkOf);
-                
-                //Push link
             }
             else if(buffer[i] == ' ')
             {
@@ -302,22 +320,27 @@ void Node::receive(int i)
         }
         if (bytesRead == -1)
         {
-            APESEARCH::unique_lock<APESEARCH::mutex> lk( locks[i] );
-            if(fd == sockets[i]->getFD())
-            {
-                unique_ptr<Socket> ptr(new Socket());
-                ptr.swap(sockets[i]);
-                //Only connect if he has a smaller number than you
-                if(node_id < i)
-                {
-                    auto func = [this]( int i )
-                    { this->connector( i ); };
-                    pool.submitNoFuture(func, i );
-                }
+
+            APESEARCH::unique_lock<APESEARCH::mutex> lck(node_buckets[index].socket_lock);
+            
+            //Someone else changed it beforehand failsafe for recieve
+            if(fd != node_buckets[index].socket->getFD() ||  node_buckets[index].socket->getFD() != -1)
+                continue;
+                
+            //Declare it invalid
+            unique_ptr<Socket> ptr(new Socket());
+            node_buckets[index].socket.swap(ptr);
+
+            if(node_id < index)
+            {   
+                // We must connect to this socket
+                connect(index);
             }
-            break;
+            else
+            {
+                //Wait for connector to notify you
+                node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
+            }
         }
     }  
-    //Call recieve on socket
-    //Parse data into url section and 
 }

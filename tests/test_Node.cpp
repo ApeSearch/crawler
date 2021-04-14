@@ -2,18 +2,19 @@
 #include "../include/crawler/Node.h"
 #include "../include/crawler/Database.h"
 #include "../libraries/AS/include/AS/string.h"
+#include "../libraries/AS/include/AS/Socket.h"
 #include "../libraries/AS/include/AS/vector.h"
 
 #include <assert.h>
+#include <iostream>
 
 TEST(start_up)
 {
     Database db;
     SetOfUrls set;
     APESEARCH::vector<APESEARCH::string> ips = {"127.0.0.1", "192.168.1.100"};
-    APESEARCH::string local = "192.168.1.100";
 
-    Node node(ips, local, set, db);
+    Node node(ips, 1, set, db);
     //const char * const exampleUrl = "https://umich.edu/";
     sleep(30u);
 }
