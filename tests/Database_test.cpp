@@ -76,7 +76,7 @@ TEST(test_add_parsed_file)
         parser.numParagraphs = 666;
         parser.numSentences = 440;
         db.addParsedFile(parser);
-        APESEARCH::string check = "www.google.com\nmonke 0 monke 1 monke 2 monke 3 monke 0 monke 1 monke 2 monke 3 monke 0 monke 1 \nmonkey.com\n666\n420\n440\n";
+        APESEARCH::string check = "www.google.com\nmonke monke monke monke monke monke monke monke monke monke \n1 5 9 \n2 6 \n3 7 \nmonkey.com\n666\n420\n440\n";
         check.push_back('\0');
 
 
@@ -108,6 +108,32 @@ TEST(test_parsed_site)
         size_t ind = db.hash( parser.url.cstr() ) % db.file_vector.size();
         std::cout << ind << std::endl;
         db.addParsedFile(parser);
+
+        path = "./Parser/inputs/gamefaqs.html";
+        APESEARCH::File file1(path.cstr(), O_RDWR , mode_t(0600));
+        unique_mmap map1( file1.fileSize(), PROT_WRITE, MAP_SHARED, file1.getFD(), 0 );
+        const char *ptr1 = reinterpret_cast< const char *>( map1.get() );
+
+        HtmlParser parser1(ptr1, file1.fileSize(), "www.monkey.com" );
+        // size_t ind1 = db.hash( parser1.url.cstr() ) % db.file_vector.size();
+        // std::cout << ind1 << std::endl;
+        db.addParsedFile(parser1);
+
+        path = "./Parser/inputs/wiki.html";
+        APESEARCH::File file2(path.cstr(), O_RDWR , mode_t(0600));
+        unique_mmap map2( file2.fileSize(), PROT_WRITE, MAP_SHARED, file2.getFD(), 0 );
+        const char *ptr2 = reinterpret_cast< const char *>( map2.get() );
+
+        HtmlParser parser2(ptr2, file2.fileSize(), "www.monkey.com" );
+        db.addParsedFile(parser2);
+
+        path = "./Parser/inputs/yoast.html";
+        APESEARCH::File file3(path.cstr(), O_RDWR , mode_t(0600));
+        unique_mmap map3( file3.fileSize(), PROT_WRITE, MAP_SHARED, file3.getFD(), 0 );
+        const char *ptr3 = reinterpret_cast< const char *>( map3.get() );
+
+        HtmlParser parser3(ptr3, file3.fileSize(), "www.monkey.com" );
+        db.addParsedFile(parser3);
     }
 
     
