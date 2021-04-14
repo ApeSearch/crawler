@@ -10,6 +10,7 @@
 #include "../../libraries/AS/include/AS/unique_ptr.h"
 #include "../../libraries/AS/include/AS/mutex.h"
 #include "../../libraries/AS/include/AS/condition_variable.h"
+#include "../../libraries/AS/include/AS/as_semaphore.h"
 #include "../../libraries/AS/include/AS/File.h"
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/HashTable/include/HashTable/FNV.h"
@@ -23,13 +24,13 @@
 
 struct NodeBucket
 {
-   NodeBucket() = default;
+   NodeBucket( ) : writer_semaphore( 0 ) { }
    NodeBucket(size_t index, const char *ip);
    ~NodeBucket(){};
    NodeBucket& operator=( const NodeBucket  &other ) = delete;
    NodeBucket( const NodeBucket &other ) = delete;
    NodeBucket( NodeBucket &&other ) : addr( std::move( other.addr ) ), socket( std::move( other.socket ) )
-   , storage_file( std::move( other.storage_file ) ) { }
+   , storage_file( std::move( other.storage_file ) ), writer_semaphore(std::move(other.writer_semaphore) ) { }
 
    struct sockaddr_in addr;
    //Can probably use regular Socket variable if we implement move operator=
@@ -39,6 +40,7 @@ struct NodeBucket
    //Lock used for signaling that socket will be changed
    APESEARCH::mutex socket_lock;
    APESEARCH::condition_variable cv;
+   APESEARCH::semaphore writer_semaphore;
    
    //Locks for file/socket IO
    APESEARCH::mutex L;
