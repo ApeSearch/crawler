@@ -34,36 +34,6 @@
 */
 namespace APESEARCH
    {
-   
-    /*
-     * Objct used to encapsulate a consumer queue ( the producer queue is the thread pool itself )
-    */
-   /*
-    template< typename T >
-    class SharedQueue
-       {
-       atomic_queue< T, circular_buffer< T, dynamicBuffer< T > > > queue;
-       semaphore available;
-      
-       public:
-         SharedQueue( std::size_t amountOfResources, T& val ) : 
-            queue( circular_buffer< T,  
-            dynamicBuffer< T > >( amountOfResources, val ) ) {}
-         ~SharedQueue( ) {}
-
-       void push( T&& val ) noexcept
-          {
-           queue.enqueue( std::forward<T>( val ) );
-           available.up();
-          }
-
-       T&& pop( ) noexcept
-          {
-           available.down();
-           return queue.dequeue().value();
-          }
-       };
-   */
 
    using CircBuf = circular_buffer< Func, dynamicBuffer< Func > >;
     class Mercator

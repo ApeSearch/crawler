@@ -5,12 +5,15 @@ CXXFLAGS = -std=c++1z
 LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread
 # Define certain variables based on system
 # -I likely means (Include) -L likely means (Library)
+FLAGS:=EMPTY
 ifeq ($(shell uname -s | tr A-Z a-z), darwin)
 	OSFLAGS:=_LARGE_FILE_API
+	FLAGS:=MACOS
 endif
 
 ifeq ($(shello uname -s | tr A-Z a-z), linux)
-	OSFLAGS
+	OSFLAGS:=EMPTY
+	FLAGS:=LINUX
 endif
 
 SRC=src
@@ -61,7 +64,7 @@ test: ${TEST_SRC}
 update:
 
 %.o: %.cpp
-	${CC}  ${LDFLAGS} -c $< -o $@
+	${CC} -D${FLAGS} ${LDFLAGS} -c $< -o $@
 %.o: %.cc
 	${CC} -c $< -o $@
 
