@@ -373,7 +373,7 @@ void SetOfUrls::enqueue( const APESEARCH::string &url )
    back.write( url.cbegin(), url.size() );
 
    // Mark as a delimiter
-   write( back.getFD(), "\n", 1 );
+   back.write( "\n", 1 );
    ++numOfUrlsInserted;
    cv.notify_one(); // Notify any potentially waiting threads
 

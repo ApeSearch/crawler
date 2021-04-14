@@ -84,15 +84,15 @@ void UrlFrontier::FrontEndPrioritizer::readInUrl( SetOfUrls& set, std::atomic<bo
 // Called whenever a thread is 
 APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
    {
-   // Will always be guaranteed a url
+   // Will always be guaranteed a url ( as long as liveliness == true )
    full.down(); 
-   
-   size_t ind = pickQueue();
-   APESEARCH::unique_lock<APESEARCH::mutex> lk( pQueues[ ind ].queueLk );
+   if ( !liveliness.load() )
+      return "";
 
    APESEARCH::queue<APESEARCH::string, APESEARCH::circular_buffer< APESEARCH::string, 
                 APESEARCH::DEFAULT::defaultBuffer< APESEARCH::string, urlsPerPriority> > > *queue = nullptr;
-
+   size_t ind = pickQueue();
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( pQueues[ ind ].queueLk );
    if ( pQueues[ ind ].pQueue.empty() )
       {
       lk.unlock();
@@ -112,19 +112,16 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
 
             } // end if
          } // end for
-      assert( !liveliness.load() || n >= 0 );
+      assert( n >= 0 );
       } // end if
    else
       queue = &pQueues[ ind ].pQueue;
-   APESEARCH::string url;
-   if ( liveliness.load() )
-      {
-      assert( queue && !queue->empty() );
-      url = std::move( queue->front() );
-      queue->pop();
-      empty.up();
-      // There is one less url in the frontend queue now( ask to fill er up )
-      }
+
+   assert( queue && !queue->empty() );
+   APESEARCH::string url = std::move( queue->front() );
+   queue->pop();
+   empty.up();
+   // There is one less url in the frontend queue now( ask to fill er up )
    return url;
    } // end getUrl()
 
@@ -171,22 +168,26 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
    std::unordered_map< std::string, size_t >::iterator itr;
 
    auto& queue = domainQueues[ index ].queueWLk.pQueue;
-   for ( ;liveliness.load() && queue.empty(); qLk.lock() )
+   while ( liveliness.load() && queue.empty() )
       {
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      if ( *parsedUrl.Host )
+      if ( !url.empty( ) && *parsedUrl.Host )
          {
          unsigned indToInsert = 0;
+         std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );
+
          APESEARCH::unique_lock< APESEARCH::mutex > uniqMLk( mapLk );
          APESEARCH::unique_lock< APESEARCH::mutex > backEndLk;
-
-         std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );
          itr = domainsMap.find( extractedDomain );
          if ( itr != domainsMap.end() )
             {
-            backEndLk = APESEARCH::unique_lock< APESEARCH::mutex >( domainQueues[ itr->second ].queueWLk.queueLk );
+            if ( itr->second == index )
+               qLk.lock( );
+            else
+               backEndLk = APESEARCH::unique_lock< APESEARCH::mutex >( domainQueues[ itr->second ].queueWLk.queueLk );
+
             uniqMLk.unlock();
             indToInsert = itr->second;
             } // end if
@@ -194,19 +195,21 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          else
             {
             indToInsert = index;
-            // A previously inserted domain
+            // Delete previously domain from map
             if ( !domain.empty() )
                {
                itr = domainsMap.find( std::string( domain.begin(), domain.end() ) );
-               assert( itr != domainsMap.end() );
+               assert( itr != domainsMap.end() && itr->second == index );
                domainsMap.erase( itr );
                } // end if
             // Insert a new entry to map
             domainsMap.emplace( std::piecewise_construct, 
                std::tuple<char *, char*>(  parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
-            backEndLk = APESEARCH::unique_lock< APESEARCH::mutex >( domainQueues[ index ].queueWLk.queueLk );
+
+            qLk.lock( );
             uniqMLk.unlock(); // Must happen after obtaining the queue lock
 
+            // Reinsert a fresh new timestamp
             APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
             backendHeap.emplace( newTime(), index );
             semaHeap.up();
@@ -220,6 +223,9 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             set.enqueue( url );
          else
             domainQueues[ indToInsert ].queueWLk.pQueue.emplace( std::move( url ) );
+         
+         if ( itr != domainsMap.end() && itr->second != index )
+            qLk.lock( );
          } // end if
       } // end for
    // Notify any waiting threads...
@@ -242,13 +248,13 @@ void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
       uniqMapLk.unlock(); // Okay to unlock now
 
       // Wait until it is appropriate to continue
+
+      assert( domain == domainQueues[ ind ].domain );
       auto cond = [this, &domain, ind]() -> bool {
          return !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain; };
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
-      std::cout << "Domain: " << domainQueues[ ind ].domain << std::endl;
-      std::cout << "Passed Domain: " << domain << std::endl;
-      std::cout << "Is empty or not: " << domainQueues[ ind ].queueWLk.pQueue.empty() << std::endl;
-      if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain )
+
+      if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain && !domainQueues[ ind ].timeStampInDomain )
          {
          APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
          backendHeap.emplace( time, itr->second );
@@ -333,6 +339,7 @@ void UrlFrontier::shutdown( )
    count = frontEnd.full.getCount( );
    if ( count < 0 )
       frontEnd.full.up( -count );
+   pool.shutdown( );
    } // end shutdown( )
 
 APESEARCH::string UrlFrontier::getNextUrl( )
@@ -347,7 +354,7 @@ APESEARCH::string UrlFrontier::getNextUrl( )
       APESEARCH::unique_lock< APESEARCH::mutex > uniqQLk( backEnd.domainQueues[ ind ].queueWLk.queueLk );
       assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
 
-      auto func = [ this, domain{ std::move( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )
+      auto func = [ this, domain{ std::string( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )
          { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, domain ); };
       pool.submitNoFuture( func, ind );
       } // end if
