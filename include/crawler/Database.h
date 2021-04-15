@@ -11,8 +11,9 @@
 
 struct DBBucket
    {
-   DBBucket() = default;
-   DBBucket( size_t index );
+   char directory[PATH_MAX];
+   DBBucket();
+   DBBucket( size_t index, const char * dir );
    ~DBBucket() {}
    DBBucket( DBBucket&& other ) : parsedFile( std::move( other.parsedFile ) ), anchorFile( std::move( other.parsedFile ) ) {}
 
@@ -36,7 +37,8 @@ class Database
 #endif
     APESEARCH::vector<DBBucket> file_vector;
     public:
-        Database();
+        Database( );
+        Database( const char *directory );
         ~Database();
         void addAnchorFile(Link &link);
         void addParsedFile(HtmlParser &parser);

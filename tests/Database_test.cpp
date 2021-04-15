@@ -10,7 +10,7 @@
 
 TEST( test_addAnchorFile )
 {
-    Database db;
+    Database db( "./tests" );
     Link input;
     input.URL = "www.google.com";
     input.anchorText = {"1", "2", "3", "4"};

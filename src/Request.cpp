@@ -23,7 +23,7 @@
 #endif
 
 
-Request::Request() : buffer(65536, '\0'){}
+Request::Request() : buffer(65536, '\0'), endHeaderPtr( nullptr ) {}
 
 char *Request::getHeader( unique_ptr<Socket> &socket )
     {
@@ -31,7 +31,7 @@ char *Request::getHeader( unique_ptr<Socket> &socket )
     static char const * const endHeader = "\r\n\r\n";
     char const *place = endHeader;
     
-    char *bufPtr, *bufEnd;
+    char *bufPtr;
     bufEnd = bufPtr = &*buffer.begin();
     //TODO check string.end() 
 
@@ -57,6 +57,9 @@ char *Request::getHeader( unique_ptr<Socket> &socket )
     } 
 
 
+/*
+ * Where the request is done
+*/
 Result Request::getReqAndParse(const char *urlStr)
 {
     ParsedUrl url( urlStr );
@@ -72,13 +75,13 @@ Result Request::getReqAndParse(const char *urlStr)
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          socket->send( req.first(), static_cast<int>( req.second() ) ); // Send get part
          socket->send( fields, fieldSize ); // Send fields
-         char *endOfHeader =  endHeaderPtr = getHeader( socket );
+         char *endOfHeader = endHeaderPtr = getHeader( socket );
          if ( !endOfHeader ) // If end of file is reached w.o. coming across header sentinel
             return Result( getReqStatus::badHtml );
          resetState(); // set all bites to zero
          res = parseHeader(endOfHeader);
 
-         getBody();
+         getBody( socket );
 
          break;
          // Parse header
@@ -132,7 +135,7 @@ int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
    static constexpr char * const newline = "\r\n";
    char *endOfLine;
    int status = -1;
-   if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - *header > 2 )
+   if ( (endOfLine = findString( *header, endOfHeader, newline ) ) - *header > 2 ) // if <= 2, implies \r\n
       {
       // Seek the space i.e HTTP/1.x" " 
       char *space = findString( *header, endOfLine, " " ); // Go one past space
@@ -155,6 +158,7 @@ int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
    return status;
    } // end getResponseStatus()
 
+// Looks at the first line and find out what kind of file it is
 Result Request::getResponseStatus( char **header, const char* const endOfHeader )
    {
    int status = evalulateRespStatus( header, endOfHeader );
@@ -186,6 +190,7 @@ getReqStatus Request::validateStatus( unsigned status )
 template<class Predicate, class fieldTerminator>
 void processField( char const * headerPtr, char const * const endOfLine, const char* const key, Predicate valueProcess, fieldTerminator fieldTerm)
    {
+   // Verify that key is indeed the key
    headerPtr = safeStrNCmp( headerPtr, (char *)endOfLine, key );
    if ( headerPtr == endOfLine )
       return;
@@ -250,6 +255,7 @@ Result Request::parseHeader( char const * const endOfHeader )
                resultOfReq.url = std::string( front, end );
                foundUrl = true;
                }; // end pred
+            // Only look for Location when seen in first line
             if ( redirect && !foundUrl )
                processField( headerPtr, endOfLine, "Location: ", Lpred , []( char c) { return c == '\r'; } );
             break;
@@ -260,8 +266,24 @@ Result Request::parseHeader( char const * const endOfHeader )
    return resultOfReq;
 }
 
-void Request::getBody()
+void Request::normalHtml( unique_ptr<Socket> &socket )
    {
+   int bytesToWrite = 0;
+   while((bytesToWrite = socket->receive(bufEnd, static_cast<int>( &*buffer.end( ) - bufEnd ))) > 0)
+      bufEnd += bytesToWrite;
+   } // end normalHtml( )
+void Request::getBody( unique_ptr<Socket> &socket )
+   {
+   if ( chunked )
+      {
+      
+      }
+   if ( gzipped )
+      {
+      
+      }
+   else
+      normalHtml( socket );
    return;
    }
 

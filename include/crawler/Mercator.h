@@ -38,8 +38,11 @@ namespace APESEARCH
    using CircBuf = circular_buffer< Func, dynamicBuffer< Func > >;
     class Mercator
        {
+      static constexpr size_t nodeID = 0;
       PThreadPool<CircBuf> pool; // The main threads that serve tasks
       UrlFrontier frontier;
+      Database db;
+      Node node;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
@@ -52,10 +55,9 @@ namespace APESEARCH
       void intel();
       void cleanUp(); 
     public:
-      Mercator( size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
-         pool( CircBuf( amtOfCrawlers + amtOfParsers + amtOfFWriters ), 
-         amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 2 ), 
-         frontier( amtOfCrawlers ), liveliness( true ) {}
+      Mercator( APESEARCH::vector<APESEARCH::string>& ips, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
+         pool( CircBuf( amtOfCrawlers + amtOfParsers + amtOfFWriters ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 2 ) 
+         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), node( ips, nodeID, frontier, db  ), liveliness( true ) {}
       ~Mercator();
       void run();
       void user_handler(); // Interacts with user to provide intel, look at stats, and to shutdown

@@ -36,6 +36,9 @@ struct Result
 #define TIMEOUT 30
 class Request 
 {
+#ifdef DEBUG
+   public:
+#endif
    enum statusCategory
    {
       informational = 1,
@@ -63,6 +66,7 @@ class Request
 
    std::string buffer;
    char *endHeaderPtr;
+   char *bufEnd;
    unsigned state;
    bool gzipped, chunked, redirect;
    bool foundGzipped, foundChunked, foundUrl;
@@ -72,7 +76,7 @@ class Request
    // Helper Functions
   
    // Static Variables
-   static constexpr const char * const fields = "User-Agent: ApeSearchCrawler/1.0 xiongrob@umich.edu (Linux)\r\n\
+   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/1.0 xiongrob@umich.edu (Linux)\r\n\
    Accept: */*\r\n Accept-Encoding: identity\r\nConnection: close\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
    static constexpr time_t timeoutSec = 30;
@@ -81,6 +85,8 @@ class Request
       {
       gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = false; // Reset state
       }
+   
+   void normalHtml( APESEARCH::unique_ptr<Socket> &socket );
 
 public:
    getReqStatus validateStatus( unsigned status );
@@ -95,7 +101,7 @@ public:
 
    Result parseHeader(const char*);
 
-   void getBody();
+   void getBody( APESEARCH::unique_ptr<Socket> &socket );
 
    APESEARCH::pair< std::string, size_t> getResponseBuffer();
 
