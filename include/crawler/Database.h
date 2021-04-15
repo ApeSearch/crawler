@@ -8,6 +8,7 @@
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/HashTable/include/HashTable/FNV.h"
+#include <linux/limits.h>
 
 struct DBBucket
    {

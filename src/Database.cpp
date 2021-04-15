@@ -44,7 +44,7 @@ DBBucket::DBBucket(size_t index, const char * dir ){
     if ( !dir )
         snprintf( directory, sizeof( directory ), "%s", "." );
     else
-        snprintf( directory, sizeof( directory ), "%s", dir );
+        snprintf( directory, sizeof( this->directory ), "%s", dir );
     static const APESEARCH::string anchor_root = "/anchorFiles/anchorFile";
     static const APESEARCH::string parsed_root = "/parsedFiles/parsedFile";
 
