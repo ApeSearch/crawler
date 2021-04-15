@@ -31,13 +31,23 @@ void insert( UrlFrontier& frontier, const APESEARCH::string& url )
    {
    std::this_thread::sleep_for(std::chrono::seconds{1});
    ParsedUrl parsedUrl( url.cstr() );
-   frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>
+   bool ret = frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>
    ( std::chrono::system_clock::now() ), std::string( parsedUrl.Host, parsedUrl.Port ) );
+   ASSERT_TRUE( ret );
+   }
+
+void insertFail( UrlFrontier& frontier, const APESEARCH::string& url )
+   {
+   std::this_thread::sleep_for(std::chrono::seconds{1});
+   ParsedUrl parsedUrl( url.cstr() );
+   bool ret = frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>
+   ( std::chrono::system_clock::now() ), std::string( parsedUrl.Host, parsedUrl.Port ) );
+   ASSERT_FALSE( ret );
    }
 
 TEST( test_frontier )
     {
-    
+    APESEARCH::PThreadPool< std::deque<APESEARCH::Func> > pool( 1u );
     UrlFrontier frontier( "/tests/DummyFrontier", 1 );
     frontier.insertNewUrl( "https://www.youtube.com/watch?v=oHg5SJYRHA0" );
     auto tOf = newTime();
@@ -47,14 +57,18 @@ TEST( test_frontier )
     frontier.insertNewUrl( "http://www.example.com/dogs/poodles/poodle2.html" );
     url = frontier.getNextUrl( );
     ASSERT_EQUAL( url, "http://www.example.com/dogs/poodles/poodle1.html" );
-    std::thread thread( insert, std::ref( frontier ), "http://www.example.com/dogs/poodles/poodle1.html" );
-    thread.detach( );
+    APESEARCH::string str( "http://www.example.com/dogs/poodles/poodle1.html" );
+    auto futureObj = pool.submit( insert, std::ref( frontier ), std::ref( str ) );
+    futureObj.get( );
     url = frontier.getNextUrl( );
+    pool.submitNoFuture( insertFail, std::ref( frontier ), std::ref( str ) );
+    frontier.insertNewUrl( "https://en.wikipedia.org/wiki/Peer-to-peer" );
     ASSERT_EQUAL( url, "http://www.example.com/dogs/poodles/poodle2.html" );
     }
 
 TEST( test_frontier_NoName )
     {
+    APESEARCH::PThreadPool< std::deque<APESEARCH::Func> > pool( 1u );
     UrlFrontier frontier( 1 );
     frontier.insertNewUrl( "https://www.youtube.com/watch?v=oHg5SJYRHA0" );
     auto tOf = newTime();
@@ -64,11 +78,11 @@ TEST( test_frontier_NoName )
     frontier.insertNewUrl( "http://www.example.com/dogs/poodles/poodle2.html" );
     url = frontier.getNextUrl( );
     ASSERT_EQUAL( url, "http://www.example.com/dogs/poodles/poodle1.html" );
-    std::thread thread( insert, std::ref( frontier ), "http://www.example.com/dogs/poodles/poodle1.html" );
-    thread.detach( );
+    APESEARCH::string str( "http://www.example.com/dogs/poodles/poodle1.html" );
+    auto futureObj = pool.submit( insert, std::ref( frontier ), std::ref( str ) );
+    futureObj.get( );
     url = frontier.getNextUrl( );
     ASSERT_EQUAL( url, "http://www.example.com/dogs/poodles/poodle2.html" );
-
     frontier.insertNewUrl( "https://www.youtube.com/watch?v=VYsrx6gZ1As" );
     }
 

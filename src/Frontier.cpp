@@ -234,7 +234,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
 
 // queue lock -> priority queue lock
 // map lock -> queue lock 
-void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time_point<std::chrono::system_clock>& time, const std::string& domain )
+bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time_point<std::chrono::system_clock>& time, const std::string& domain )
    {
    APESEARCH::unique_lock<APESEARCH::mutex> uniqMapLk( mapLk );
    // Basically forget about it... ( if itr == domainsMap.end( ) )
@@ -251,17 +251,25 @@ void UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
 
       assert( domain == domainQueues[ ind ].domain );
       auto cond = [this, &domain, ind]() -> bool {
-         return !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain; };
+         return ( !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain ); };
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
 
-      if ( !pQueueOf.pQueue.empty( ) && domain == domainQueues[ ind ].domain && !domainQueues[ ind ].timeStampInDomain )
+      // If this is the case, then !domainQueues[ ind ].queueWLk.pQueue.empty()
+      if ( domain == domainQueues[ ind ].domain )
          {
-         APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
-         backendHeap.emplace( time, itr->second );
-         domainQueues[ ind ].timeStampInDomain = true;
-         semaHeap.up(); // Okay for waiting threads to proceed
+         if ( !domainQueues[ ind ].timeStampInDomain )
+            {
+            APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
+            backendHeap.emplace( time, itr->second );
+            domainQueues[ ind ].timeStampInDomain = true;
+            semaHeap.up(); // Okay for waiting threads to proceed    
+            return true;
+            }
+         // Indicates failure
+         return false;
          } // end if
       } // end while
+   return false;
    } // end insertTiming()
 
 APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolicy::getMostOkayUrl( SetOfUrls& set )
