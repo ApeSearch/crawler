@@ -100,6 +100,7 @@ void Node::connect( int index )
             {
                 unique_ptr<Socket> ptr(new Socket(node_buckets[index].addr));
                 node_buckets[index].socket.swap(ptr);
+                std::cerr << "Successfully connected to node: " << index << '\n';
                 return;
             }
             catch(...)
@@ -209,7 +210,7 @@ void Node::sender(int index)
                 std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
                 exit(1);
             }
-            std::cerr << "RECEIVED BUFFER\n";
+            std::cerr << "SENT BUFFER\n";
             //Reseting semaphore to 0
             std::size_t count = node_buckets[index].writer_semaphore.getCount( );
             node_buckets[index].writer_semaphore.down( count );
