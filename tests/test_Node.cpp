@@ -22,7 +22,6 @@ void func(Node &node, APESEARCH::string &str)
 
 TEST(start_up)
 {
-    
     Database db;
     UrlFrontier frontier( 1 );
     APESEARCH::vector<APESEARCH::string> ips = {"52.207.241.143", "54.226.70.168"};
