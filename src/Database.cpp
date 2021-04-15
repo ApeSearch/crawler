@@ -37,29 +37,34 @@ void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
     file.write(newline_char, 1);
 }
 
-DBBucket::DBBucket(size_t index){
-    static const APESEARCH::string anchor_root = "./tests/anchorFiles/anchorFile";
-    static const APESEARCH::string parsed_root = "./tests/parsedFiles/parsedFile";
+DBBucket::DBBucket( ) : DBBucket( 0, nullptr ) { }
+
+DBBucket::DBBucket(size_t index, const char * dir ){
+    if ( !directory )
+        getcwd( directory, PATH_MAX );
+    else
+        snprintf( directory, sizeof( directory ), "%s", dir );
+    static const APESEARCH::string anchor_root = "/anchorFiles/anchorFile";
+    static const APESEARCH::string parsed_root = "/parsedFiles/parsedFile";
 
     char path[MAX_PATH];
-    snprintf( path, sizeof( path ), "%s%d%s", anchor_root.cstr(), index, ".txt" );
+    snprintf( path, sizeof( path ), "%s%s%d%s", directory, anchor_root.cstr(), index, ".txt" );
     anchorFile = APESEARCH::File( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
-    snprintf( path, sizeof( path ), "%s%d%s", parsed_root.cstr(), index, ".txt" );
+    snprintf( path, sizeof( path ), "%s%s%d%s", directory, parsed_root.cstr(), index, ".txt" );
     parsedFile = APESEARCH::File( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
 }
 
+Database::Database( ) : Database( nullptr ) { }
 
-Database::Database()
+Database::Database( const char *directory )
 {
-    APESEARCH::string anchor_root = "./tests/anchorFiles/anchorFile";
-    APESEARCH::string parsed_root = "./tests/parsedFiles/parsedFile";
     char path[MAX_PATH];
     file_vector.reserve( NUM_OF_FILES );
     for(int i = 0; i < NUM_OF_FILES; i++)
     {   
         try
         {
-            file_vector.emplace_back( i );
+            file_vector.emplace_back( i, directory );
         }
         catch(APESEARCH::File::failure &f)
         {

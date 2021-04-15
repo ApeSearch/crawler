@@ -251,7 +251,7 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
 
       assert( domain == domainQueues[ ind ].domain );
       auto cond = [this, &domain, ind]() -> bool {
-         return ( !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain ); };
+         return ( !liveliness.load( ) || !domainQueues[ ind ].queueWLk.pQueue.empty() || domain != domainQueues[ ind ].domain ); };
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
 
       // If this is the case, then !domainQueues[ ind ].queueWLk.pQueue.empty()
@@ -347,6 +347,7 @@ void UrlFrontier::shutdown( )
    count = frontEnd.full.getCount( );
    if ( count < 0 )
       frontEnd.full.up( -count );
+   std::cout << "Shutting down url frontier\n";
    pool.shutdown( );
    } // end shutdown( )
 

@@ -61,9 +61,12 @@ TEST( test_frontier )
     auto futureObj = pool.submit( insert, std::ref( frontier ), std::ref( str ) );
     futureObj.get( );
     url = frontier.getNextUrl( );
-    pool.submitNoFuture( insertFail, std::ref( frontier ), std::ref( str ) );
+    futureObj = pool.submit( insertFail, std::ref( frontier ), std::ref( str ) );
     frontier.insertNewUrl( "https://en.wikipedia.org/wiki/Peer-to-peer" );
+    futureObj.get( );
     ASSERT_EQUAL( url, "http://www.example.com/dogs/poodles/poodle2.html" );
+    url = frontier.getNextUrl( );
+    ASSERT_EQUAL( url, "https://en.wikipedia.org/wiki/Peer-to-peer" );
     }
 
 TEST( test_frontier_NoName )
