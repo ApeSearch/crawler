@@ -273,6 +273,7 @@ void Node::write( Link &link )
         for (size_t i = 0; i < link.anchorText.size(); i++)
         {
             node_buckets[val].storage_file.write(link.anchorText[i].cstr(), link.anchorText[i].size());
+
             node_buckets[val].storage_file.write(space_char, 1);            
         }
         node_buckets[val].storage_file.write(null_char, 1);   
@@ -311,6 +312,11 @@ void Node::receiver(int index)
                     found = bloomFilter.contains(linkOf.URL);
                 }
                 
+                if(linkOf.anchorText.back().empty())
+                {
+                    linkOf.anchorText.pop_back();
+                }
+
                 dataBase.addAnchorFile(linkOf);
 
                 if(!found)
@@ -322,7 +328,8 @@ void Node::receiver(int index)
             }
             else if(buffer[i] == ' ')
             {
-                linkOf.anchorText.push_back("");
+                if(!linkOf.anchorText.back().empty())
+                    linkOf.anchorText.push_back("");
             }
             else
             {

@@ -10,10 +10,10 @@
 #include <iostream>
 #include <thread>
 
-void func(Node &node)
+void func(Node &node, APESEARCH::string &str)
 {
     Link link;
-    link.URL = "amazon.com/something";
+    link.URL = str;
     link.anchorText.push_back("word1");
     link.anchorText.push_back("word2");
     link.anchorText.push_back("word3");
@@ -27,18 +27,20 @@ TEST(start_up)
     UrlFrontier frontier( 1 );
     APESEARCH::vector<APESEARCH::string> ips = {"127.0.0.1", "192.168.1.100"};
 
-    int num = db.hash("google.com/something") % db.file_vector.size();
 
     Node node(ips, 1, frontier, db);
     //const char * const exampleUrl = "https://umich.edu/";
     //Call threadpool for Receivers
-    
+    APESEARCH::string str1("amazon.com/something");
+    APESEARCH::string str2("google.com/something");
     for (size_t i = 0; i < 256; i++)
     {
-        std::thread t(func, std::ref(node));
-        t.detach();
+        std::thread t1(func, std::ref(node), std::ref(str1));
+        std::thread t2(func, std::ref(node), std::ref(str2));
+        t1.detach();
+        t2.detach();
     }
-    sleep(5u);
+
     sleep(300u);
 }
 
