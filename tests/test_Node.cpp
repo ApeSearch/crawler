@@ -22,7 +22,6 @@ void func(Node &node, APESEARCH::string &str)
 
 TEST(start_up)
 {
-    
     Database db;
     UrlFrontier frontier( 1 );
     APESEARCH::vector<APESEARCH::string> ips = {"52.207.241.143", "54.226.70.168"};
@@ -44,6 +43,14 @@ TEST(start_up)
             }
     }
 
+    for (size_t i = 0; i < 4; i++)
+    {
+        for ( size_t n = 0; n <  vec.size(); ++n )
+            {
+            std::thread t = std::thread( func, std::ref( node ), std::ref( vec[i] ) );
+            t.detach();
+            }
+    }
     sleep(300u);
 }
 

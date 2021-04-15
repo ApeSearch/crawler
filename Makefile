@@ -64,7 +64,7 @@ test: ${TEST_SRC}
 update:
 
 %.o: %.cpp
-	${CC} -D${FLAGS}  -DTESTING ${LDFLAGS} -c $< -o $@
+	${CC} -D${FLAGS} -DTESTING ${LDFLAGS} -c $< -o $@
 %.o: %.cc
 	${CC} -c $< -o $@
 
