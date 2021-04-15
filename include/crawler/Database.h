@@ -14,7 +14,7 @@
 
 struct DBBucket
    {
-   char directory[PATH_MAX];
+   char directory[1024];
    DBBucket();
    DBBucket( size_t index, const char * dir );
    ~DBBucket() {}

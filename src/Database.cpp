@@ -48,7 +48,7 @@ DBBucket::DBBucket(size_t index, const char * dir ){
     static const APESEARCH::string anchor_root = "/anchorFiles/anchorFile";
     static const APESEARCH::string parsed_root = "/parsedFiles/parsedFile";
 
-    char path[MAX_PATH];
+    char path[1024];
     snprintf( path, sizeof( path ), "%s%s%d%s", directory, anchor_root.cstr(), index, ".txt" );
     anchorFile = APESEARCH::File( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
     snprintf( path, sizeof( path ), "%s%s%d%s", directory, parsed_root.cstr(), index, ".txt" );
