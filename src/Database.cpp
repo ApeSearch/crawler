@@ -1,6 +1,7 @@
 #include "../include/crawler/Database.h"
 #include <stdlib.h>
 #include <iostream>
+#include <unistd.h> // for getcwd
 
 //#include <linux/limits.h>
 
@@ -40,8 +41,8 @@ void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
 DBBucket::DBBucket( ) : DBBucket( 0, nullptr ) { }
 
 DBBucket::DBBucket(size_t index, const char * dir ){
-    if ( !directory )
-        getcwd( directory, PATH_MAX );
+    if ( !dir )
+        snprintf( directory, sizeof( directory ), "%s", "." );
     else
         snprintf( directory, sizeof( directory ), "%s", dir );
     static const APESEARCH::string anchor_root = "/anchorFiles/anchorFile";
