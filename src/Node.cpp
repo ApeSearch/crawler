@@ -243,6 +243,7 @@ void Node::write( Link &link )
     size_t val = hash(link.URL.cstr());
     val = val % node_buckets.size();
     bool new_link = false;
+    std::cerr << "Going into writer\n";
     {
         APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( bloomFilter_lock );
         if(!bloomFilter.contains(link.URL))
@@ -256,6 +257,7 @@ void Node::write( Link &link )
     }
     if(val == node_id)
     {
+        std::cerr << "Going into db\n";
         dataBase.addAnchorFile(link);
         if(new_link)
         {
@@ -265,7 +267,7 @@ void Node::write( Link &link )
     else{
         
         node_buckets[val].low_prio_lock();
-
+        std::cerr << "Got low prio lock\n";
         node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size());
         node_buckets[val].storage_file.write(newline_char, 1);
         for (size_t i = 0; i < link.anchorText.size(); i++)

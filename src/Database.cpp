@@ -38,8 +38,8 @@ void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
 }
 
 DBBucket::DBBucket(size_t index){
-    static const APESEARCH::string anchor_root = "./tests/anchorFiles/anchorFile";
-    static const APESEARCH::string parsed_root = "./tests/parsedFiles/parsedFile";
+    static const APESEARCH::string anchor_root = "./anchorFiles/anchorFile";
+    static const APESEARCH::string parsed_root = "./parsedFiles/parsedFile";
 
     char path[MAX_PATH];
     snprintf( path, sizeof( path ), "%s%d%s", anchor_root.cstr(), index, ".txt" );
@@ -51,9 +51,6 @@ DBBucket::DBBucket(size_t index){
 
 Database::Database()
 {
-    APESEARCH::string anchor_root = "./tests/anchorFiles/anchorFile";
-    APESEARCH::string parsed_root = "./tests/parsedFiles/parsedFile";
-    char path[MAX_PATH];
     file_vector.reserve( NUM_OF_FILES );
     for(int i = 0; i < NUM_OF_FILES; i++)
     {   
