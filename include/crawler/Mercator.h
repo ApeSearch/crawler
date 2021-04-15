@@ -49,7 +49,8 @@ namespace APESEARCH
       void crawlWebsite( Request& requester, APESEARCH::string& buffer );
       void crawler();
       void parser( const std::string& buffer, const APESEARCH::string &url );
-      void writeToFile( const HtmlParser& );
+      //TODO fix
+      void writeToFile( const HtmlParser& ) { }
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void intel();

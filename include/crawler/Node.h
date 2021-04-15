@@ -69,7 +69,6 @@ struct NodeBucket
       M.unlock();
       L.unlock();
    }
-
 };
 
 class Node
@@ -84,7 +83,8 @@ class Node
    APESEARCH::mutex bloomFilter_lock;
    APESEARCH::PThreadPool< APESEARCH::circular_buffer<APESEARCH::Func, APESEARCH::DEFAULT::defaultBuffer<APESEARCH::Func, 32u>> > pool;
    Database& dataBase; 
-    
+   
+   int retriesConnectAfterFailure( int, int );
 
 public:
     //Try to connect to other nodes from ips

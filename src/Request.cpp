@@ -78,7 +78,7 @@ Result Request::getReqAndParse(const char *urlStr)
          char *endOfHeader = endHeaderPtr = getHeader( socket );
          if ( !endOfHeader ) // If end of file is reached w.o. coming across header sentinel
             return Result( getReqStatus::badHtml );
-         resetState(); // set all bites to zero
+         resetState(); // set all bits to zero
          res = parseHeader(endOfHeader);
 
          getBody( socket );
@@ -265,6 +265,8 @@ Result Request::parseHeader( char const * const endOfHeader )
       } // end while
    return resultOfReq;
 }
+
+// Transfer-Encoding can be chunked
 
 void Request::normalHtml( unique_ptr<Socket> &socket )
    {

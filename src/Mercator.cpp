@@ -126,8 +126,3 @@ void APESEARCH::Mercator::cleanUp()
     pool.shutdown(); // Blocks until every thread has joined...
     return;
    } // end cleanUp()
-
-void APESEARCH::Mercator::writeToFile( const HtmlParser& parser )
-   {
-   return;
-   }
