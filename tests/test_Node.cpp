@@ -22,25 +22,26 @@ void func(Node &node, APESEARCH::string &str)
 
 TEST(start_up)
 {
-    
     Database db;
     UrlFrontier frontier( 1 );
-    APESEARCH::vector<APESEARCH::string> ips = {"127.0.0.1", "192.168.1.100"};
+    APESEARCH::vector<APESEARCH::string> ips = {"54.158.7.33", "107.21.75.131"};
 
 
-    Node node(ips, 1, frontier, db);
-    //const char * const exampleUrl = "https://umich.edu/";
-    //Call threadpool for Receivers
-    APESEARCH::string str1("amazon.com/something");
-    APESEARCH::string str2("google.com/something");
-    for (size_t i = 0; i < 256; i++)
+    Node node(ips, 0, frontier, db);
+    APESEARCH::vector<APESEARCH::string> vec = {"amazon.com/something", "google.com/something", "umich.com/something", "youtube.com/something"};
+    for (size_t i = 0; i < vec.size(); i++)
     {
-        std::thread t1(func, std::ref(node), std::ref(str1));
-        std::thread t2(func, std::ref(node), std::ref(str2));
-        t1.detach();
-        t2.detach();
+        std::cout << vec[i] << "is in Node: " << node.hash(vec[i]) & 1 << " and in anchor file: " << db.hash(vec[i]) % 256;
     }
 
+    for (size_t i = 0; i < 4; i++)
+    {
+        for ( size_t n = 0; n <  vec.size(); ++n )
+            {
+            std::thread t = std::thread( func, std::ref( node ), std::ref( vec[i] ) );
+            t.detach();
+            }
+    }
     sleep(300u);
 }
 
