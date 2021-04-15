@@ -250,7 +250,7 @@ void Node::write( Link &link )
             frontier.insertNewUrl( std::move( link.URL ) );
         }
     }
-    else{
+    else{ // Write to storage file and eventually send
         
         node_buckets[val].low_prio_lock();
         std::cerr << "Writing to storage file\n";
