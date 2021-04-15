@@ -142,7 +142,7 @@ void Node::connectionHandler()
                     node_buckets[i].cv.notify_all();
                     node_buckets[i].socket_lock.unlock();
                     break;
-                }
+                    }
             }
             // If someone with a higher node id tries to connect to me write to std::cer
             // Also checks if someone who is not allowed to connect tries to connect to me
@@ -273,8 +273,8 @@ int Node::retriesConnectAfterFailure( int fd, int index )
     APESEARCH::unique_lock<APESEARCH::mutex> lck(node_buckets[index].socket_lock);
             
     //Someone else changed it beforehand failsafe for recieve
-    int checkFD = node_buckets[index].socket->getFD();
-    if(fd != checkFD ||  checkFD != -1)
+    int checkFD =  node_buckets[index].socket->getFD();
+    if(fd != checkFD || checkFD != -1)
         return checkFD;
                 
     //Declare it invalid
