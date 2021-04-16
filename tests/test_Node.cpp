@@ -6,9 +6,12 @@
 #include "../libraries/AS/include/AS/vector.h"
 #include "../libraries/AS/include/AS/pthread_pool.h"
 #include "../libraries/AS/include/AS/circular_buffer.h"
+#include "../libraries/AS/include/AS/mutex.h"
 #include <assert.h>
 #include <iostream>
 #include <thread>
+
+APESEARCH::mutex coutLk;
 
 //void func(Node &node, APESEARCH::string &str)
 //{
@@ -27,6 +30,8 @@ void func(UrlFrontier &frontier, APESEARCH::string &str)
     link.anchorText.push_back("word2");
     link.anchorText.push_back("word3");
     frontier.insertNewUrl( link.URL );
+    APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+    std::cout << "Inserted: " << str << std::endl;
 }
 
 TEST(start_up)
@@ -51,15 +56,19 @@ TEST(start_up)
             t.detach();
             }
     }
-    sleep(5u);
+    //sleep(5u);
     //youtube.com/somethingis in Node: 1 and in anchor file: 39
     //google.com/somethingis in Node: 1 and in anchor file: 225
     //youtube.com/somethingis in Node: 1 and in anchor file: 39
 
-    for ( unsigned n = 0; n < 3; ++n )
+    for ( unsigned n = 0; n < 20; ++n )
         {
+        coutLk.lock( );
         std::cout << "Getting next url:\n";
+        coutLk.unlock( );
         APESEARCH::string str( frontier.getNextUrl( ) );
+        APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+        std::cout << "Got: ";
         std::cout << str << std::endl;
         } // end for
 

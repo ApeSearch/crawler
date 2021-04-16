@@ -2,6 +2,9 @@
 #include "../libraries/unit_test_framework/include/unit_test_framework/unit_test_framework.h"
 #include "../include/crawler/SetOfUrls.h"
 #include <iostream>
+#include <unordered_map>
+#include <thread>
+#include <atomic>
 
 static char dirPath[PATH_MAX];
 
@@ -99,6 +102,47 @@ TEST( test_SetOfUrls )
       SetOfUrls set( "/tests/input" );
       UrlObj obj( set.dequeue() );
       ASSERT_EQUAL( obj.url, "" );
+      }
+
+APESEARCH::mutex coutLk;
+APESEARCH::mutex mapLk;
+std::atomic<bool> count;
+void func(SetOfUrls &set, APESEARCH::vector<APESEARCH::string>& vec, std::unordered_map<std::string, size_t>& map)
+{
+   for ( unsigned i = 0; i < 1000; ++i )
+      {
+      for ( unsigned n = 0; n < vec.size( ); ++n )
+         {
+         APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+         std::cout << "Inserted: " <<  vec[ n ]  << std::endl;
+         lk.unlock( );
+         lk = APESEARCH::unique_lock<APESEARCH::mutex>( mapLk );
+         ++map[ std::string(  vec[ n ] .begin(),  vec[ n ] .end() ) ];
+         lk.unlock( );
+         set.enqueue( vec[ n ] );
+         }
+      }
+}
+
+   TEST(  test_SetOfUrls_After_Concurrent )
+      {
+      std::unordered_map<std::string, size_t> map;
+      SetOfUrls set( "/tests/input" );
+      APESEARCH::vector<APESEARCH::string> vec = {"yahoo.com/something", "youtube.com/something", "gmail.com/something", "reddit.com/something", "blue.com/something"};
+      for (size_t i = 0; i < 1000; i++)
+         {
+            std::thread t = std::thread( func, std::ref( set ), std::ref( vec ), std::ref( map ) );
+            t.detach();
+         } // end for
+      
+      for ( unsigned n = 0; n < vec.size( ) * 1000000; ++n )
+         {
+         UrlObj url = set.blockingDequeue( );
+         APESEARCH::unique_lock<APESEARCH::mutex> lk( mapLk );
+         ASSERT_TRUE( map[ std::string( url.url.begin(), url.url.end() ) ]-- > 0 );
+        } // end for
+      for ( std::unordered_map<std::string, size_t>::iterator itr = map.begin(); itr != map.end( ); ++itr )
+         ASSERT_EQUAL( itr->second, 0 );
       }
 
 TEST_MAIN()

@@ -1,0 +1,373 @@
+Running test: test_SetOfUrls
+Opening directory: /Users/robinxiong/Documents/src/eecs/440/apeSearch/crawler/tests/input
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Opening: urlSlice0Fri-Apr-16-09:53:36-2021
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Locking
+Unlocking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Opening: urlSlice1Fri-Apr-16-09:53:36-2021
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Locking
+Unlocking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Locking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Locking
+Unlocking
+Unlocking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Opening: urlSlice2Fri-Apr-16-09:53:36-2021
+Unlocking
+PASS
+Running test: test_SetOfUrls_After
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Locking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Unlocking
+PASS
+Running test: test_SetOfUrls_After_Concurrent
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Locking
+Locking
+Locking
+Locking
+Locking
+Locking
+Unlocking
+Locking
+Locking
+Locking
+Locking
+Locking
+Locking
+Locking
+Inserted: Locking
+Locking
+Locking
+Unlocking
+yahoo.com/something
+Locking
+Locking
+Locking
+Locking
+Locking
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Locking
+Inserted: reddit.com/something
+Unlocking
+Getting next url:
+Unlocking
+Unlocking
+Inserted: reddit.com/somethLocking
+ingIn getNextDirEntry
+Unlocking
+
+Unlocking
+Locking
+Locking
+Unlocking
+Locking
+Locking
+Inserted: youtube.com/something
+Unlocking
+Locking
+Inserted: blLocking
+ue.com/something
+Unlocking
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Unlocking
+In getNextDirEntry
+Locking
+Unlocking
+Locking
+Locking
+Inserted: gmail.com/something
+Unlocking
+Locking
+Unlocking
+Unlocking
+Unlocking
+Opening: urlSlice3Fri-Apr-16-09:53:36-2021
+Unlocking
+Unlocking
+Locking
+Got: Locking
+yahoo.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Unlocking
+Inserted: yahoo.com/something
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Inserted: youtube.cUnlocking
+Locking
+oLocking
+Unlocking
+m/something
+Unlocking
+Inserted: gmail.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Locking
+Got: reddit.cUnlocking
+om/something
+Unlocking
+Locking
+Inserted: youtube.com/something
+Unlocking
+Locking
+Unlocking
+Unlocking
+Locking
+Unlocking
+Unlocking
+Locking
+Inserted: yahoo.com/something
+Unlocking
+Locking
+Unlocking
+Inserted: gmail.com/something
+Unlocking
+Locking
+Unlocking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: reddit.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Locking
+Got: youtube.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: blue.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Locking
+Unlocking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+Locking
+Inserted: reddit.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Unlocking
+Unlocking
+Opening: urlSlice4Fri-Apr-16-09:53:36-2021
+Unlocking
+Locking
+Got: gmail.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: yahoo.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: gmail.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: youtube.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: youtube.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: yahoo.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: gmail.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Unlocking
+Locking
+Got: reddit.com/something
+Unlocking
+Locking
+Unlocking
+Locking
+Getting next url:
+Unlocking
+Locking
+Locking
+Unlocking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
+In getNextDirEntry
+Locking
+Locking
+Unlocking
+Unlocking
