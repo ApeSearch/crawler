@@ -375,6 +375,11 @@ APESEARCH::string UrlFrontier::getNextUrl( )
 
 bool UrlFrontier::insertNewUrl( APESEARCH::string&& url )
    {
+   return insertNewUrl( url ); 
+   }
+
+bool UrlFrontier::insertNewUrl( const APESEARCH::string& url )
+   {
    set.enqueue( url );
    return true;
    } // end insertNewUrl()

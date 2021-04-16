@@ -10,48 +10,62 @@
 #include <iostream>
 #include <thread>
 
-void func(Node &node, APESEARCH::string &str)
+//void func(Node &node, APESEARCH::string &str)
+//{
+    //Link link;
+    //link.URL = str;
+    //link.anchorText.push_back("word1");
+    //link.anchorText.push_back("word2");
+    //link.anchorText.push_back("word3");
+    //node.write(link);
+//}
+void func(UrlFrontier &frontier, APESEARCH::string &str)
 {
     Link link;
     link.URL = str;
     link.anchorText.push_back("word1");
     link.anchorText.push_back("word2");
     link.anchorText.push_back("word3");
-    node.write(link);
+    frontier.insertNewUrl( link.URL );
 }
 
 TEST(start_up)
 {
-    Database db;
+    // Database db;
     UrlFrontier frontier( 1 );
     APESEARCH::vector<APESEARCH::string> ips = {"52.207.241.143", "54.226.70.168"};
 
 
-    Node node(ips, 1, frontier, db);
+    // Node node(ips, 1, frontier, db);
     APESEARCH::vector<APESEARCH::string> vec = {"yahoo.com/something", "youtube.com/something", "gmail.com/something", "reddit.com/something", "blue.com/something"};
-    for (size_t i = 0; i < vec.size(); i++)
-    {
-        std::cout << vec[i] << "is in Node: " << (db.hash(vec[i].cstr()) & 1) << " and in anchor file: " << db.hash(vec[i].cstr()) % 256 << '\n';
-    }
+    // for (size_t i = 0; i < vec.size(); i++)
+    // {
+    //     std::cout << vec[i] << "is in Node: " << (db.hash(vec[i].cstr()) & 1) << " and in anchor file: " << db.hash(vec[i].cstr()) % 256 << '\n';
+    // }
 
     for (size_t i = 0; i < 4; i++)
     {
         for ( size_t n = 0; n < vec.size( ); ++n )
             {
-            std::thread t = std::thread( func, std::ref( node ), std::ref( vec[n] ) );
+            std::thread t = std::thread( func, std::ref( frontier ), std::ref( vec[n] ) );
             t.detach();
             }
     }
+    sleep(5u);
+    //youtube.com/somethingis in Node: 1 and in anchor file: 39
+    //google.com/somethingis in Node: 1 and in anchor file: 225
+    //youtube.com/somethingis in Node: 1 and in anchor file: 39
 
-    for (size_t i = 0; i < 4; i++)
-    {
-        for ( size_t n = 0; n <  vec.size(); ++n )
-            {
-            std::thread t = std::thread( func, std::ref( node ), std::ref( vec[i] ) );
-            t.detach();
-            }
-    }
+    for ( unsigned n = 0; n < 3; ++n )
+        {
+        std::cout << "Getting next url:\n";
+        APESEARCH::string str( frontier.getNextUrl( ) );
+        std::cout << str << std::endl;
+        } // end for
+
+    std::cout << "Finish checking...\n";
     sleep(300u);
+
 }
 
 

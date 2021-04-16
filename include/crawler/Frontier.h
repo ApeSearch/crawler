@@ -146,6 +146,7 @@ public:
     APESEARCH::string getNextUrl( );
     // Will assume that bloom filter is already accounted for ( Node actually owns the bloomfilter here )
     bool insertNewUrl( APESEARCH::string&& url );
+    bool insertNewUrl( const APESEARCH::string& url );
 
     void shutdown(); // signals threads to stop
 };
