@@ -435,7 +435,7 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
       } // end while
 }
 
-//static void DecompressResponse( APESEARCH::vector < char >& data_ );
+static void DecompressResponse( APESEARCH::vector < char >& data_ );
 
 void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
@@ -457,7 +457,6 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    }
 
 
-/*
 // Perform the decompression
 void DecompressResponse( APESEARCH::vector < char >& data_ )
     {
@@ -504,4 +503,3 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
 
     APESEARCH::swap( decompressed, data_ );
     }
-*/
