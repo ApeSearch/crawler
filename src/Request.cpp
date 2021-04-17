@@ -47,7 +47,7 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
         //TODO Some statistics tracking to see how many times this runs
 
         } // end while
-   
+
    //construct string based off of buffer call our pase header function
    // Reached the end of header
 
@@ -63,9 +63,9 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
 Result Request::getReqAndParse(const char *urlStr)
 {
     ParsedUrl url( urlStr );
-    Address address(url.Host, "80");
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = !strcmp(url.Service, "http://"); // 0 if http 1 if https
+    Address address(url.Host, httpProtocol ? "80" : "443" );
     int attempts = 0;
     Result res;
     while(attempts < MAXATTEMPTS)
@@ -75,7 +75,7 @@ Result Request::getReqAndParse(const char *urlStr)
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          char buff[1024];
          snprintf( buff, sizeof( buff ), "%s%s", req.first( ), fields );
-         printf( "User Agent: %s\n", buff );
+         printf( "%s\n", buff );
          socket->send( buff, strlen( buff ) );
          APESEARCH::pair< char const * const, char const * const  > headerPtrs( getHeader( socket ) );
          // first is end of header, second is end of buffer header is situated
@@ -96,6 +96,9 @@ Result Request::getReqAndParse(const char *urlStr)
             } // end if
 
          getBody( socket, headerPtrs );
+         if ( headerBad )
+            return Result( getReqStatus::badHtml );
+
          return res;
          }
       //TODO Add error catching functionality for errono in Socket and SSLSocket
@@ -112,11 +115,22 @@ Result Request::getReqAndParse(const char *urlStr)
    return Result( getReqStatus::ServerIssue );
 }  // end parseRequest()  
 
+bool insenstiveCharCompare( char const *A, char const *B )
+   {
+   int letterA, letterB;
+   letterA = *((unsigned char *)A);
+   letterB = *((unsigned char *)B);
+   letterA = tolower(toupper(letterA));
+   letterB = tolower(toupper(letterB));
+   return letterA == letterB;
+   }
+
 char * findString(char * begin, const char* end , const char *str )
    {
    const char *place = str;
    while(*place && begin != end)
-      (*place == *begin++) ? ++place : place = str;
+      ( insenstiveCharCompare( begin++, place ) )  ? ++place : place = str;
+
    return begin;
    } // end findString
 
@@ -127,7 +141,7 @@ static char const *safeStrNCmp( char const * start, const char * const end, cons
    {
    for (; *strLookingFor && start != end; ++start, ++strLookingFor )
       {
-      if ( *strLookingFor != *start )
+      if ( !insenstiveCharCompare( strLookingFor, start ) )
          return end;
       } // end while
    return start;
@@ -137,7 +151,7 @@ static bool strCmp( char const *start, const char * const end, const char* strLo
    {
    for (; *strLookingFor && start != end; ++start, ++strLookingFor )
       {
-      if ( *strLookingFor != *start )
+      if ( !insenstiveCharCompare( strLookingFor, start ) )
          return false;
       } // end while
    return !*strLookingFor;
@@ -166,7 +180,6 @@ int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
       *space = '\0'; // Change to null-character
       status = atoi( *header );
 
-      std::cout << "Response: " << status << std::endl;
       } // end if
    *header = endOfLine; // Skip to the end of the line
    return status;
@@ -239,6 +252,7 @@ Result Request::parseHeader( char const * const endOfHeader )
       switch( *headerPtr )
          {
          case 'T':
+         case 't':
             {
             auto Tpred = [this]( char const * front, char const *end ) 
                {  
@@ -252,6 +266,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             break;
             } // end case 'T'
          case 'C':
+         case 'c':
             {
             auto Cpred = [this]( char const * front, char const * end ) 
                {  
@@ -291,6 +306,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             break;
             } // end case 'C'
          case 'L':
+         case 'l':
             {
             auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
                {  
@@ -325,7 +341,7 @@ void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char
 
 static ssize_t hexaToDecimal( char const *begin, char const *end )
    {
-   size_t num = 0;
+   ssize_t num = 0;
    while( begin != end )
       {
       num <<= 4;
@@ -353,7 +369,7 @@ char const *getEndOfChunked( unique_ptr<Socket> &socket, char *bufferStart, char
     char *bufPtr, *bufEnd;
     bufEnd = bufPtr = bufferStart;
 
-    while( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<int>( bufferTrueEnd - bufPtr ) ) ) ) 
+    while ( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<int>( bufferTrueEnd - bufPtr ) ) ) ) 
       {
       bufEnd += bytesReceived;
       totBytesTransfered += bytesReceived;
@@ -362,7 +378,7 @@ char const *getEndOfChunked( unique_ptr<Socket> &socket, char *bufferStart, char
       
       if ( totBytesTransfered >= bufferTrueEnd - bufferStart )
          return bufferTrueEnd;
-      } // end while
+      } // end
    }
 
 static char const *findSubStr( char const *begin, char const *end, char const * const substr )
@@ -386,15 +402,16 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
    char const *endOfChunk;
    char const * cbufEnd = getEndOfChunked( socket, bufEnd, temp.end( ) );
 
-   while( ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
+   while( bufPtr < cbufEnd && ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
       {         
-      size_t chunksToRead = hexaToDecimal( bufPtr, endOfChunk );
-      if ( chunksToRead == 0 )
+      ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
+      if ( ret == 0 || ret == -1 )
          {
-         if ( !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
+         if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
             headerBad = true;
          return;
          } // end if
+      size_t chunksToRead = ( size_t ) ret;
       assert( ( endOfChunk[ 0 ] == '\r' ) );
       assert( ( endOfChunk[ 1 ] == '\n' ) );
       // skip past \r\n
@@ -408,6 +425,7 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
          bodyBuff.push_back( *bufPtr++ );
          ++bytesInputted;
          } // end while
+      assert( bytesInputted == chunksToRead );
       // Skip \r\n
       if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
          {

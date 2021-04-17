@@ -36,8 +36,11 @@ APESEARCH::Mercator::~Mercator()
    }
 
 
-void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& buffer )
+void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& buffer, unsigned& attempts )
    {
+   if ( attempts == 5 )
+      return;
+
    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
    Result result = requester.getReqAndParse( buffer.cstr() );
    // At the end of this task, the buffer will be reinserted back into urlBuffers...
@@ -51,7 +54,7 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
             ParsedUrl parsedUrl( buffer.cstr() );
             // This should be the case
             assert( *parsedUrl.Host ); 
-            pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
+            frontier.pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
             { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );
 
             APESEARCH::vector< char > buf( requester.getResponseBuffer() );
@@ -61,8 +64,9 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
             }
          case getReqStatus::redirected:
             {
+            ++attempts;
             buffer = APESEARCH::string( result.url.begin(), result.url.end() );
-            return crawlWebsite( requester, buffer ); // Try again with new url
+            return crawlWebsite( requester, buffer, attempts ); // Try again with new url
             }
             break;
          default:
@@ -79,8 +83,9 @@ void APESEARCH::Mercator::crawler()
 
     while( liveliness.load() )
        {
+        unsigned attempts = 0;
         url = frontier.getNextUrl( ); // Writes directly to buffer
-        crawlWebsite( requester, url );
+        crawlWebsite( requester, url, attempts );
        } // end while
    } // end urlExtractor()
 
@@ -91,6 +96,19 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    // Handle results by writing to file...
    writeToFile( parser );
    } // end parser()
+
+void APESEARCH::Mercator::writeToFile( const HtmlParser& parser)
+{
+   //write to DB
+   db.addParsedFile(parser);
+
+   //write to Nodes
+   for(int i = 0; i < parser.links.size(); ++i)
+   {
+      node.write(parser.links[i]);
+   }
+}
+
 
 void APESEARCH::Mercator::user_handler()
    {
@@ -126,3 +144,17 @@ void APESEARCH::Mercator::cleanUp()
     pool.shutdown(); // Blocks until every thread has joined...
     return;
    } // end cleanUp()
+
+void APESEARCH::Mercator::startUpCrawlers( const std::size_t amtOfCrawlers )
+   {
+   
+   auto crawler = [this] ( )
+      {
+      this->crawler( );
+      };
+   // Start up crawlers
+   for ( size_t n = 0; n < amtOfCrawlers; ++n )
+      {
+         pool.submitNoFuture(crawler);
+      }
+   } // end startUpCrawlers( )

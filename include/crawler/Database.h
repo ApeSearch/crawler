@@ -43,8 +43,8 @@ class Database
         Database( );
         Database( const char *directory );
         ~Database();
-        void addAnchorFile(Link &link);
-        void addParsedFile(HtmlParser &parser);
+        void addAnchorFile( const Link &link );
+        void addParsedFile( const HtmlParser &parser);
         FNV hash;
 };
 

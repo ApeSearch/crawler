@@ -61,6 +61,9 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 
 test: ${TEST_SRC} 
 
+crawler: %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
+	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
+
 update:
 
 %.o: %.cpp

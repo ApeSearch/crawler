@@ -11,7 +11,7 @@
 
 
 void fillVectors(APESEARCH::vector<size_t> &titleWords, 
-APESEARCH::vector<size_t> &headingWords, APESEARCH::vector<size_t> &boldWords, HtmlParser &parsed){
+APESEARCH::vector<size_t> &headingWords, APESEARCH::vector<size_t> &boldWords, const HtmlParser &parsed){
     
     for(size_t i = 0; i < parsed.parsed_text.size(); i++){
         if(parsed.parsed_text[i].type == titleWord){
@@ -77,7 +77,7 @@ Database::Database( const char *directory )
 Database::~Database(){}
 
 
-void Database::addAnchorFile(Link &link){
+void Database::addAnchorFile(const Link &link ){
     if(link.anchorText.empty())
     {
         return;
@@ -102,7 +102,7 @@ void Database::addAnchorFile(Link &link){
     }
 }
 
-void Database::addParsedFile(HtmlParser &parsed)        //url, parsed text, base, num paragraphs, num headings, num sentences
+void Database::addParsedFile( const HtmlParser &parsed)        //url, parsed text, base, num paragraphs, num headings, num sentences
 {                                                       //space delimited between words, newline delimited between sections, null character at end
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";

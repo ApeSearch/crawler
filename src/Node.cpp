@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MAXTHREADS 4
+#define MAXTHREADS 17
 #define BLOOMFILTER
 #define BUFFERSIZE 65536
 #define PORT 6666
@@ -222,7 +222,7 @@ void Node::sender(int index)
 //Try to send n times unless the connection is closed,
 //Then try to create a new socket
 //If sent n times and connection is still open or new connection cannot be made write to swap file
-void Node::write( Link &link )
+void Node::write( const Link &link )
 {
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";

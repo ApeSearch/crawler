@@ -263,9 +263,10 @@ int main( int argc, char **argv )
    ParsedUrl url( argv[ 1 ] );
    
    // Get the host address.
-   Address address(url.Host, "80"); 
+   bool httpProtocol = !strcmp(url.Service, "http://");
+   Address address(url.Host, ( httpProtocol ? "80" : "443" ) ); 
    
-   Socket *socket = strcmp(url.Service, "http://") ? new Socket(address) : new SSLSocket(address);
+   Socket *socket = ( httpProtocol ? new Socket(address) : new SSLSocket(address) );
    //TODO
    // Maybe use another addrinfo in linked-list if this timesout 
    // Create a TCP/IP socket.
