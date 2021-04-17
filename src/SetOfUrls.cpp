@@ -46,9 +46,9 @@ bool SetOfUrls::verifyFile( const char *filename ) const
 
 bool SetOfUrls::forceWrite()
    {
-   highPriorityThreadWaiting.store( true );
+   //highPriorityThreadWaiting.store( true );
    APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
-   highPriorityThreadWaiting.store( false );
+   //highPriorityThreadWaiting.store( false );
    bool retval = numOfUrlsInserted.load() > 0;
    if ( retval )
       finalizeSection(); // Forcefully write to file
@@ -60,6 +60,18 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    {
    }
 
+size_t SetOfUrls::numOfValidFiles(  )
+   {
+   struct dirent *dp;
+   size_t files = 0;
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
+   while( (dp = readdir (dir)) != NULL )
+      {
+      if ( dp->d_type == DT_REG && !strncmp( dp->d_name, "urlSlice", 8 ) && verifyFile( dp->d_name ) )
+         ++files;
+      } // end while   
+   rewinddir( dir );
+   }
 
 SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 ), liveliness( true )
    {
@@ -75,7 +87,8 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
       perror( dirPath );
       throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
       } // end if
-   
+
+   //numOfFiles.store( numOfValidFiles( ) );
 
    if ( !popNewBatch() )
       {
@@ -136,9 +149,9 @@ APESEARCH::vector<char> SetOfUrls::getNextDirEntry( DIR *dir )
    {
    std::cout << "In getNextDirEntry\n";
    struct dirent *dp;
-   highPriorityThreadWaiting.store( true );
-   APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
-   highPriorityThreadWaiting.store( false );
+   //highPriorityThreadWaiting.store( true );
+   //APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
+   //highPriorityThreadWaiting.store( false );
 {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
    while( (dp = readdir (dir)) != NULL )
@@ -157,21 +170,22 @@ APESEARCH::vector<char> SetOfUrls::getNextDirEntry( DIR *dir )
             {
             char filename[1024];
             snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
-            printf("      Deleting %s\n", filename );
-            removeFile( filename );
-            rewinddir( dir );
+            if ( removeFile( filename ) )
+               rewinddir( dir );
             } // end else if
          } // end if
       } // end while
 }
+   APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
    if ( numOfUrlsInserted.load() > 0 )
       {
       finalizeSection(); // Forcefully write to file
       bQLk.unlock( );
-      priorityCV.notify_one( );
+      //backQLk.unlock( );
+      //priorityCV.notify_one( );
       return getNextDirEntry( dir );
       } // end if
-   priorityCV.notify_one( );
+   //priorityCV.notify_one( );
    return APESEARCH::vector<char>();
    }
 
@@ -270,6 +284,7 @@ void SetOfUrls::finalizeSection( )
 #endif
 
    numOfUrlsInserted.store(0);
+   ++numOfFiles;
    
    // Grab lock for DIR
    // Dir entries have now been changed
@@ -348,7 +363,7 @@ UrlObj SetOfUrls::blockingDequeue()
    APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
    do
    {
-      cv.wait( uniqLk, [this]( ){ return frontQPtr || popNewBatch(); } );
+      cv.wait( uniqLk, [this]( ){ return !liveliness.load( ) || frontQPtr || popNewBatch(); } );
       url = helperDeq();
    } while ( liveliness.load() && url.url.empty() );
    
@@ -390,8 +405,8 @@ const char *SetOfUrls::front( )
 void SetOfUrls::enqueue( const APESEARCH::string &url )
    {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
-   priorityCV.wait( lk, [ this ]( ) 
-      { return !highPriorityThreadWaiting.load( ); } );
+   //priorityCV.wait( lk, [ this ]( ) 
+   //   { return !highPriorityThreadWaiting.load( ); } );
    assert( numOfUrlsInserted.load() < SetOfUrls::maxUrls );
    assert( !url.empty( ) );
 
@@ -401,7 +416,7 @@ void SetOfUrls::enqueue( const APESEARCH::string &url )
    back.write( "\n", 1 );
    ++numOfUrlsInserted;
    cv.notify_one(); // Notify any potewaiting threads
-   priorityCV.notify_one( );
+   //priorityCV.notify_one( );
 
    if ( numOfUrlsInserted == SetOfUrls::maxUrls )
       {

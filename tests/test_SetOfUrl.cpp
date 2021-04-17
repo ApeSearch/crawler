@@ -107,9 +107,9 @@ TEST( test_SetOfUrls )
 APESEARCH::mutex coutLk;
 APESEARCH::mutex mapLk;
 std::atomic<bool> count;
-void func(SetOfUrls &set, APESEARCH::vector<APESEARCH::string>& vec, std::unordered_map<std::string, size_t>& map)
+void func(SetOfUrls &set, APESEARCH::vector<APESEARCH::string>& vec, std::unordered_map<std::string, size_t>& map, const size_t rounds )
 {
-   for ( unsigned i = 0; i < 1000; ++i )
+   for ( unsigned i = 0; i < rounds; ++i )
       {
       for ( unsigned n = 0; n < vec.size( ); ++n )
          {
@@ -129,13 +129,14 @@ void func(SetOfUrls &set, APESEARCH::vector<APESEARCH::string>& vec, std::unorde
       std::unordered_map<std::string, size_t> map;
       SetOfUrls set( "/tests/input" );
       APESEARCH::vector<APESEARCH::string> vec = {"yahoo.com/something", "youtube.com/something", "gmail.com/something", "reddit.com/something", "blue.com/something"};
-      for (size_t i = 0; i < 1000; i++)
+      size_t rounds = 1000;
+      for (size_t i = 0; i < rounds; i++)
          {
-            std::thread t = std::thread( func, std::ref( set ), std::ref( vec ), std::ref( map ) );
+            std::thread t = std::thread( func, std::ref( set ), std::ref( vec ), std::ref( map ), rounds );
             t.detach();
          } // end for
       
-      for ( unsigned n = 0; n < vec.size( ) * 1000000; ++n )
+      for ( unsigned n = 0; n < vec.size( ) * rounds * rounds; ++n )
          {
          UrlObj url = set.blockingDequeue( );
          APESEARCH::unique_lock<APESEARCH::mutex> lk( mapLk );

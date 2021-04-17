@@ -31,7 +31,7 @@ class SetOfUrls
 public:
 #endif
     static constexpr const char *frontierLoc = "/VirtualFileSystem/Root/Frontier";
-    static constexpr size_t maxUrls = 16384;
+    static constexpr size_t maxUrls = 32768;
     unique_mmap frontOfQueue;
     // A specific dirEntry ( what is returned when reading dirent )
     //APESEARCH::vector<char> cwd;
@@ -51,11 +51,13 @@ public:
     APESEARCH::mutex frntQLk;
     APESEARCH::mutex backQLk;
     APESEARCH::condition_variable cv;
-    APESEARCH::condition_variable priorityCV;
-    std::atomic< bool > highPriorityThreadWaiting;
+    //APESEARCH::condition_variable priorityCV;
+    //std::atomic< bool > highPriorityThreadWaiting;
+    std::atomic<size_t> numOfFiles;
     std::atomic< bool >liveliness;
 
     void startNewFile();
+    size_t numOfValidFiles( );
     bool removeFile( const char * );
     APESEARCH::vector<char> getNextDirEntry( DIR *dir );
     bool popNewBatch();
