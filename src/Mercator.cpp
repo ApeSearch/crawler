@@ -54,7 +54,7 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
             pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
             { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );
 
-            std::string buf( requester.getResponseBuffer().first().begin(), requester.getResponseBuffer().first().end() );
+            APESEARCH::vector< char > buf( requester.getResponseBuffer() );
             pool.submitNoFuture( [this, buffer{ std::move( buf ) }, url{ std::move( buffer ) } ]( )
             { this->parser( buffer, url ); } );
             break;
@@ -84,9 +84,9 @@ void APESEARCH::Mercator::crawler()
        } // end while
    } // end urlExtractor()
 
-void APESEARCH::Mercator::parser( const std::string& buffer, const APESEARCH::string &url )
+void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const APESEARCH::string &url )
    {
-   HtmlParser parser( buffer.c_str(), buffer.size(), url );
+   HtmlParser parser( buffer.begin( ), buffer.size(), url );
 
    // Handle results by writing to file...
    writeToFile( parser );

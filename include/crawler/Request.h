@@ -79,10 +79,12 @@ class Request
    // Helper Functions
   
    // Static Variables
-   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu (Linux)\r\n\
-   Accept: */*\r\n Accept-Encoding: identity\r\nConnection: close\r\n\r\n";
+   //static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu (Linux)\r\n\
+   //Accept: */*\r\n Accept-Encoding: identity\r\nConnection: close\r\n\r\n";
+   static constexpr const char * const fields = "User-Agent: curl/7.54.0\r\n\
+   Accept: /\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
-   static constexpr time_t timeoutSec = 10;
+   static constexpr time_t timeoutSec = 40;
 
    inline void resetState()
       {
@@ -108,7 +110,7 @@ public:
 
    void getBody( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody );
 
-   APESEARCH::pair< APESEARCH::vector< char >, size_t> getResponseBuffer();
+   APESEARCH::vector< char > getResponseBuffer();
 
 };
 

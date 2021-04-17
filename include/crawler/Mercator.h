@@ -48,7 +48,7 @@ namespace APESEARCH
 
       void crawlWebsite( Request& requester, APESEARCH::string& buffer );
       void crawler();
-      void parser( const std::string& buffer, const APESEARCH::string &url );
+      void parser( const APESEARCH::vector< char >& buffer, const APESEARCH::string &url );
       //TODO fix
       void writeToFile( const HtmlParser& ) { }
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
