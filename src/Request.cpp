@@ -89,7 +89,8 @@ Result Request::getReqAndParse(const char *urlStr)
          res = parseHeader( headerPtrs.first( ) );
 
          if ( headerBad || res.status == getReqStatus::badHtml || !( foundChunked ^ foundContentLength ) 
-            || foundContentLength && (contentLengthBytes > Request::maxBodyBytes || headerPtrs.second( ) - headerPtrs.first( ) > ( ssize_t ) contentLengthBytes ))
+            || foundContentLength && (contentLengthBytes > Request::maxBodyBytes || 
+               headerPtrs.second( ) - headerPtrs.first( ) > ( ssize_t ) contentLengthBytes ) )
             {
             res.status = getReqStatus::badHtml;
             return res;
@@ -446,7 +447,7 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
       receiveNormally( socket, partOfBody );
       
    if ( gzipped )
-      //DecompressResponse( bodyBuff );
+      DecompressResponse( bodyBuff );
 
    return;
    }
@@ -467,7 +468,7 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
     std::array < char, 32768 > outBuffer;
 
     if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
-    throw std::runtime_error( "inflateInit2 fail" );
+      throw std::runtime_error( "inflateInit2 fail" );
 
     zs.next_in =
         const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
