@@ -59,7 +59,6 @@ struct QueueWLock
     APESEARCH::queue<APESEARCH::string, APESEARCH::circular_buffer< APESEARCH::string, 
                 APESEARCH::DEFAULT::defaultBuffer< APESEARCH::string, _Sizeu> > > pQueue;
     APESEARCH::mutex queueLk;
-    bool isInsertedToHeap = false;
    };
 
 
@@ -148,6 +147,7 @@ public:
     // Will assume that bloom filter is already accounted for ( Node actually owns the bloomfilter here )
     bool insertNewUrl( APESEARCH::string&& url );
     bool insertNewUrl( const APESEARCH::string& url );
+    void initiateInsertToDomain( std::chrono::time_point<std::chrono::system_clock>&&, std::string&& );
 
     void shutdown(); // signals threads to stop
 };

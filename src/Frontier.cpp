@@ -205,7 +205,6 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             // Insert a new entry to map
             domainsMap.emplace( std::piecewise_construct, 
                std::tuple<char *, char*>(  parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
-
             qLk.lock( );
             uniqMLk.unlock(); // Must happen after obtaining the queue lock
 
@@ -240,8 +239,13 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
    {
    APESEARCH::unique_lock<APESEARCH::mutex> uniqMapLk( mapLk );
    // Basically forget about it... ( if itr == domainsMap.end( ) )
+   std::cout << "Looking for : " << domain << std::endl;
+   for ( auto& ele : domainsMap )
+      {
+      std::cout << ele.first << std::endl;
+      }
    for ( std::unordered_map<std::string, size_t>::iterator itr; 
-      liveliness.load() && ( itr = domainsMap.find( domain ) ) != domainsMap.end(); uniqMapLk.lock( ) )
+      liveliness.load() && ( ( itr = domainsMap.find( domain ) ) != domainsMap.end() ); uniqMapLk.lock( ) )
       {
       unsigned ind = itr->second;
       assert( ind < domainQueues.size() );
@@ -265,14 +269,26 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
             backendHeap.emplace( time, itr->second );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
+            std::cout << "Succeeded in placing " << domain << "into heap\n";
             return true;
             }
          // Indicates failure
+         std::cout << "Couldn't place into heap Alread in domainMap\n";
          return false;
          } // end if
       } // end while
+   std::cout << "Couldn't place into heap ( Not found in domainMap )\n";
    return false;
    } // end insertTiming()
+
+void UrlFrontier::initiateInsertToDomain( std::chrono::time_point<std::chrono::system_clock>&& time, std::string&& domain )
+   {
+   auto func = [this, time{ std::move( time ) }, domain{ std::move( domain ) } ]( )
+      {
+      this->backEnd.insertTiming( time, domain );
+      };
+   pool.submitNoFuture( func );
+   }
 
 APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolicy::getMostOkayUrl( SetOfUrls& set )
    {

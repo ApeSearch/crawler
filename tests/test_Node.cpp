@@ -72,10 +72,14 @@ TEST(start_up)
         std::cout << "Got: ";
         std::cout << str << std::endl;
         ParsedUrl parsedUrl( str.cstr( ) );
-        std::string domain( parsedUrl.Host, parsedUrl.Path );
+        std::string domain( parsedUrl.Host, parsedUrl.Port );
         std::cout << "\nInserting domain: " << domain << std::endl;
+        std::cout << "Amount of characters: " << domain.size( ) << std::endl;
+        std::cout << "Difference: " << parsedUrl.Port - parsedUrl.Host << std::endl;
         lk.unlock( );
-        frontier.backEnd.insertTiming( std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() ), domain );
+        frontier.initiateInsertToDomain( 
+            std::chrono::time_point_cast<std::chrono::seconds>
+                ( std::chrono::system_clock::now() ), std::move( domain ) );
         } // end for
 
     std::cout << "Finish checking...\n";
