@@ -36,9 +36,9 @@ tests/anchorFiles
 *.app
 
 #Storaging files
-storageFiles/*
-parsedFiles/*
-anchorFiles/*
+#storageFiles/*
+#parsedFiles/*
+#anchorFiles/*
 
 #bloomfilter
 bloomFilter.bin

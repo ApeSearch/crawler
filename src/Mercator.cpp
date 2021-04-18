@@ -4,6 +4,7 @@
 //#include "../libraries/AS/include/AS/string.h"
 #include <string> // needed to get idea out
 #include <iostream>
+#include <stdlib.h>     /* atoi */
 
 #define MULTIPLE 10
 
@@ -98,15 +99,32 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    writeToFile( parser );
    } // end parser()
 
-void APESEARCH::Mercator::writeToFile( const HtmlParser& parser)
+void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
 {
-   //write to DB
    db.addParsedFile(parser);
 
+   if(parser.base.empty())
+      {
+       ParsedUrl parsedUrl( parser.url.cstr( ) );
+       parser.base = APESEARCH::string( parsedUrl.Service, parsedUrl.Port );
+      } // end if
+
+   //write to DB
    //write to Nodes
    for(int i = 0; i < parser.links.size(); ++i)
    {
+      //Does it need a base tag ( has protocal ) and do we have it
+      ParsedUrl parsedUrl( parser.links[i].URL.cstr() );
+      if( strncmp( parser.links[i].URL.cstr(), "http", 4 ) )
+      {
+         APESEARCH::string rel = parser.links[i].URL;
+
+         parser.links[i].URL = parser.base;
+         parser.links[i].URL += rel;
+      }
+      
       node.write(parser.links[i]);
+      
    }
 }
 

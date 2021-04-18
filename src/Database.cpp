@@ -102,7 +102,7 @@ void Database::addAnchorFile(const Link &link ){
     }
 }
 
-void Database::addParsedFile( const HtmlParser &parsed)        //url, parsed text, base, num paragraphs, num headings, num sentences
+void Database::addParsedFile( const HtmlParser &parsed )        //url, parsed text, base, num paragraphs, num headings, num sentences
 {                                                       //space delimited between words, newline delimited between sections, null character at end
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";

@@ -49,14 +49,14 @@ namespace APESEARCH
       void crawler();
       void parser( const APESEARCH::vector< char >& buffer, const APESEARCH::string &url );
       //TODO fix
-      void writeToFile( const HtmlParser& );
+      void writeToFile( HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void intel();
       void cleanUp(); 
       void startUpCrawlers( const std::size_t );
     public:
-      Mercator( APESEARCH::vector<APESEARCH::string>& ips, int id, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters, APESEARCH::vector<Link> seed_links ) : 
+      Mercator( APESEARCH::vector<APESEARCH::string>& ips, int id, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters, APESEARCH::vector<Link>& seed_links ) : 
          // Size of buffer, amount of threads, max submits
          pool( CircBuf( ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ) 
          ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), node( ips, id, frontier, db  ), liveliness( true )

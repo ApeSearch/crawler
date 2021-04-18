@@ -51,9 +51,10 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 
 # LinuxTinyServer:
 # 	${CC} -o $@ $^
-
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
+
 $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
+	@mkdir -p storageFiles parsedFiles anchorFiles
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
