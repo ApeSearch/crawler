@@ -82,7 +82,8 @@ TEST(start_up)
                 ( std::chrono::system_clock::now() ), std::move( domain ) );
         } // end for
 
-    std::cout << "Finish checking...\n";
+    std::cout << "Finish checking..." << std::endl;;
+    exit( 0 );
     sleep(300u);
 
 }

@@ -83,7 +83,7 @@ release: clean all
 .PHONY: clean
 
 clean:
-	rm -rf LinuxGetUrl LinuxGetSsl *.o tests/bin/* *.exe bin/* ${ASOBJS} ${OBJS} ${EXECDIR}/* ${STDEXECDIR}/* ${OUTPUT}/* ${STDEXECDIR}/*
+	rm -rf LinuxGetUrl LinuxGetSsl *.o tests/bin/* *.exe ${ASOBJS} ${OBJS} ${EXECDIR}/* ${STDEXECDIR}/* ${OUTPUT}/* ${STDEXECDIR}/*
 
 Christian:
 	git config user.name "cluc"
