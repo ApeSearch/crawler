@@ -39,15 +39,16 @@ void func(UrlFrontier &frontier, APESEARCH::string &str)
 
 TEST(start_up)
 {
-    //Database db;
+    Database db;
     UrlFrontier frontier( 1 );
-    //APESEARCH::vector<APESEARCH::string> ips = {"1","1","1","1","1","1","1","1"};
-    //Node node(ips, 0, frontier, db);
+    //Christians,Alexs,Pauls_first, Pauls_second
+    APESEARCH::vector<APESEARCH::string> ips = {"3.131.182.8","34.201.187.203","23.21.84.212","34.233.155.58"};
+    Node node(ips, 0, frontier, db);
     APESEARCH::vector<APESEARCH::string> vec = {"https://www.yahoo.com/something", "https://www.youtube.com/something", "https://www.gmail.com/something", "https://www.reddit.com/something", "https://www.blue.com/something"};
-    //for (size_t i = 0; i < vec.size(); i++)
-    //{
-    //    std::cout << vec[i] << "is in Node: " << (db.hash(vec[i].cstr()) & 1) << " and in anchor file: " << db.hash(vec[i].cstr()) % 256 << '\n';
-   // }
+    for (size_t i = 0; i < vec.size(); i++)
+    {
+       std::cout << vec[i] << "is in Node: " << (db.hash(vec[i].cstr()) & 1) << " and in anchor file: " << db.hash(vec[i].cstr()) % 256 << '\n';
+    }
 
     //for (size_t i = 0; i < 5; i++)
     //{

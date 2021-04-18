@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MAXTHREADS 17
+#define MAXTHREADS 16
 #define BLOOMFILTER
 #define BUFFERSIZE 65536
 #define PORT 6666
@@ -248,6 +248,7 @@ void Node::write( const Link &link )
         dataBase.addAnchorFile(link);
         if(new_link)
         {
+            std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
             frontier.insertNewUrl( std::move( link.URL ) );
         }
     }

@@ -223,7 +223,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          else
             domainQueues[ indToInsert ].queueWLk.pQueue.emplace( std::move( url ) );
          
-         if ( itr != domainsMap.end() && itr->second != index )
+         if ( !qLk )
             qLk.lock( );
          } // end if
          else

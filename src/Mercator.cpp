@@ -85,6 +85,7 @@ void APESEARCH::Mercator::crawler()
        {
         unsigned attempts = 0;
         url = frontier.getNextUrl( ); // Writes directly to buffer
+        std::cerr << "ACTUALLY GOT A URL\n";
         crawlWebsite( requester, url, attempts );
        } // end while
    } // end urlExtractor()
