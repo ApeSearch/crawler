@@ -221,8 +221,13 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          if ( domainQueues[ indToInsert ].queueWLk.pQueue.size() == BackendPolitenessPolicy::endQueueSize )
             set.enqueue( url );
          else
+            {
             domainQueues[ indToInsert ].queueWLk.pQueue.emplace( std::move( url ) );
+            domainQueues[ indToInsert ].queueCV.notify_one( );
+            } // end else
          
+         // Previously just checked if itr != end() && itr->second != index
+         // which would be invalidated if itr was changed when itr == end
          if ( !qLk )
             qLk.lock( );
          } // end if
@@ -263,7 +268,8 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
       // If this is the case, then !domainQueues[ ind ].queueWLk.pQueue.empty()
       if ( domain == domainQueues[ ind ].domain )
          {
-         if ( !domainQueues[ ind ].timeStampInDomain )
+         assert( !domainQueues[ ind ].queueWLk.pQueue.empty() );
+         if ( !domainQueues[ ind ].timeStampInDomain ) // Not in domainsHeap
             {
             APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
             backendHeap.emplace( time, itr->second );
@@ -276,7 +282,7 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
          std::cout << "Couldn't place into heap Alread in domainMap\n";
          return false;
          } // end if
-      } // end while
+      } // end for
    std::cout << "Couldn't place into heap ( Not found in domainMap )\n";
    return false;
    } // end insertTiming()
@@ -317,13 +323,15 @@ APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolic
 
    bool isEmpty =  domainQueues[ index ].queueWLk.pQueue.empty();
 
+   // domainqueues.size( ) is a way to signify that a backend queue is empty and needs to be filled up
+   // again.
    return APESEARCH::pair< APESEARCH::string, size_t >( url, isEmpty ? index : domainQueues.size()  );
    } // getMostOkayUrl()
 
 UrlFrontier::UrlFrontier( const size_t numOfCrawlerThreads ) : UrlFrontier( nullptr, numOfCrawlerThreads ) { }
 
 
-UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThreads ) : set( directory ),  pool( FrontierCircBuf( numOfCrawlerThreads * 3 ), numOfCrawlerThreads  * 3, computeTwosPowCeiling( numOfCrawlerThreads * 6 ) )
+UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThreads ) : set( directory ),  pool( FrontierCircBuf( computeTwosPowCeiling( numOfCrawlerThreads * 6 ) ), ( numOfCrawlerThreads  * 3 ) * 2, computeTwosPowCeiling( numOfCrawlerThreads * 6 ) )
    ,liveliness( true ), frontEnd( set, liveliness ), backEnd( numOfCrawlerThreads * 3, set, liveliness )
    {
    // Need to start up threads...
