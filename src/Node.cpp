@@ -245,7 +245,7 @@ void Node::write( const Link &link )
     {
         std::cerr << "Hashed and writing locally\n";
         dataBase.addAnchorFile(link);
-        if(new_link)
+        if(new_link && !link.URL.empty())
         {
             std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
             frontier.insertNewUrl( std::move( link.URL ) );

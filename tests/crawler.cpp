@@ -5,6 +5,7 @@
 #define MAXNODES 4
 // ./exec <NODE_ID> 
 // ./exec 1 < seed_list.txt
+//34.201.187.203 ( 1 )
 int main( int argc, char **argv )
     {
     
@@ -14,7 +15,6 @@ int main( int argc, char **argv )
        std::cerr << "Node id is out of bounds: " << node_id << std::endl;
        return 1;
        } // end if
-    
     
     APESEARCH::vector<Link> seed_links;
     std::string url;
@@ -38,8 +38,9 @@ int main( int argc, char **argv )
         } // end if
     
     
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 1, 1, 0, seed_links);
+    // crawlers, parsers
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 4, 4, 0, seed_links);
     
     merc.user_handler( );
-    return 3;
+    return 0;
     } // end main( )

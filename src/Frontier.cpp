@@ -173,7 +173,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      if ( !strncmp( url.cstr(), "http", 4 )  )
+      if ( !strncmp( url.cstr(), "http", 4 ) && *parsedUrl.Host )
          {
          unsigned indToInsert = 0;
          std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );

@@ -4,6 +4,7 @@
 #define PARSEDURL_H_APESEARCH
 #include <stdio.h>
 #include "../../libraries/AS/include/AS/utility.h"
+#include <assert.h>
 
 class ParsedUrl
    {
@@ -88,7 +89,6 @@ class ParsedUrl
             {
             throw std::runtime_error(" asprintf failed. Could be due to lack of memory. Please investiagate further" );
             } // end if
-
          }
 
       ParsedUrl( const char *url )

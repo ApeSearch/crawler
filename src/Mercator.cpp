@@ -44,7 +44,14 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
    Result result = requester.getReqAndParse( buffer.cstr() );
    // At the end of this task, the buffer will be reinserted back into urlBuffers...
    std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
-   
+
+   std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
+   ParsedUrl parsedUrl( buffer.cstr() );
+   // This should be the case
+   assert( *parsedUrl.Host ); 
+   frontier.pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
+   { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );   
+
    switch( result.status )
          {
          case getReqStatus::successful:
@@ -69,13 +76,6 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
          default:
             break;
          } // end switch
-
-   std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
-   ParsedUrl parsedUrl( buffer.cstr() );
-   // This should be the case
-   assert( *parsedUrl.Host ); 
-   frontier.pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
-   { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } ); 
    } // end crawlWebsite()
 
 // Only need one thread for this since it would otherwise 
@@ -88,6 +88,7 @@ void APESEARCH::Mercator::crawler()
     while( liveliness.load() )
        {
         url = frontier.getNextUrl( ); // Writes directly to buffer
+        assert(!url.empty());
         std::cerr << "ACTUALLY GOT A URL\n";
         crawlWebsite( requester, url );
        } // end while
