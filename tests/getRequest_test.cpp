@@ -7,7 +7,7 @@ int main()
     {
     SSL_library_init();
     //const char * const exampleUrl = "https://umich.edu/";
-    const char * const exampleUrl = "https://news.ycombinator.com/item?id=26854819";
+    const char * const exampleUrl = "https://www.hypebot.com/hypebot/2015/07/bmg-gets-soul-acquires-minder-music-and-cavalcade-recordings.html+of+Brazil/";
     //https://news.ycombinator.com/item?id=26854819
 
     Request requester;

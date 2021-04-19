@@ -188,8 +188,8 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             else
                backEndLk = APESEARCH::unique_lock< APESEARCH::mutex >( domainQueues[ itr->second ].queueWLk.queueLk );
 
-            uniqMLk.unlock();
             indToInsert = itr->second;
+            uniqMLk.unlock();
             } // end if
          // Need to replace domain
          else
@@ -205,6 +205,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             // Insert a new entry to map
             domainsMap.emplace( std::piecewise_construct, 
                std::tuple<char *, char*>(  parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
+            assert( domainsMap.find( extractedDomain ) != domainsMap.end( ) );
             qLk.lock( );
             uniqMLk.unlock(); // Must happen after obtaining the queue lock
 
@@ -272,7 +273,7 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
          if ( !domainQueues[ ind ].timeStampInDomain ) // Not in domainsHeap
             {
             APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
-            backendHeap.emplace( time, itr->second );
+            backendHeap.emplace( time, ind );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
             std::cout << "Succeeded in placing " << domain << "into heap\n";

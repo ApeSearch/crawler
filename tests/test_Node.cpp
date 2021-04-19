@@ -29,7 +29,7 @@ void func(UrlFrontier &frontier, APESEARCH::string &str)
     link.anchorText.push_back("word1");
     link.anchorText.push_back("word2");
     link.anchorText.push_back("word3");
-    for ( unsigned n = 0; n < 1; ++n )
+    for ( unsigned n = 0; n < 5; ++n )
        {
         frontier.insertNewUrl( link.URL );
         //APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
@@ -50,20 +50,17 @@ TEST(start_up)
        std::cout << vec[i] << "is in Node: " << (db.hash(vec[i].cstr()) & 1) << " and in anchor file: " << db.hash(vec[i].cstr()) % 256 << '\n';
     }
 
-    for (size_t i = 0; i < 50; i++)
-    {
         for ( size_t n = 0; n < vec.size( ); ++n )
             {
             std::thread t = std::thread( func, std::ref( frontier ), std::ref( vec[n] ) );
             t.detach();
             }
-    }
     //sleep(5u);
     //youtube.com/somethingis in Node: 1 and in anchor file: 39
     //google.com/somethingis in Node: 1 and in anchor file: 225
     //youtube.com/somethingis in Node: 1 and in anchor file: 39
 
-    for ( unsigned n = 0; n < 2500; ++n )
+    for ( unsigned n = 0; n < 25; ++n )
         {
         //coutLk.lock( );
         //std::cout << "Getting next url:\n";

@@ -331,7 +331,7 @@ inline UrlObj SetOfUrls::helperDeq()
       } // end while
 
    UrlObj obj;
-   assert( start && frontQPtr && start < frontQPtr );
+   assert( start && frontQPtr && start <= frontQPtr );
    obj.url = APESEARCH::string( start, frontQPtr );
    obj.priority = calcPriority( obj.url ); // All have a priority of 0
    
