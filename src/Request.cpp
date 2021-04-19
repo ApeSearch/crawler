@@ -362,81 +362,53 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
       } // end while
    return num;
    }
-char const *getEndOfChunked( unique_ptr<Socket> &socket, char *bufferStart, char * bufferTrueEnd )
-   {      
-    size_t totBytesTransfered = 0;
-    int bytesReceived = 0;
-    static char const * const endChunked = "\r\n\r\n";
-    char const *place = endChunked;
-
-    char *bufPtr, *bufEnd;
-    bufEnd = bufPtr = bufferStart;
-
-    while ( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<int>( bufferTrueEnd - bufPtr ) ) ) ) 
-      {
-      bufEnd += bytesReceived;
-      totBytesTransfered += bytesReceived;
-      while( *place && bufPtr != bufEnd )
-         (*place == *bufPtr++) ? ++place : place = endChunked;
-      
-      if ( totBytesTransfered >= bufferTrueEnd - bufferStart )
-         return bufferTrueEnd;
-      } // end
-   }
-
-static char const *findSubStr( char const *begin, char const *end, char const * const substr )
-   {
-   char const *ptr = begin;
-   const char * at = substr;
-
-   while ( *at && ptr != end )
-      *ptr++ == *at ? ++at : at = substr;
-   return !( *at ) ? begin + ( static_cast<size_t>( ptr - begin ) - strlen( substr ) ) : end;
-   } // end findPtr()
 
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
 {
-   static constexpr char * const newline = "\r\n";
-   APESEARCH::vector<char> temp(131072);
+   bodyBuff.resize(262144);
+   APESEARCH::copy(partOfBody.first(), partOfBody.second(), bodyBuff.begin());
+   int total_read = partOfBody.second() - partOfBody.first();
+   
 
-   size_t chunksToRead = 0;
-   char *bufPtr =  &temp.front( );
-   char *bufEnd = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), bufPtr );
-   char const *endOfChunk;
-   char const * cbufEnd = getEndOfChunked( socket, bufEnd, temp.end( ) );
-
-   while( bufPtr < cbufEnd && ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
-      {         
-      ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
-      if ( ret == 0 || ret == -1 )
-         {
-         if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
-            headerBad = true;
-         return;
-         } // end if
-      size_t chunksToRead = ( size_t ) ret;
-      assert( ( endOfChunk[ 0 ] == '\r' ) );
-      assert( ( endOfChunk[ 1 ] == '\n' ) );
-      // skip past \r\n
-      bufPtr = ( char * ) endOfChunk + 2;
-
-      // Now push up to chunksToRead
-      size_t bytesInputted = 0;
-      endOfChunk = bufPtr + chunksToRead;
-      while( bufPtr != endOfChunk )
-         {
-         bodyBuff.push_back( *bufPtr++ );
-         ++bytesInputted;
-         } // end while
-      assert( bytesInputted == chunksToRead );
-      // Skip \r\n
-      if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
-         {
+   while(true)
+   {
+      if(bodyBuff.size() > maxBodyBytes)
+      {
          headerBad = true;
-         return;
-         } // end if
-      } // end while
+      }
+      if((3*bodyBuff.size())/4 > total_read)
+         bodyBuff.resize(bodyBuff.size()*2);
+
+      int recvd = socket->receive( bodyBuff.begin() + total_read, bodyBuff.size() - total_read );
+      total_read += recvd;
+      //Stupid but simple
+      if( total_read > 5 && bodyBuff[total_read - 1] == '\n' && bodyBuff[total_read - 2] == '\r'
+      && bodyBuff[total_read - 3] == '\n' && bodyBuff[total_read - 4] == '\r' && bodyBuff[total_read - 5] == '0')  
+         break;
+      
+   }  
+   
+   int start = 0;
+   while(true)
+   {
+      for(int i = start; i < total_read; ++i)
+      {
+         //we hit the end
+         if( bodyBuff[i] == '\r')
+         { 
+            ssize_t hex = hexaToDecimal(bodyBuff.begin() + start, bodyBuff.begin() + i) + 3;
+            //newline them out for parser to handle
+            for(int j = start; j < i; ++j)
+            {
+               bodyBuff[j] = '\n';
+            }
+            start = i + hex;
+            break;
+         }
+      }
+   }
 }
+
 
 static void DecompressResponse( APESEARCH::vector < char >& data_ );
 
