@@ -232,7 +232,6 @@ void Node::write( const Link &link )
     bool new_link = false;
     std::cerr << "Going into writer\n";
     {
-        APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( bloomFilter_lock );
         if(!bloomFilter.contains(link.URL))
         {
             new_link = true;
@@ -357,15 +356,11 @@ void Node::receiver(int index)
                     } // end if
 
                 // Check bloomfilter
-                APESEARCH::unique_lock<APESEARCH::mutex> lk( bloomFilter_lock );             
                 if ( !bloomFilter.contains( linkOf.URL ) )
                     {
                     bloomFilter.insert( linkOf.URL );
-                    lk.unlock( );
                     frontier.insertNewUrl( std::move( linkOf.URL ) );
                     }
-                else
-                    lk.unlock( );
 
                 // Add to DB
                 dataBase.addAnchorFile(linkOf);

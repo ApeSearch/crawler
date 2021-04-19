@@ -105,7 +105,8 @@ void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
 
    if(parser.base.empty())
       {
-       ParsedUrl parsedUrl( parser.url.cstr( ) );
+       char combinedUrl[1024];
+       ParsedUrl parsedUrl( parser.url.cstr( ), true );
        parser.base = APESEARCH::string( parsedUrl.Service, parsedUrl.Port );
       } // end if
 

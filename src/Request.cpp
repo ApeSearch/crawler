@@ -66,7 +66,9 @@ Result Request::getReqAndParse(const char *urlStr)
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = !strcmp(url.Service, "http"); // 0 if http 1 if https
     Address address(url.Host, httpProtocol ? "80" : "443" );
-    int attempts = 0;
+    if(!address.valid)
+      return Result( getReqStatus::badURL );
+    int attempts = 0; 
     Result res;
     while(attempts < MAXATTEMPTS)
       {

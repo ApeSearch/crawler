@@ -80,7 +80,6 @@ class Node
    FNV hash;
    UrlFrontier& frontier;
    Bloomfilter bloomFilter;
-   APESEARCH::mutex bloomFilter_lock;
    APESEARCH::PThreadPool< APESEARCH::circular_buffer<APESEARCH::Func, APESEARCH::DEFAULT::defaultBuffer<APESEARCH::Func, 32u>> > pool;
    Database& dataBase; 
    

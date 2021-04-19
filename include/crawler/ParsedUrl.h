@@ -25,6 +25,68 @@ class ParsedUrl
          other.Path = other.getRequest = nullptr;
          }
 
+      ParsedUrl( const char *url, bool )
+         {
+         CompleteUrl = url;
+
+         pathBuffer = new char[ strlen( url ) + 1 ];
+         const char *f;
+         char *t;
+         for ( t = pathBuffer, f = url; *t++ = *f++; )
+            ;
+
+         Service = pathBuffer;
+
+         const char Colon = ':', Slash = '/', pound = '#', parameter = '?';
+         char *p;
+         for ( p = pathBuffer; *p && *p != Colon; p++ )
+            ;
+
+         if ( *p )
+            {
+            // Mark the end of the Service.
+            ++p;
+            protocolType = strcmp(Service, "https");
+
+            if ( *p == Slash )
+               p++;
+            if ( *p == Slash )
+               p++;
+
+            Host = p;
+
+            for ( ; *p && *p != Slash && *p != Colon && *p != parameter && *p != pound; p++ )
+               ;
+
+            if ( *p == Colon || *p == parameter || *p == pound )
+               {
+               // Port specified.  Skip over the colon and
+               // the port number.
+               ++p;
+               Port = +p;
+               for ( ; *p && *p != Slash; p++ )
+                  ;
+               }
+            else
+               Port = p;
+
+            if ( *p )
+               // Mark the end of the Host and Port.
+               *p++ = 0;
+
+            // Whatever remains is the Path.
+            Path = p;
+            }
+         else
+            Host = Path = p;
+         
+         if ( ( reqSize = asprintf( &getRequest, "GET /%s HTTP/1.1\r\nHost: %s\r\n", Path, Host ) ) == -1 )
+            {
+            throw std::runtime_error(" asprintf failed. Could be due to lack of memory. Please investiagate further" );
+            } // end if
+
+         }
+
       ParsedUrl( const char *url )
          {
          // Assumes url points to static text but

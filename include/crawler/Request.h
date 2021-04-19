@@ -22,6 +22,7 @@ enum class getReqStatus
    redirected, // What url to redirected ( give to frontier for them to check )
    timedOut,   // 
    badHtml,     // Tell crawler to throw away such html
+   badURL,
    ServerIssue
 };
 
