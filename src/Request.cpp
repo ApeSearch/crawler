@@ -50,7 +50,8 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
    //construct string based off of buffer call our pase header function
    // Reached the end of header
 
-   std::cout << std::string(  &headerBuff.front(), bufPtr ) << std::endl;
+   //std::cout << std::string(  &headerBuff.front(), bufPtr ) << std::endl;
+
    return APESEARCH::pair< char const * const, char const * const  > 
       ( ( *place ? nullptr : bufPtr ), ( *place ? nullptr : headerEnd ) );
     } 
@@ -76,7 +77,7 @@ Result Request::getReqAndParse(const char *urlStr)
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          char buff[1024];
          snprintf( buff, sizeof( buff ), "%s%s", req.first( ), fields );
-         printf( "%s\n", buff );
+         //printf( "%s\n", buff );
          socket->send( buff, strlen( buff ) );
          APESEARCH::pair< char const * const, char const * const  > headerPtrs( getHeader( socket ) );
          // first is end of header, second is end of buffer header is situated

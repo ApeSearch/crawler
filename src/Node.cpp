@@ -162,7 +162,7 @@ void Node::connectionHandler()
 
 void Node::sender(int index)
 {
-    std::cerr << "Sender is running to send on Node: " << index << '\n';
+    //std::cerr << "Sender is running to send on Node: " << index << '\n';
     node_buckets[index].socket_lock.lock();
     int fd = node_buckets[index].socket->getFD();
     node_buckets[index].socket_lock.unlock();
@@ -173,7 +173,7 @@ void Node::sender(int index)
 
 
         node_buckets[index].writer_semaphore.down();
-        std::cerr << "Sender activated to send to Node: " << index << '\n';
+        //std::cerr << "Sender activated to send to Node: " << index << '\n';
         node_buckets[index].high_prio_lock();
         ssize_t file_size = node_buckets[index].storage_file.fileSize();
         
@@ -210,7 +210,7 @@ void Node::sender(int index)
                 std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
                 exit(1);
             }
-            std::cerr << "SENT BUFFER\n";
+            //std::cerr << "SENT BUFFER\n";
             //Reseting semaphore to 0
             std::size_t count = node_buckets[index].writer_semaphore.getCount( );
             node_buckets[index].writer_semaphore.down( count );
@@ -230,7 +230,7 @@ void Node::write( const Link &link )
     size_t val = hash(link.URL.cstr());
     val = val % node_buckets.size();
     bool new_link = false;
-    std::cerr << "Going into writer\n";
+    //std::cerr << "Going into writer\n";
     {
         if(!bloomFilter.contains(link.URL))
         {
@@ -243,18 +243,18 @@ void Node::write( const Link &link )
     }
     if(val == node_id)
     {
-        std::cerr << "Hashed and writing locally\n";
+        //std::cerr << "Hashed and writing locally\n";
         dataBase.addAnchorFile(link);
         if(new_link && !link.URL.empty())
         {
-            std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
+            //std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
             frontier.insertNewUrl( std::move( link.URL ) );
         }
     }
     else{ // Write to storage file and eventually send
         
         node_buckets[val].low_prio_lock();
-        std::cerr << "Writing to storage file\n";
+        //std::cerr << "Writing to storage file\n";
         node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size());
         node_buckets[val].storage_file.write(newline_char, 1);
         for (size_t i = 0; i < link.anchorText.size(); i++)
@@ -284,16 +284,16 @@ int Node::retriesConnectAfterFailure( int fd, int index )
 
     if(node_id < index)
     {   
-        std::cerr << "Reciever is connecting to Node: " << index << '\n';
+        //std::cerr << "Reciever is connecting to Node: " << index << '\n';
         // We must connect to this socket
         connect(index);
     }
     else
     {
-        std::cerr << "Reciever is waiting for connection to Node: " << index << '\n';
+        //std::cerr << "Reciever is waiting for connection to Node: " << index << '\n';
         //Wait for connector to notify you
         node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
-        std::cerr << "Reciever woke up from connection to Node: " << index << '\n';
+        //std::cerr << "Reciever woke up from connection to Node: " << index << '\n';
     }
     return node_buckets[index].socket->getFD();
     } // end retriesConnectAfterFailure( )
@@ -303,7 +303,7 @@ int Node::retriesConnectAfterFailure( int fd, int index )
 //Constantly reading from sockets
 void Node::receiver(int index)
 {
-    std::cerr << "Reciever is running to rec on Node: " << index << '\n';
+    //std::cerr << "Reciever is running to rec on Node: " << index << '\n';
     char buffer[BUFFERSIZE];
     APESEARCH::vector< char > intermediateBuf; 
     node_buckets[index].socket_lock.lock();
@@ -332,7 +332,7 @@ void Node::receiver(int index)
 
         for ( ;buffPtr != buffEnd; ++buffPtr )
         {
-        std::cerr << "RECEIVED BUFFER\n";
+        //std::cerr << "RECEIVED BUFFER\n";
         switch( *buffPtr )
             {
             // Signifies end of url

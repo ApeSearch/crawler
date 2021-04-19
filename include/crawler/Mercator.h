@@ -44,6 +44,8 @@ namespace APESEARCH
       Database db;
       Node node;
       Bloomfilter bloomfilter;
+      unique_mmap pagesCrawled;
+      APESEARCH::mutex lkForPages;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
@@ -68,6 +70,30 @@ namespace APESEARCH
             node.write(seed_links[i]);
          }
          
+         APESEARCH::File file( "/home/ubuntu/crawler/pagesCrawledDONTTOUCH.txt", O_RDWR | O_CREAT, (mode_t) 0600 );
+         std::cout << "Opened: /VirtualFileSystem/Root/pagesCrawledDONTTOUCH.txt" << std::endl;
+
+         int fileSize = lseek(  file.getFD( ), 0, SEEK_END );
+         if ( (long unsigned int)fileSize < sizeof( size_t ) )
+            {
+            ssize_t result = lseek( file.getFD( ), sizeof( size_t ) - 1, SEEK_SET );
+
+            if ( result == -1 )
+               {
+               perror( "Issue with lseek while trying to stretch file" );
+               return;
+               } // end if
+            
+            result = write( file.getFD( ), "", 1 );
+
+            if ( result == -1 )
+               {
+               perror( "Error writing bytes to file" );
+               return;
+               }
+            } // end if
+         pagesCrawled = unique_mmap( 0, sizeof( size_t ), PROT_READ | PROT_WRITE, MAP_SHARED, file.getFD( ) , 0 );
+
          startUpCrawlers( amtOfCrawlers );
          }
       ~Mercator();

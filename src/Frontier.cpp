@@ -97,7 +97,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
       {
       lk.unlock();
 #ifdef DEBUG
-      std::cerr << "Empty fill in with an asynchronous thread\n";
+      //std::cerr << "Empty fill in with an asynchronous thread\n";
 #endif
       // Start from the highest priority all the way to zero
       int n;
@@ -244,11 +244,11 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
    {
    APESEARCH::unique_lock<APESEARCH::mutex> uniqMapLk( mapLk );
    // Basically forget about it... ( if itr == domainsMap.end( ) )
-   std::cout << "Looking for : " << domain << std::endl;
-   for ( auto& ele : domainsMap )
-      {
-      std::cout << ele.first << std::endl;
-      }
+   //std::cout << "Looking for : " << domain << std::endl;
+   //for ( auto& ele : domainsMap )
+      //{
+      //std::cout << ele.first << std::endl;
+      //}
    for ( std::unordered_map<std::string, size_t>::iterator itr; 
       liveliness.load() && ( ( itr = domainsMap.find( domain ) ) != domainsMap.end() ); uniqMapLk.lock( ) )
       {
@@ -275,19 +275,19 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
             backendHeap.emplace( time, itr->second );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
-            std::cout << "Succeeded in placing " << domain << "into heap\n";
+            //std::cout << "Succeeded in placing " << domain << "into heap\n";
             return true;
             }
          // Indicates failure
-         std::cout << "Couldn't place into heap Alread in domainMap\n";
+         //std::cout << "Couldn't place into heap Alread in domainMap\n";
          return false;
          } // end if
       } // end for
-   std::cout << "Couldn't place into heap ( Not found in domainMap )\n";
-   for ( auto& ele : domainsMap )
-      {
-      std::cout << ele.first << std::endl;
-      }
+   //std::cout << "Couldn't place into heap ( Not found in domainMap )\n";
+   //for ( auto& ele : domainsMap )
+      //{
+      //std::cout << ele.first << std::endl;
+      //}
    return false;
    } // end insertTiming()
 
