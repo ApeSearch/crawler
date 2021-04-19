@@ -364,26 +364,27 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
 
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
 {
-   bodyBuff.resize(262144);
-   APESEARCH::copy(partOfBody.first(), partOfBody.second(), bodyBuff.begin());
+   APESEARCH::vector<char> temp;
+   temp.resize(262144);
+   APESEARCH::copy(partOfBody.first(), partOfBody.second(), temp.begin());
    int total_read = partOfBody.second() - partOfBody.first();
    
 
    while(true)
    {
-      if(bodyBuff.size() > maxBodyBytes)
+      if(temp.size() > maxBodyBytes)
       {
          headerBad = true;
          return;
       }
-      if((3*bodyBuff.size())/4 < total_read)
-         bodyBuff.resize(bodyBuff.size()*2);
+      if((3*temp.size())/4 < total_read)
+         temp.resize(temp.size()*2);
 
-      int recvd = socket->receive( bodyBuff.begin() + total_read, bodyBuff.size() - total_read );
+      int recvd = socket->receive( temp.begin() + total_read, temp.size() - total_read );
       total_read += recvd;
       //Stupid but simple
-      if( total_read > 5 && bodyBuff[total_read - 1] == '\n' && bodyBuff[total_read - 2] == '\r'
-      && bodyBuff[total_read - 3] == '\n' && bodyBuff[total_read - 4] == '\r' && bodyBuff[total_read - 5] == '0')  
+      if( total_read > 5 && temp[total_read - 1] == '\n' && temp[total_read - 2] == '\r'
+      && temp[total_read - 3] == '\n' && temp[total_read - 4] == '\r' && temp[total_read - 5] == '0')  
          break;
       
    }  
@@ -395,15 +396,18 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
       for(int i = start; i < total_read; ++i)
       {
          //we hit the end
-         if( bodyBuff[i] == '\r')
+         if( temp[i] == '\r')
          { 
-            ssize_t hex = hexaToDecimal(bodyBuff.begin() + start, bodyBuff.begin() + i) + 4;
+            ssize_t hex = hexaToDecimal(temp.begin() + start, temp.begin() + i) + 4;
             //newline them out for parser to handle
-            for(int j = start; j < i; ++j)
-            {
-               bodyBuff[j] = '\n';
-            }
             start = i + hex;
+            if(start < total_read)
+            {
+               for(int j = i + 2; j < start - 2 ;++j)
+               {
+                  bodyBuff.push_back(temp[j]);
+               }
+            }
             break;
          }
       }
