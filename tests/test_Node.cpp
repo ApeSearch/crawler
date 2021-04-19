@@ -29,11 +29,11 @@ void func(UrlFrontier &frontier, APESEARCH::string &str)
     link.anchorText.push_back("word1");
     link.anchorText.push_back("word2");
     link.anchorText.push_back("word3");
-    for ( unsigned n = 0; n < 5; ++n )
+    for ( unsigned n = 0; n < 1; ++n )
        {
         frontier.insertNewUrl( link.URL );
-        APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
-        std::cout << "Inserted: " << str << std::endl;
+        //APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+        //std::cout << "Inserted: " << str << std::endl;
        }
 }
 
@@ -50,34 +50,34 @@ TEST(start_up)
        std::cout << vec[i] << "is in Node: " << (db.hash(vec[i].cstr()) & 1) << " and in anchor file: " << db.hash(vec[i].cstr()) % 256 << '\n';
     }
 
-    //for (size_t i = 0; i < 5; i++)
-    //{
+    for (size_t i = 0; i < 50; i++)
+    {
         for ( size_t n = 0; n < vec.size( ); ++n )
             {
             std::thread t = std::thread( func, std::ref( frontier ), std::ref( vec[n] ) );
             t.detach();
             }
-    //}
+    }
     //sleep(5u);
     //youtube.com/somethingis in Node: 1 and in anchor file: 39
     //google.com/somethingis in Node: 1 and in anchor file: 225
     //youtube.com/somethingis in Node: 1 and in anchor file: 39
 
-    for ( unsigned n = 0; n < 25; ++n )
+    for ( unsigned n = 0; n < 2500; ++n )
         {
-        coutLk.lock( );
-        std::cout << "Getting next url:\n";
-        coutLk.unlock( );
+        //coutLk.lock( );
+        //std::cout << "Getting next url:\n";
+        //coutLk.unlock( );
         APESEARCH::string str( frontier.getNextUrl( ) );
-        APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
-        std::cout << "Got: ";
-        std::cout << str << std::endl;
+        //APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+        //std::cout << "Got: ";
+        //std::cout << str << std::endl;
         ParsedUrl parsedUrl( str.cstr( ) );
         std::string domain( parsedUrl.Host, parsedUrl.Port );
-        std::cout << "\nInserting domain: " << domain << std::endl;
-        std::cout << "Amount of characters: " << domain.size( ) << std::endl;
-        std::cout << "Difference: " << parsedUrl.Port - parsedUrl.Host << std::endl;
-        lk.unlock( );
+        //std::cout << "\nInserting domain: " << domain << std::endl;
+        //std::cout << "Amount of characters: " << domain.size( ) << std::endl;
+        //std::cout << "Difference: " << parsedUrl.Port - parsedUrl.Host << std::endl;
+        //lk.unlock( );
         frontier.initiateInsertToDomain( 
             std::chrono::time_point_cast<std::chrono::seconds>
                 ( std::chrono::system_clock::now() ), std::move( domain ) );

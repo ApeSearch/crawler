@@ -173,7 +173,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      if ( !url.empty( ) && !strncmp( url.cstr(), "http", 4 )  )
+      if ( !strncmp( url.cstr(), "http", 4 )  )
          {
          unsigned indToInsert = 0;
          std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );
@@ -198,7 +198,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             // Delete previously domain from map
             if ( !domain.empty() )
                {
-               itr = domainsMap.find( std::string( domain.begin(), domain.end() ) );
+               itr = domainsMap.find( domain );
                assert( itr != domainsMap.end() && itr->second == index );
                domainsMap.erase( itr );
                } // end if
@@ -284,6 +284,10 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
          } // end if
       } // end for
    std::cout << "Couldn't place into heap ( Not found in domainMap )\n";
+   for ( auto& ele : domainsMap )
+      {
+      std::cout << ele.first << std::endl;
+      }
    return false;
    } // end insertTiming()
 
@@ -315,6 +319,7 @@ APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolic
 } // ~uniqPQLk()
    assert( index < domainQueues.size() );
    APESEARCH::unique_lock<APESEARCH::mutex> backEndLk( domainQueues[ index ].queueWLk.queueLk );
+   assert( domainQueues[ index ].timeStampInDomain );
 
    // Modify all of back queue's state
    APESEARCH::string url( std::move( domainQueues[ index ].queueWLk.pQueue.front() )  );
