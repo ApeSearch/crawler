@@ -43,7 +43,7 @@ TEST(start_up)
     UrlFrontier frontier( 1 );
     //Christians,Alexs,Pauls_first, Pauls_second
     APESEARCH::vector<APESEARCH::string> ips = {"3.131.182.8","34.201.187.203","23.21.84.212","34.233.155.58"};
-    Node node(ips, 0, frontier, db);
+    //Node node(ips, 0, frontier, db);
     APESEARCH::vector<APESEARCH::string> vec = {"https://www.yahoo.com/something", "https://www.youtube.com/something", "https://www.gmail.com/something", "https://www.reddit.com/something", "https://www.blue.com/something"};
     for (size_t i = 0; i < vec.size(); i++)
     {

@@ -7,8 +7,8 @@ int main()
     {
     SSL_library_init();
     //const char * const exampleUrl = "https://umich.edu/";
-    const char * const exampleUrl = "https://en.wikipedia.org\#searchInput";
-    //https://news.ycombinator.com/item?id=26839781
+    const char * const exampleUrl = "https://news.ycombinator.com/item?id=26854819";
+    //https://news.ycombinator.com/item?id=26854819
 
     Request requester;
     // Figure out results

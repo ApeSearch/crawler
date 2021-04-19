@@ -13,7 +13,6 @@
 #include <vector>
 #include <string.h>
 
-
 #include <iostream>
 
 #ifdef testing
@@ -313,7 +312,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             {
             auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
                {  
-               resultOfReq.url = std::string( front, end );
+               resultOfReq.url = APESEARCH::string( front, end );
                foundUrl = true;
                }; // end pred
             // Only look for Location when seen in first line
@@ -394,48 +393,113 @@ static char const *findSubStr( char const *begin, char const *end, char const * 
    return !( *at ) ? begin + ( static_cast<size_t>( ptr - begin ) - strlen( substr ) ) : end;
    } // end findPtr()
 
+void seekNextLineSep( APESEARCH::unique_ptr<Socket> &socket, char **buffer, char **bufferEnd, char *trueStart, char const * const trueEnd )
+   {
+   char *ptr;
+   while( *bufferEnd != trueEnd && ( ptr = (char * ) findSubStr( *buffer, *bufferEnd, "\r\n" ) ) != *bufferEnd )
+      {
+      unsigned bytesRevd = socket->receive( *buffer, trueEnd - *bufferEnd );
+      *bufferEnd += bytesRevd;
+      } // end while
+   if ( *bufferEnd != trueEnd )
+      *buffer = ptr;
+
+   } // end seekNextLineSep
+
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
 {
    static constexpr char * const newline = "\r\n";
    APESEARCH::vector<char> temp(131072);
 
    size_t chunksToRead = 0;
-   char *bufPtr =  &temp.front( );
+   char *bufPtr =  temp.begin( );
    char *bufEnd = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), bufPtr );
-   char const *endOfChunk;
-   char const * cbufEnd = getEndOfChunked( socket, bufEnd, temp.end( ) );
+   char *endOfChunk;
 
-   while( bufPtr < cbufEnd && ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
-      {         
-      ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
-      if ( ret == 0 || ret == -1 )
+   bool readingChunkSize = true;
+   do
+      {
+      if ( readingChunkSize )
          {
-         if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
+         endOfChunk = bufPtr;
+         seekNextLineSep( socket, &endOfChunk, &bufEnd, temp.begin( ), temp.end( ) );
+
+         if ( bufEnd == temp.end( ) )
+            {
             headerBad = true;
-         return;
-         } // end if
-      size_t chunksToRead = ( size_t ) ret;
-      assert( ( endOfChunk[ 0 ] == '\r' ) );
-      assert( ( endOfChunk[ 1 ] == '\n' ) );
-      // skip past \r\n
-      bufPtr = ( char * ) endOfChunk + 2;
+            return;
+            } // end if
 
-      // Now push up to chunksToRead
-      size_t bytesInputted = 0;
-      endOfChunk = bufPtr + chunksToRead;
-      while( bufPtr != endOfChunk )
-         {
-         bodyBuff.push_back( *bufPtr++ );
-         ++bytesInputted;
-         } // end while
-      assert( bytesInputted == chunksToRead );
-      // Skip \r\n
-      if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
-         {
-         headerBad = true;
-         return;
+         // Obtain the chunk size
+         ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
+         if ( ret == 0 || ret == -1 )
+            {
+            // If ret == 0, we've reached the end. Now checking for \r\n\r\n
+            if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
+               headerBad = true;
+            return;
+            } // end if
+
+         chunksToRead = ( size_t ) ret;
+         assert( ( endOfChunk[ 0 ] == '\r' ) );
+         assert( ( endOfChunk[ 1 ] == '\n' ) );
+         readingChunkSize = false;
          } // end if
-      } // end while
+      else
+         {
+         size_t bytesInputted = 0;
+         endOfChunk = bufPtr + chunksToRead;
+         while( bufPtr != endOfChunk )
+            {
+            if ( bufPtr == bufEnd )
+               {
+               unsigned bytesRevd = socket->receive( bufPtr, temp.end( )  - bufEnd );
+               bufEnd += bytesRevd;
+               } // end if
+            bodyBuff.push_back( *bufPtr++ );
+            ++bytesInputted;
+            } // end while
+         assert( bytesInputted == chunksToRead );
+
+         if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
+            {
+            headerBad = true;
+            return;
+            } // end if
+         } // end else
+      } while( true );
+
+   //while( bufPtr < cbufEnd && ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
+      //{         
+      //ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
+      //if ( ret == 0 || ret == -1 )
+         //{
+         //if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
+            //headerBad = true;
+         //return;
+         //} // end if
+      //size_t chunksToRead = ( size_t ) ret;
+      //assert( ( endOfChunk[ 0 ] == '\r' ) );
+      //assert( ( endOfChunk[ 1 ] == '\n' ) );
+      //// skip past \r\n
+      //bufPtr = ( char * ) endOfChunk + 2;
+
+      //// Now push up to chunksToRead
+      //size_t bytesInputted = 0;
+      //endOfChunk = bufPtr + chunksToRead;
+      //while( bufPtr != endOfChunk )
+         //{
+         //bodyBuff.push_back( *bufPtr++ );
+         //++bytesInputted;
+         //} // end while
+      //assert( bytesInputted == chunksToRead );
+      //// Skip \r\n
+      //if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
+         //{
+         //headerBad = true;
+         //return;
+         //} // end if
+      //} // end while
 }
 
 static void DecompressResponse( APESEARCH::vector < char >& data_ );
@@ -444,7 +508,9 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    {
    
    if ( chunked )
-      chunkedHtml( socket, partOfBody );
+   {
+      //chunkedHtml( socket, partOfBody );
+   }
    else
       receiveNormally( socket, partOfBody );
       
@@ -506,3 +572,6 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
 
     APESEARCH::swap( decompressed, data_ );
     }
+
+
+    

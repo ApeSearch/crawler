@@ -15,6 +15,8 @@
 #include "../../libraries/AS/include/AS/unique_ptr.h"
 #include "../../libraries/AS/include/AS/Socket.h"
 #include "../../libraries/AS/include/AS/vector.h"
+#include "../../libraries/AS/include/AS/string.h"
+
 #include <math.h>       /* pow */
 enum class getReqStatus
 {
@@ -29,7 +31,7 @@ enum class getReqStatus
 // Tells the crawler status of request
 struct Result
 {
-   std::string url; // For redirects...
+   APESEARCH::string url; // For redirects...
    getReqStatus status; 
    unsigned response;
    Result() = default;
@@ -65,7 +67,6 @@ class Request
             } // end switch
          }  // end operator()()
    };
-
    static constexpr size_t maxBodyBytes = 33554432; //2**25
    APESEARCH::vector< char > headerBuff;
    APESEARCH::vector< char > bodyBuff;

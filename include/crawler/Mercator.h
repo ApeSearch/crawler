@@ -10,6 +10,7 @@
 #include "../../libraries/AS/include/AS/condition_variable.h"
 #include "../../libraries/AS/include/AS/as_semaphore.h"
 #include "../../Parser/HtmlParser.h"
+#include "../../libraries/bloomFilter/include/bloomFilter/BloomFilter.h"
 #include "Request.h"
 #include "Frontier.h"
 #include "Node.h"
@@ -42,10 +43,11 @@ namespace APESEARCH
       UrlFrontier frontier;
       Database db;
       Node node;
+      Bloomfilter bloomfilter;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
-      void crawlWebsite( Request& requester, APESEARCH::string& buffer, unsigned& );
+      void crawlWebsite( Request& requester, APESEARCH::string& buffer );
       void crawler();
       void parser( const APESEARCH::vector< char >& buffer, const APESEARCH::string &url );
       //TODO fix
@@ -59,7 +61,7 @@ namespace APESEARCH
       Mercator( APESEARCH::vector<APESEARCH::string>& ips, int id, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters, APESEARCH::vector<Link>& seed_links ) : 
          // Size of buffer, amount of threads, max submits
          pool( CircBuf( ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ) 
-         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), node( ips, id, frontier, db  ), liveliness( true )
+         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), bloomfilter(), node( ips, id, frontier, db, bloomfilter ), liveliness( true )
          {
          for (size_t i = 0; i < seed_links.size(); i++)
          {
