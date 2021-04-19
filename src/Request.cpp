@@ -374,8 +374,9 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
       if(bodyBuff.size() > maxBodyBytes)
       {
          headerBad = true;
+         return;
       }
-      if((3*bodyBuff.size())/4 > total_read)
+      if((3*bodyBuff.size())/4 < total_read)
          bodyBuff.resize(bodyBuff.size()*2);
 
       int recvd = socket->receive( bodyBuff.begin() + total_read, bodyBuff.size() - total_read );
@@ -388,14 +389,15 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
    }  
    
    int start = 0;
-   while(true)
+   while(start < total_read)
    {
+      
       for(int i = start; i < total_read; ++i)
       {
          //we hit the end
          if( bodyBuff[i] == '\r')
          { 
-            ssize_t hex = hexaToDecimal(bodyBuff.begin() + start, bodyBuff.begin() + i) + 3;
+            ssize_t hex = hexaToDecimal(bodyBuff.begin() + start, bodyBuff.begin() + i) + 4;
             //newline them out for parser to handle
             for(int j = start; j < i; ++j)
             {
@@ -416,7 +418,7 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    
    if ( chunked )
    {
-      //chunkedHtml( socket, partOfBody );
+      chunkedHtml( socket, partOfBody );
    }
    else
       receiveNormally( socket, partOfBody );
