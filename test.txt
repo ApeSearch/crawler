@@ -1,4 +1,251 @@
-> GET / HTTP/2
-> Host: www.reddit.com
-> User-Agent: curl/7.64.1
-> Accept: */*
+Crawled website successfully: https://stackoverflow.com
+Crawled website successfully: https://www.homedepot.com
+Crawled website successfully: https://chicago.craigslist.org
+Crawled website successfully: https://en.wikipedia.org/wiki/Daylight_saving_time
+Crawled website successfully: https://en.wikipedia.org/wiki/Binomial_nomenclature
+Crawled website successfully: https://en.wikipedia.org/wiki/France
+Crawled website successfully: https://en.wikipedia.org/wiki/La_Marseillaise
+Crawled website successfully: https://en.wikipedia.org/wiki/Jean_Castex
+Crawled website successfully: https://en.wikipedia.org/wiki/Senate_(France)
+Crawled website successfully: https://en.wikipedia.org/wiki/File:Great_Seal_of_France.svg
+Crawled website successfully: https://en.wikipedia.org/wiki/European_Economic_Community
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://www.timeanddate.com/time/zone/france/paris
+Crawled website successfully: https://chat.stackoverflow.com/?tab=site&amp;host=stackoverflow.com
+Crawled website successfully: https://en.wikipedia.org/wiki/File:France_in_the_World_(%2BAntarctica_claims).svg
+Crawled website successfully: https://stackoverflow.com/company
+Crawled website successfully: https://stackexchange.com/sites
+Crawled website successfully: https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population
+Crawled website successfully: https://en.wikipedia.org/wiki/Demonym
+Crawled website successfully: https://stackoverflow.com/users/signup?ssrc=site_switcher&amp;returnurl=%2fusers%2fstory%2fcurrent
+Crawled website successfully: https://en.wikipedia.org/wiki/Gini_coefficient
+Crawled website successfully: https://en.wikipedia.org/wiki/Central_European_Time
+Crawled website successfully: https://en.wikipedia.org/wiki/Central_European_Summer_Time
+Crawled website successfully: https://stackoverflow.com/tags
+Crawled website successfully: https://en.wikipedia.org/wiki/Telephone_numbers_in_France
+Crawled website successfully: https://en.wikipedia.org/wiki/ISO_3166-2:FR
+Could not connect to Node: 1
+Trying to connect to Node: 1
+Issue with connect:: Connection refused
+Errno: 111
+Crawled website successfully: https://stackoverflow.com/users/signup
+Crawled website successfully: https://en.wikipedia.org/wiki/Belgium
+Crawled website successfully: https://en.wikipedia.org/wiki/Germany
+Crawled website successfully: https://stackoverflow.com/teams/tour
+Crawled website successfully: https://en.wikipedia.org/wiki/Switzerland
+Crawled website successfully: https://www.homedepot.com#departments
+Crawled website successfully: https://gamedev.stackexchange.com
+Crawled website successfully: https://dba.stackexchange.com
+Crawled website successfully: https://salesforce.stackexchange.com
+Crawled website successfully: https://serverfault.com/
+Crawled website successfully: https://en.wikipedia.org/wiki/Monaco
+Crawled website successfully: https://en.wikipedia.org/wiki/Andorra
+Crawled website successfully: https://en.wikipedia.org/wiki/Roman_Gaul
+Crawled website successfully: https://en.wikipedia.org/wiki/Spain
+Crawled website successfully: https://stackoverflow.com/jobs/salary
+Crawled website successfully: https://en.wikipedia.org/wiki/Philip_II_of_France
+Crawled website successfully: https://en.wikipedia.org/wiki/House_of_Valois
+Crawled website successfully: https://en.wikipedia.org/wiki/Holy_Roman_Empire
+Crawled website successfully: https://en.wikipedia.org/wiki/French_colonial_empire
+Crawled website successfully: https://stackoverflow.com/company/press
+Crawled website successfully: https://en.wikipedia.org/wiki/Protestants
+Crawled website successfully: https://askubuntu.com
+Crawled website successfully: https://en.wikipedia.org/wiki/American_Revolutionary_War
+Crawled website successfully: https://tex.stackexchange.com
+Crawled website successfully: https://gis.stackexchange.com
+Crawled website successfully: https://www.homedepot.com/c/Cordless_Outdoor_Power_Equipment
+Crawled website successfully: https://en.wikipedia.org/wiki/World_War_I
+Crawled website successfully: https://en.wikipedia.org/wiki/Allies_of_World_War_II
+Crawled website successfully: https://en.wikipedia.org/wiki/List_of_French_scientists
+Crawled website successfully: https://en.wikipedia.org/wiki/Charles_de_Gaulle
+Crawled website successfully: https://en.wikipedia.org/wiki/Tourism_in_France
+Crawled website successfully: https://en.wikipedia.org/wiki/Developed_country
+Crawled website successfully: https://en.wikipedia.org/wiki/Education_Index
+Crawled website successfully: https://en.wikipedia.org/wiki/Eurozone
+Crawled website successfully: https://raspberrypi.stackexchange.com
+Crawled website successfully: https://magento.stackexchange.com
+Crawled website successfully: https://es.stackoverflow.com
+Crawled website successfully: https://pt.stackoverflow.com
+Crawled website successfully: https://sharepoint.stackexchange.com
+Crawled website successfully: https://en.wikipedia.org/wiki/Group_of_Seven
+Crawled website successfully: https://en.wikipedia.org/wiki/OECD
+Crawled website successfully: https://en.wikipedia.org/wiki/Organisation_internationale_de_la_Francophonie
+Crawled website successfully: https://en.wikipedia.org/wiki/Name_of_the_Franks
+Could not connect to Node: 1
+Trying to connect to Node: 1
+Issue with connect:: Connection refused
+Errno: 111
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://corporate.homedepot.com/foundation
+Crawled website successfully: https://russian.stackexchange.com
+Crawled website successfully: https://japanese.stackexchange.com
+Crawled website successfully: https://windowsphone.stackexchange.com
+Crawled website successfully: https://judaism.stackexchange.com
+Crawled website successfully: https://www.homedepot.com/b/Appliances/N-5yc1vZbv1w
+Crawled website successfully: https://corporate.homedepot.com
+Crawled website successfully: https://puzzling.stackexchange.com
+Crawled website successfully: https://www.homedepot.com/b/Bath/N-5yc1vZbzb3
+Crawled website successfully: https://www.homedepot.com/b/Window-Treatments/N-5yc1vZar4w
+Crawled website successfully: https://www.homedepot.com/b/Building-Materials/N-5yc1vZaqns
+Crawled website successfully: https://boardgames.stackexchange.com
+Crawled website successfully: https://sports.stackexchange.com
+Crawled website successfully: https://homebrew.stackexchange.com
+Crawled website successfully: https://cstheory.stackexchange.com
+Crawled website successfully: https://www.homedepot.com/b/Doors-Windows/N-5yc1vZaqih
+Crawled website successfully: https://en.wikipedia.org/wiki/Lascaux
+Crawled website successfully: https://poker.stackexchange.com
+Crawled website successfully: https://philosophy.stackexchange.com
+Crawled website successfully: https://physics.stackexchange.com
+Crawled website successfully: https://en.wikipedia.org/wiki/Human
+Crawled website successfully: https://en.wikipedia.org/wiki/Hunter-gatherer
+Crawled website successfully: https://www.blinds.com/
+Crawled website successfully: https://www.homedepot.com/b/Heating-Venting-Cooling/N-5yc1vZc4k8
+Crawled website successfully: https://en.wikipedia.org/wiki/Upper_Paleolithic
+Crawled website successfully: https://en.wikipedia.org/wiki/Neolithic
+Crawled website successfully: https://en.wikipedia.org/wiki/Celts
+Crawled website successfully: https://www.homedepot.com/b/Kitchen/N-5yc1vZar4i
+Crawled website successfully: https://en.wikipedia.org/wiki/Pyrenees
+Crawled website successfully: https://en.wikipedia.org/wiki/File:Maison_Carr%C3%A9e_2.jpg
+Crawled website successfully: https://twitter.com/stackoverflow
+Crawled website successfully: https://en.wikipedia.org/wiki/N%C3%AEmes
+Crawled website successfully: https://en.wikipedia.org/wiki/Roman_Italy
+Crawled website successfully: https://play.google.com/store/apps/details?id=org.craigslist.CraigslistMobile
+Crawled website successfully: https://chicago.craigslist.org/chc/
+Crawled website successfully: https://en.wikipedia.org/wiki/Slavery_in_ancient_Rome
+Could not connect to Node: 1
+Trying to connect to Node: 1
+Issue with connect:: Connection refused
+Errno: 111
+Crawled website successfully: https://en.wikipedia.org/wiki/Romance_languages
+Crawled website successfully: https://www.craigslist.org/about/sites
+Crawled website successfully: https://en.wikipedia.org/wiki/Ancient_Celtic_religion
+Crawled website successfully: https://en.wikipedia.org/wiki/List_of_French_monarchs
+Crawled website successfully: https://chicago.craigslist.org/nwc/
+Crawled website successfully: https://www.craigslist.org/about/help/
+Crawled website successfully: https://www.homedepot.com/b/The-Company-Store/N-5yc1vZms7
+Crawled website successfully: https://en.wikipedia.org/wiki/Brittany
+Crawled website successfully: https://en.wikipedia.org/wiki/Franco-Visigothic_Wars
+Crawled website successfully: https://www.craigslist.org/about/privacy.policy
+Crawled website successfully: https://en.wikipedia.org/wiki/Elective_monarchy
+Crawled website successfully: https://en.wikipedia.org/wiki/Secular_state
+Crawled website successfully: https://www.craigslist.org/about/
+Crawled website successfully: https://en.wikipedia.org/wiki/Hereditary_monarchy
+Crawled website successfully: https://en.wikipedia.org/wiki/Divine_right_of_kings
+Crawled website successfully: http://blog.craigslist.org/
+Crawled website successfully: http://www.craigslistjoe.com/
+Crawled website successfully: https://en.wikipedia.org/wiki/Orl%C3%A9ans
+Crawled website successfully: https://www.craigslist.org/about/open_source
+Crawled website successfully: https://en.wikipedia.org/wiki/Soissons
+Crawled website successfully: https://en.wikipedia.org/wiki/Power_behind_the_throne
+Crawled website successfully: https://en.wikipedia.org/wiki/Mayor_of_the_Palace
+Crawled website successfully: https://chicago.craigslist.org/d/artists/search/ats
+Crawled website successfully: https://en.wikipedia.org/wiki/Holy_Roman_Emperor
+Crawled website successfully: https://en.wikipedia.org/wiki/Pope_Leo_III
+Crawled website successfully: https://en.wikipedia.org/wiki/History_of_Roman_Catholicism_in_France
+Crawled website successfully: https://www.homedepot.com/b/Vigoro/N-5yc1vZ1kt
+Crawled website successfully: https://en.wikipedia.org/wiki/Louis_the_German
+Crawled website successfully: https://en.wikipedia.org/wiki/Valois_dynasty
+Crawled website successfully: https://en.wikipedia.org/wiki/File:Joan_of_Arc_miniature_graded.jpg
+Crawled website successfully: https://en.wikipedia.org/wiki/Estates_of_the_realm
+Crawled website successfully: https://en.wikipedia.org/wiki/Albigensian_Crusade
+Crawled website successfully: https://en.wikipedia.org/wiki/Edward_III_of_England
+Crawled website successfully: https://en.wikipedia.org/wiki/List_of_English_monarchs
+Crawled website successfully: https://chicago.craigslist.org/d/lost-found/search/laf
+Crawled website successfully: https://en.wikipedia.org/wiki/Jacques_Cartier
+Crawled website successfully: https://en.wikipedia.org/wiki/Huguenot
+Crawled website successfully: https://en.wikipedia.org/wiki/Edict_of_Nantes
+Crawled website successfully: https://en.wikipedia.org/wiki/Franco-Spanish_War_(1635%E2%80%931659)
+Could not connect to Node: 1
+Trying to connect to Node: 1
+Issue with connect:: Connection refused
+Errno: 111
+Crawled website successfully: https://en.wikipedia.org/wiki/Cardinal_Richelieu
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://en.wikipedia.org/wiki/Cardinal_Mazarin
+Crawled website successfully: https://de.wikipedia.org/wiki/Sommerzeit
+Error inside Address Constructor occured: Success
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://en.wikipedia.org/wiki/File:Louis_XIV_of_France.jpg
+Crawled website successfully: https://en.wikipedia.org/wiki/Edict_of_Fontainebleau
+Crawled website successfully: https://en.wikipedia.org/wiki/Louis_XV
+Crawled website successfully: https://en.wikipedia.org/wiki/France_in_the_American_Revolutionary_War
+Crawled website successfully: https://en.wikipedia.org/wiki/European_and_American_voyages_of_scientific_exploration
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://en.wikipedia.org/wiki/Rationalism
+Crawled website successfully: https://en.wikipedia.org/wiki/Legitimacy_(political)
+Crawled website successfully: https://en.wikipedia.org/wiki/Authority
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://en.wikipedia.org/wiki/National_Assembly_(French_Revolution)
+Issue with connect:: Connection timed out
+Errno: 110
+Issue with connect:: Connection timed out
+Could not connect to Node: Errno: 110
+3
+Trying to connect to Node: 3
+Could not connect to Node: 2
+Trying to connect to Node: 2
+Crawled website successfully: https://en.wikipedia.org/wiki/National_Constituent_Assembly_(France)
+Error inside Address Constructor occured: Success
+Crawled website successfully: https://en.wikipedia.org/wiki/August_Decrees
+Crawled website successfully: https://en.wikipedia.org/wiki/Flight_to_Varennes
+Crawled website successfully: https://en.wikipedia.org/wiki/Abolition_of_monarchy
+Crawled website successfully: https://en.wikipedia.org/wiki/Declaration_of_Pillnitz
+Crawled website successfully: https://chicago.craigslist.org/d/politics/search/pol
+Crawled website successfully: https://en.wikipedia.org/wiki/French_Constitution_of_1791
+Crawled website successfully: https://chicago.craigslist.org/d/rants-raves/search/rnr
+Crawled website successfully: https://en.wikipedia.org/wiki/Legislative_Assembly_(France)
+Crawled website successfully: https://en.wikipedia.org/wiki/The_Mountain
+Crawled website successfully: https://chicago.craigslist.org/d/services/search/bbb
+Crawled website successfully: https://en.wikipedia.org/wiki/Insurrection_of_10_August_1792
+Crawled website successfully: https://chicago.craigslist.org/d/beauty-services/search/bts
+Crawled website successfully: https://en.wikipedia.org/wiki/Universal_suffrage
+Crawled website successfully: https://en.wikipedia.org/wiki/Execution_of_Louis_XVI
+Crawled website successfully: https://en.wikipedia.org/wiki/Sister_republic
+Crawled website successfully: https://chicago.craigslist.org/d/cell-phone-mobile-services/search/cms
+Crawled website successfully: https://en.wikipedia.org/wiki/War_in_the_Vend%C3%A9e
+Crawled website successfully: https://en.wikipedia.org/wiki/Conscription
+Crawled website successfully: https://chicago.craigslist.org/d/creative-services/search/crs
+Crawled website successfully: https://en.wikipedia.org/wiki/Emperor_of_the_French
+Crawled website successfully: https://en.wikipedia.org/wiki/Grande_Arm%C3%A9e
+Could not connect to Node: 1
+Trying to connect to Node: 1
+Issue with connect:: Connection refused
+Errno: 111
+Crawled website successfully: https://chicago.craigslist.org/d/cycle-services/search/cys
+Crawled website successfully: https://en.wikipedia.org/wiki/Popular_sovereignty
+Crawled website successfully: https://en.wikipedia.org/wiki/Equality_before_the_law
+Crawled website successfully: https://chicago.craigslist.org/d/household-services/search/hss
+Crawled website successfully: https://en.wikipedia.org/wiki/Coup_of_18_Brumaire
+Crawled website successfully: https://en.wikipedia.org/wiki/French_Consulate
+Crawled website successfully: https://chicago.craigslist.org/d/legal-services/search/lgs
+Crawled website successfully: https://en.wikipedia.org/wiki/Battle_of_Jena-Auerstadt
+Crawled website successfully: https://en.wikipedia.org/wiki/DST_(disambiguation)
+Crawled website successfully: https://en.wikipedia.org/wiki/1970s_energy_crisis
+Crawled website successfully: https://en.wikipedia.org/wiki/File:Clepsydra-Diagram-Fancy.jpeg
+Crawled website successfully: https://en.wikipedia.org/wiki/Public_transport
+Crawled website successfully: https://en.wikipedia.org/wiki/Solar_time
+Crawled website successfully: https://en.wikipedia.org/wiki/Napoleonic_Wars_casualties
+Crawled website successfully: https://en.wikipedia.org/wiki/Scandinavia
+Crawled website successfully: https://en.wikipedia.org/w/index.php?title=Daylight_saving_time&amp;action=edit&amp;section=2
+Crawled website successfully: https://chicago.craigslist.org/d/lessons-tutoring/search/lss
+Crawled website successfully: https://en.wikipedia.org/wiki/Journal_de_Paris
+Crawled website successfully: https://en.wikipedia.org/wiki/Cortes_of_C%C3%A1diz
+Crawled website successfully: https://en.wikipedia.org/wiki/William_Willett
+Crawled website successfully: https://en.wikipedia.org/wiki/Robert_Pearce_(British_politician)
+Crawled website successfully: https://en.wikipedia.org/wiki/Port_Arthur,_Ontario
+Crawled website successfully: https://chicago.craigslist.org/d/office-commercial/search/off
+Crawled website successfully: https://en.wikipedia.org/wiki/File:Begin_CEST.svg
+Crawled website successfully: https://en.wikipedia.org/wiki/German_language
+Crawled website successfully: https://web.archive.org/web/20120913125519/http://www.rospa.com/RoadSafety/info/summertime_paper2006v2.pdf
+Could not connect to Node: 1
+Trying to connect to Node: 1
+Issue with connect:: Connection refused
+Errno: 111
+Crawled website successfully: https://chicago.craigslist.org/d/wanted%3A-room-share/search/sha
+Crawled website successfully: https://en.wikipedia.org/wiki/File:End_CEST.svg
+Crawled website successfully: https://en.wikipedia.org/wiki/File:French_Empire_evolution.gif
+Crawled website successfully: https://chicago.craigslist.org/d/antiques/search/ata
+Crawled website successfully: http://opencrs.com/document/RS22284/
+Crawled website successfully: https://en.wikipedia.org/wiki/List_of_largest_empires
+Crawled website successfully: https://en.wikipedia.org/wiki/Events_preceding_World_War_II_in_Europe
+Crawled website successfully: https://en.wikipedia.org/wiki/Annual_leave
