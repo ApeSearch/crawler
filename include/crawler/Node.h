@@ -79,7 +79,7 @@ class Node
    int node_id;
    FNV hash;
    UrlFrontier& frontier;
-   Bloomfilter bloomFilter;
+   Bloomfilter& bloomFilter;
    APESEARCH::PThreadPool< APESEARCH::circular_buffer<APESEARCH::Func, APESEARCH::DEFAULT::defaultBuffer<APESEARCH::Func, 32u>> > pool;
    Database& dataBase; 
    
@@ -90,7 +90,7 @@ public:
     //Start listening server
     //Check if swap files exist and how much data they have in them currently
     //Must have ips in some ordering!
-    Node(APESEARCH::vector<APESEARCH::string> &ips, int node_id, UrlFrontier& _frontier, Database &db);
+    Node(APESEARCH::vector<APESEARCH::string> &ips, int node_id, UrlFrontier& _frontier, Database &db, Bloomfilter &bf);
     ~Node();
 
     //1 dedicated thread-blocking

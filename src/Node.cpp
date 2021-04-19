@@ -27,7 +27,7 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket()), wri
 
 }
 
-Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db) : frontier( fron ), bloomFilter()
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db, Bloomfilter &bf) : frontier( fron ), bloomFilter(bf)
     ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db), node_id(id)
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION

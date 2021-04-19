@@ -55,10 +55,14 @@ class ParsedUrl
 
             Host = p;
 
-            for ( ; *p && *p != Slash && *p != Colon && *p != parameter && *p != pound; p++ )
+            for ( ; *p && *p != Slash && *p != Colon && *p != parameter; p++ )
+               {
+                if ( *p == pound )
+                  *p = 0;
+               }
                ;
 
-            if ( *p == Colon || *p == parameter || *p == pound )
+            if ( *p == Colon || *p == parameter )
                {
                // Port specified.  Skip over the colon and
                // the port number.
@@ -102,7 +106,7 @@ class ParsedUrl
 
          Service = pathBuffer;
 
-         const char Colon = ':', Slash = '/';
+          const char Colon = ':', Slash = '/', pound = '#';
          char *p;
          for ( p = pathBuffer; *p && *p != Colon; p++ )
             ;
@@ -121,13 +125,18 @@ class ParsedUrl
             Host = p;
 
             for ( ; *p && *p != Slash && *p != Colon; p++ )
+               {
+               if ( *p == pound )
+                  *p = 0;
+               }
                ;
 
             if ( *p == Colon )
                {
                // Port specified.  Skip over the colon and
                // the port number.
-               *p++ = 0;
+               
+               ++p;
                Port = +p;
                for ( ; *p && *p != Slash; p++ )
                   ;

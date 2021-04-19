@@ -13,7 +13,6 @@
 #include <vector>
 #include <string.h>
 
-
 #include <iostream>
 
 #ifdef testing
@@ -313,7 +312,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             {
             auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
                {  
-               resultOfReq.url = std::string( front, end );
+               resultOfReq.url = APESEARCH::string( front, end );
                foundUrl = true;
                }; // end pred
             // Only look for Location when seen in first line
@@ -416,7 +415,9 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    {
    
    if ( chunked )
-      chunkedHtml( socket, partOfBody );
+   {
+      //chunkedHtml( socket, partOfBody );
+   }
    else
       receiveNormally( socket, partOfBody );
       
@@ -478,3 +479,6 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
 
     APESEARCH::swap( decompressed, data_ );
     }
+
+
+    
