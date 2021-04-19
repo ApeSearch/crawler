@@ -96,4 +96,47 @@ TEST( test_frontier_NoName_After )
    ASSERT_EQUAL( url, "https://www.youtube.com/watch?v=VYsrx6gZ1As" );
    }
 
+void func(UrlFrontier &frontier, APESEARCH::string &str)
+{
+    for ( unsigned n = 0; n < 5; ++n )
+      {
+      frontier.insertNewUrl( str );
+      }
+}
+
+TEST( test_Concurrent )
+   {
+   UrlFrontier frontier( 1 );
+   APESEARCH::vector<APESEARCH::string> vec = {"https://www.yahoo.com/something", "https://www.youtube.com/something", "https://www.gmail.com/something", "https://www.reddit.com/something", "https://www.blue.com/something"};
+
+   for ( size_t n = 0; n < vec.size( ); ++n )
+      {
+      std::thread t = std::thread( func, std::ref( frontier ), std::ref( vec[n] ) );
+      t.detach();
+      }
+   for ( unsigned n = 0; n < 25; ++n )
+        {
+        //coutLk.lock( );
+        //std::cout << "Getting next url:\n";
+        //coutLk.unlock( );
+        APESEARCH::string str( frontier.getNextUrl( ) );
+        //APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+        //std::cout << "Got: ";
+        //std::cout << str << std::endl;
+        ParsedUrl parsedUrl( str.cstr( ) );
+        std::string domain( parsedUrl.Host, parsedUrl.Port );
+        //std::cout << "\nInserting domain: " << domain << std::endl;
+        //std::cout << "Amount of characters: " << domain.size( ) << std::endl;
+        //std::cout << "Difference: " << parsedUrl.Port - parsedUrl.Host << std::endl;
+        //lk.unlock( );
+        frontier.initiateInsertToDomain( 
+            std::chrono::time_point_cast<std::chrono::seconds>
+                ( std::chrono::system_clock::now() ), std::move( domain ) );
+        } // end for
+
+    std::cout << "Finish checking..." << std::endl;;
+    exit( 0 );
+    sleep(300u);
+   }
+
 TEST_MAIN()
