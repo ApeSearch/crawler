@@ -38,8 +38,7 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-release: ${CC}=${CXX}
-	
+release: ${CC}=${CXX} crawler
 
 all: test
 
@@ -65,7 +64,7 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 
 test: ${TEST_SRC} 
 
-crawler: %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
+crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
 	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
 
 update:

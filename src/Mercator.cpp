@@ -69,7 +69,8 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
                Link link;
                link.URL = std::move( result.url );
                //TODO put on writer threadpool
-               node.write( link );
+               auto func = [this, link{std::move( link ) } ]( ) { node.write( link ); };
+               pool.submitNoFuture( func );
                } // end if
             }
             break;

@@ -200,7 +200,9 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             if ( !domain.empty() )
                {
                itr = domainsMap.find( domain );
-               assert( itr != domainsMap.end() && indToInsert == index );
+               assert( itr != domainsMap.end() );
+               assert( indToInsert == index );
+
                domainsMap.erase( itr );
                } // end if
             // Insert a new entry to map
@@ -240,14 +242,16 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
    // Notify any waiting threads...
    domainQueues[ index ].queueCV.notify_one();
 
+   /*
    // Bandage solution... ( If doesn't hear back, just place into domain anyways )
    if ( !domainQueues[ index ].timeStampInDomain )
       {
+      std::string currDomain( domainQueues[ index ].domain );
       // Do a timed wait for thirty seconds
-      domainQueues[ index ].queueCV.wait_for( qLk,  std::chrono::seconds( 10 ), [this, index ]( )
+      domainQueues[ index ].queueCV.wait_for( qLk,  std::chrono::seconds( 5 ), [this, index ]( )
          { return domainQueues[ index ].timeStampInDomain; } );
       // If we don't hear back, just place a newTime 
-      if ( !domainQueues[ index ].timeStampInDomain && !queue.empty() )
+      if ( currDomain == domainQueues[ index ].domain && !domainQueues[ index ].timeStampInDomain && !queue.empty() )
          {
          APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
          backendHeap.emplace( std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() ), index );
@@ -256,7 +260,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          uniqPQLk.unlock();
          } // end if
       } // end if
-
+   */
    } // end fillUpEmptyBackQueue()
 
 // queue lock -> priority queue lock
@@ -341,7 +345,11 @@ APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolic
 } // ~uniqPQLk()
    assert( index < domainQueues.size() );
    APESEARCH::unique_lock<APESEARCH::mutex> backEndLk( domainQueues[ index ].queueWLk.queueLk );
-   assert( domainQueues[ index ].timeStampInDomain );
+   if ( !domainQueues[ index ].timeStampInDomain )
+      {
+      int here;
+      }
+   //assert( domainQueues[ index ].timeStampInDomain );
 
    // Modify all of back queue's state
    APESEARCH::string url( std::move( domainQueues[ index ].queueWLk.pQueue.front() )  );
