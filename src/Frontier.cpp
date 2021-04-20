@@ -244,10 +244,10 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
    if ( !domainQueues[ index ].timeStampInDomain )
       {
       // Do a timed wait for thirty seconds
-      domainQueues[ index ].queueCV.wait_for( qLk,  std::chrono::seconds( 30 ), [this, index ]( )
+      domainQueues[ index ].queueCV.wait_for( qLk,  std::chrono::seconds( 10 ), [this, index ]( )
          { return domainQueues[ index ].timeStampInDomain; } );
       // If we don't hear back, just place a newTime 
-      if ( !domainQueues[ index ].timeStampInDomain )
+      if ( !domainQueues[ index ].timeStampInDomain && !queue.empty() )
          {
          APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
          backendHeap.emplace( std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() ), index );
