@@ -40,17 +40,17 @@ APESEARCH::Mercator::~Mercator()
 void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& buffer )
    {
 
-   std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+   //std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
    Result result = requester.getReqAndParse( buffer.cstr() );
    // At the end of this task, the buffer will be reinserted back into urlBuffers...
-   std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+   //std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
 
-   std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
+   //std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
    ParsedUrl parsedUrl( buffer.cstr() );
    // This should be the case
+   if( !*parsedUrl.Host )
+      return;
    assert( *parsedUrl.Host ); 
-   frontier.pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
-   { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );   
 
    switch( result.status )
          {
@@ -83,14 +83,16 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
 void APESEARCH::Mercator::crawler()
    {
     Request requester;
-    string url;
+    UrlObj next;
 
-    while( liveliness.load() )
+    while( true )
        {
-        url = frontier.getNextUrl( ); // Writes directly to buffer
-        assert(!url.empty());
+        next = set.dequeue( ); // Writes directly to buffer
+        if(next.url.empty())
+            continue;
+        assert(!next.url.empty());
         //std::cerr << "ACTUALLY GOT A URL\n";
-        crawlWebsite( requester, url );
+        crawlWebsite( requester, next.url );
        } // end while
    } // end urlExtractor()
 
@@ -101,7 +103,7 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    // Handle results by writing to file...
    //TODO put this on own thread
    writeToFile( parser );
-   std::cerr << "Crawled website successfully: " << url << '\n';
+   //std::cerr << "Crawled website successfully: " << url << '\n';
    APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForPages);
    size_t *num = ( size_t * ) pagesCrawled.get();
    ++(*num);

@@ -12,7 +12,7 @@
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/bloomFilter/include/bloomFilter/BloomFilter.h"
 #include "Request.h"
-#include "Frontier.h"
+#include "SetOfUrls.h"
 #include "Node.h"
 #include "DynamicBuffer.h"
 #include <atomic>
@@ -40,7 +40,7 @@ namespace APESEARCH
     class Mercator
        {
       PThreadPool<CircBuf> pool; // The main threads that serve tasks
-      UrlFrontier frontier;
+      SetOfUrls set;
       Database db;
       Node node;
       Bloomfilter bloomfilter;
@@ -63,14 +63,14 @@ namespace APESEARCH
       Mercator( APESEARCH::vector<APESEARCH::string>& ips, int id, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters, APESEARCH::vector<Link>& seed_links ) : 
          // Size of buffer, amount of threads, max submits
          pool( CircBuf( ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ) 
-         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), bloomfilter(), node( ips, id, frontier, db, bloomfilter ), liveliness( true )
+         ,set( frontDir ), db( dbDir ), bloomfilter(), node( ips, id, set, db, bloomfilter ), liveliness( true )
          {
          for (size_t i = 0; i < seed_links.size(); i++)
          {
             node.write(seed_links[i]);
          }
          
-         APESEARCH::File file( "/home/ubuntu/crawler/pagesCrawledDONTTOUCH.txt", O_RDWR | O_CREAT, (mode_t) 0600 );
+         APESEARCH::File file( "./pagesCrawledDONTTOUCH.txt", O_RDWR | O_CREAT, (mode_t) 0600 );
          std::cout << "Opened: /VirtualFileSystem/Root/pagesCrawledDONTTOUCH.txt" << std::endl;
 
          int fileSize = lseek(  file.getFD( ), 0, SEEK_END );

@@ -25,6 +25,7 @@ int main( int argc, char **argv )
         {
         Link link;
         link.URL = APESEARCH::string(url.begin(), url.end());
+	std::cerr << "read";
         seed_links.push_back( link );
         } // end while
 
@@ -39,7 +40,7 @@ int main( int argc, char **argv )
     
     
     // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 1000, 1000, 0, seed_links);
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 512, 256, 0, seed_links);
     
     merc.user_handler( );
     return 0;
