@@ -97,6 +97,10 @@ Result Request::getReqAndParse(const char *urlStr)
             res.status = getReqStatus::badHtml;
             return res;
             } // end if
+         else if ( res.status == getReqStatus::redirected )
+            {
+            return res;
+            }
 
          getBody( socket, headerPtrs );
          if ( headerBad )
