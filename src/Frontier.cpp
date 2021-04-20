@@ -14,7 +14,7 @@
 // .gov
 // .edu
 // Any other domain
-#define SECSTOWAIT 0
+#define SECSTOWAIT 10
 
 // Returns a timepoint about 10 seconds into the future...
 std::chrono::time_point<std::chrono::system_clock> newTime( )

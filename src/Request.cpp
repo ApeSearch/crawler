@@ -331,6 +331,8 @@ Result Request::parseHeader( char const * const endOfHeader )
 
 void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
+   if(contentLengthBytes == 0 )
+      return;
    bodyBuff.resize( contentLengthBytes );
    char *bufPtr = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), &bodyBuff.front( ) );
    char *bufEnd = &bodyBuff.front( ) + contentLengthBytes;
