@@ -31,7 +31,7 @@ class SetOfUrls
 public:
 #endif
     static constexpr const char *frontierLoc = "/VirtualFileSystem/Root/Frontier";
-    static constexpr size_t maxUrls = 32768;
+    static constexpr size_t maxUrls = 65536;
     unique_mmap frontOfQueue;
     // A specific dirEntry ( what is returned when reading dirent )
     //APESEARCH::vector<char> cwd;

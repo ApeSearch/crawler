@@ -214,10 +214,10 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             // Reinsert a fresh new timestamp
             APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
             backendHeap.emplace( newTime(), index );
+            domainQueues[ index ].timeStampInDomain = true;
             semaHeap.up();
             uniqPQLk.unlock();
             domainQueues[ index ].domain = std::move( extractedDomain ); // okay to steal now
-            domainQueues[ index ].timeStampInDomain = true;
             } // end else
 
          // If it's full, need to return back to frontier
@@ -251,9 +251,9 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          {
          APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
          backendHeap.emplace( std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() ), index );
+         domainQueues[ index ].timeStampInDomain = true;
          semaHeap.up();
          uniqPQLk.unlock();
-         domainQueues[ index ].timeStampInDomain = true;
          } // end if
       } // end if
 

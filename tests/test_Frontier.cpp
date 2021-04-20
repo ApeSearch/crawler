@@ -11,6 +11,7 @@
 #include <ftw.h> // for nftw()
 #include <stdio.h> // for perror
 #include <thread>
+#include "../libraries/AS/include/AS/mutex.h"
 
 static int unlink_cb( const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf )
    {
@@ -104,6 +105,8 @@ void func(UrlFrontier &frontier, APESEARCH::string &str)
       }
 }
 
+APESEARCH::mutex coutLk;
+
 TEST( test_Concurrent )
    {
    UrlFrontier frontier( 1 );
@@ -119,19 +122,19 @@ TEST( test_Concurrent )
       } // end for
    for ( unsigned n = 0; n < vec.size( ) * 200 * 500; ++n )
         {
-        //coutLk.lock( );
-        //std::cout << "Getting next url:\n";
-        //coutLk.unlock( );
+        coutLk.lock( );
+        std::cout << "Getting next url:\n";
+        coutLk.unlock( );
         APESEARCH::string str( frontier.getNextUrl( ) );
-        //APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
-        //std::cout << "Got: ";
-        //std::cout << str << std::endl;
+        APESEARCH::unique_lock<APESEARCH::mutex> lk( coutLk );
+        std::cout << "Got: ";
+        std::cout << str << std::endl;
         ParsedUrl parsedUrl( str.cstr( ) );
         std::string domain( parsedUrl.Host, parsedUrl.Port );
-        //std::cout << "\nInserting domain: " << domain << std::endl;
-        //std::cout << "Amount of characters: " << domain.size( ) << std::endl;
-        //std::cout << "Difference: " << parsedUrl.Port - parsedUrl.Host << std::endl;
-        //lk.unlock( );
+        std::cout << "\nInserting domain: " << domain << std::endl;
+        std::cout << "Amount of characters: " << domain.size( ) << std::endl;
+        std::cout << "Difference: " << parsedUrl.Port - parsedUrl.Host << std::endl;
+        lk.unlock( );
         frontier.initiateInsertToDomain( 
             std::chrono::time_point_cast<std::chrono::seconds>
                 ( std::chrono::system_clock::now() ), std::move( domain ) );
