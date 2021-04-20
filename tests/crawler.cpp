@@ -31,7 +31,7 @@ int main( int argc, char **argv )
 
     //Christians,Alexs,Pauls_first, Pauls_second
     
-    APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","34.201.187.203","23.21.84.212","34.233.155.58"};
+    APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","199.223.236.235","23.21.84.212","34.233.155.58"};
     if(ips.size() != 4)
         {
         std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
@@ -40,7 +40,7 @@ int main( int argc, char **argv )
     
     
     // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 512, 256, 0, seed_links);
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 4, 2, 0, seed_links);
     
     merc.user_handler( );
     return 0;

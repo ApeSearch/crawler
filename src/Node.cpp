@@ -142,6 +142,7 @@ void Node::connectionHandler()
                     found_ip = true;
                     node_buckets[i].cv.notify_all();
                     node_buckets[i].socket_lock.unlock();
+                    std::cerr << "Connected to node: " << i << "\n";
                     break;
                     }
             }
@@ -210,7 +211,7 @@ void Node::sender(int index)
                 std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
                 exit(1);
             }
-            //std::cerr << "SENT BUFFER\n";
+            std::cerr << "SENT BUFFER\n";
             //Reseting semaphore to 0
             std::size_t count = node_buckets[index].writer_semaphore.getCount( );
             node_buckets[index].writer_semaphore.down( count );
@@ -334,7 +335,6 @@ void Node::receiver(int index)
 
         for ( ;buffPtr != buffEnd; ++buffPtr )
         {
-        //std::cerr << "RECEIVED BUFFER\n";
         switch( *buffPtr )
             {
             // Signifies end of url
@@ -356,7 +356,8 @@ void Node::receiver(int index)
                     //TODO change to .clear( );
                     intermediateBuf = APESEARCH::vector< char >( );
                     } // end if
-
+                
+                std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
                 // Check bloomfilter
                 if ( !bloomFilter.contains( linkOf.URL ) )
                     {
@@ -364,7 +365,6 @@ void Node::receiver(int index)
                     //frontier.insertNewUrl( std::move( linkOf.URL ) );
                     set.enqueue(std::move( linkOf.URL ));
                     }
-
                 // Add to DB
                 dataBase.addAnchorFile(linkOf);
 
