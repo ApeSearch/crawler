@@ -164,6 +164,10 @@ void APESEARCH::Mercator::user_handler()
 
 void APESEARCH::Mercator::intel()
    {
+   APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForPages);
+   size_t num = *( ( size_t * ) pagesCrawled.get() );
+
+   std::cout << "Pages Crawled: " << num << std::endl;
    return;
    }
 

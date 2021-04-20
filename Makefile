@@ -38,6 +38,9 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
+release: ${CC}=${CXX}
+	
+
 all: test
 
 LinuxGetUrl: ${OBJS}
