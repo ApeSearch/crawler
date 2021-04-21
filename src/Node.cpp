@@ -170,34 +170,55 @@ void Node::sender(int index)
     
     while(true)
     {
-        sleep( 1u );
-
+        sleep(5u);
 
         node_buckets[index].writer_semaphore.down();
         //std::cerr << "Sender activated to send to Node: " << index << '\n';
-        node_buckets[index].high_prio_lock();
-        ssize_t file_size = node_buckets[index].storage_file.fileSize();
-        
+        APESEARCH::vector<char> local;
+        {
+            node_buckets[index].high_prio_lock();
+            ssize_t file_size = node_buckets[index].storage_file.fileSize();
+            local.resize(file_size);
 
-        unique_mmap mappedFile;
-        try
-        {
-            mappedFile = unique_mmap( file_size, PROT_READ, MAP_SHARED, node_buckets[index].storage_file.getFD(), 0 );
-        }
-        catch( unique_mmap::failure& error )
-        {
-            node_buckets[index].high_prio_unlock();
-            std::cerr << "VERY BAD ERROR ALERT NIKOLA unique_mmap failed on file: " << index << '\n';
-            std::cerr << error.what( ) << std::endl;
-            exit(1);
-        }
-        //Send call 
-        if( 0 > ::send(fd, mappedFile.get(), file_size, 0))
-        {
-            //Allow writer retries
+            unique_mmap mappedFile;
+            try
+            {
+                mappedFile = unique_mmap( file_size, PROT_READ, MAP_SHARED, node_buckets[index].storage_file.getFD(), 0 );
+            }
+            catch( unique_mmap::failure& error )
+            {
+                node_buckets[index].high_prio_unlock();
+                std::cerr << "VERY BAD ERROR ALERT NIKOLA unique_mmap failed on file: " << index << '\n';
+                std::cerr << error.what( ) << std::endl;
+                exit(1);
+            }
+            //Copy locally
+            char *sfile =  reinterpret_cast <char *>(mappedFile.get());
             
+            for(ssize_t i = 0; i < file_size; ++i)
+            {
+                local[i] = sfile[i];
+            }
+            //Truncate it 
+            if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
+            {
+                std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
+                exit(1);
+            }
+            //Unlock
+            node_buckets[index].high_prio_unlock();
+        }
+
+        //Send call 
+        if( 0 > ::send(fd, local.begin(), local.size(), 0))
+        {
             //Send fail
-            node_buckets[index].high_prio_unlock(); 
+
+            //rewrite the local buffer back in
+            node_buckets[index].high_prio_lock();
+            node_buckets[index].storage_file.write(local.begin(), local.size());
+            node_buckets[index].high_prio_unlock();
+            //Try to connect
             fd = retriesConnectAfterFailure(fd, index);
             assert( fd > 0 );
             // Allow to try again
@@ -206,16 +227,10 @@ void Node::sender(int index)
         else
         {
             //Send succeeded
-            if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
-            {
-                std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
-                exit(1);
-            }
-            std::cerr << "SENT BUFFER\n";
+            //std::cerr << "SENT BUFFER\n";
             //Reseting semaphore to 0
             std::size_t count = node_buckets[index].writer_semaphore.getCount( );
             node_buckets[index].writer_semaphore.down( count );
-            node_buckets[index].high_prio_unlock();
         }
     }
 }
@@ -357,8 +372,14 @@ void Node::receiver(int index)
                     intermediateBuf = APESEARCH::vector< char >( );
                     } // end if
                 
-                std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
+               // std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
                 // Check bloomfilter
+                if(linkOf.URL.empty())
+                    {
+                        linkOf = Link();
+                        continue;
+                    }
+
                 if ( !bloomFilter.contains( linkOf.URL ) )
                     {
                     bloomFilter.insert( linkOf.URL );

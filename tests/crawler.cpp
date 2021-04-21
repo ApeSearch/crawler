@@ -1,5 +1,6 @@
 
 #include "../include/crawler/Mercator.h"
+#include <signal.h> 
 #include <fstream>
 
 #define MAXNODES 4
@@ -8,7 +9,9 @@
 //34.201.187.203 ( 1 )
 int main( int argc, char **argv )
     {
-    
+    //SIGPIPE setting
+    signal(SIGPIPE, SIG_IGN);
+
     int node_id = atoi( argv[ 1 ] );
     if ( node_id < 0 || node_id > MAXNODES  )
        {
@@ -40,7 +43,7 @@ int main( int argc, char **argv )
     
     
     // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 4, 2, 0, seed_links);
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 512, 256, 0, seed_links);
     
     merc.user_handler( );
     return 0;
