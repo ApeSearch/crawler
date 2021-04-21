@@ -38,7 +38,6 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-release: ${CC}=${CXX} crawler
 
 all: test
 
@@ -82,7 +81,7 @@ HtmlParser: Parser/HtmlParser.cpp Parser/HtmlTags.cpp
 	${CC} -DLOCAL -o $@ $^
 
 release: CC=${CXX}
-release: clean all
+release: clean crawler
 
 .PHONY: clean
 
