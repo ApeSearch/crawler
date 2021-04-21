@@ -27,8 +27,8 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket()), wri
 
 }
 
-Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, Database &db, Bloomfilter &bf) : set( _set ), bloomFilter(bf)
-    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db), node_id(id)
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db, Bloomfilter &bf) : frontier( fron ), bloomFilter(bf)
+    ,pool( MAXTHREADS, MAXTHREADS ), dataBase( db ), node_id( id )
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
     node_buckets.reserve( ips.size() );
@@ -36,7 +36,7 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, D
         {   
             try
             {
-                node_buckets.emplace_back( i, ips[i].cstr());
+                node_buckets.emplace_back( i, ips[i].cstr() );
             }
             catch(APESEARCH::File::failure &f)
             {
@@ -238,7 +238,7 @@ void Node::sender(int index)
 //Try to send n times unless the connection is closed,
 //Then try to create a new socket
 //If sent n times and connection is still open or new connection cannot be made write to swap file
-void Node::write( const Link &link )
+void Node::write( Link &link )
 {
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";
@@ -264,24 +264,26 @@ void Node::write( const Link &link )
         if(new_link && !link.URL.empty())
         {
             //std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
-            //frontier.insertNewUrl( std::move( link.URL ) );
+            frontier.insertNewUrl( std::move( link.URL ) );
             
-            set.enqueue(std::move( link.URL ));
+            //set.enqueue(std::move( link.URL ));
         }
     }
     else{ // Write to storage file and eventually send
         
         node_buckets[val].low_prio_lock();
         //std::cerr << "Writing to storage file\n";
-        node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size());
-        node_buckets[val].storage_file.write(newline_char, 1);
+        
+        node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size() + 1 );
         for (size_t i = 0; i < link.anchorText.size(); i++)
         {
-            node_buckets[val].storage_file.write(link.anchorText[i].cstr(), link.anchorText[i].size());
-
-            node_buckets[val].storage_file.write(space_char, 1);            
+            size_t size = link.anchorText[i].size( );
+            if( i == link.anchorText.size( ) - 1 )
+                ++size;
+            else
+                link.anchorText[i].push_back( ' ' );
+            node_buckets[val].storage_file.write(link.anchorText[i].cstr( ), size );       
         }
-        node_buckets[val].storage_file.write(null_char, 1);   
         node_buckets[val].writer_semaphore.up();
         node_buckets[val].low_prio_unlock();
     }
@@ -374,7 +376,7 @@ void Node::receiver(int index)
                 
                // std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
                 // Check bloomfilter
-                if(linkOf.URL.empty())
+                if( linkOf.URL.empty() )
                     {
                         linkOf = Link();
                         continue;
@@ -383,8 +385,8 @@ void Node::receiver(int index)
                 if ( !bloomFilter.contains( linkOf.URL ) )
                     {
                     bloomFilter.insert( linkOf.URL );
-                    //frontier.insertNewUrl( std::move( linkOf.URL ) );
-                    set.enqueue(std::move( linkOf.URL ));
+                    frontier.insertNewUrl( std::move( linkOf.URL ) );
+                    //set.enqueue(std::move( linkOf.URL ));
                     }
                 // Add to DB
                 dataBase.addAnchorFile(linkOf);

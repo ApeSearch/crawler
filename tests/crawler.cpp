@@ -2,6 +2,7 @@
 #include "../include/crawler/Mercator.h"
 #include <signal.h> 
 #include <fstream>
+#include <signal.h>
 
 #define MAXNODES 4
 // ./exec <NODE_ID> 
@@ -28,13 +29,12 @@ int main( int argc, char **argv )
         {
         Link link;
         link.URL = APESEARCH::string(url.begin(), url.end());
-	std::cerr << "read";
         seed_links.push_back( link );
         } // end while
 
-    //Christians,Alexs,Pauls_first, Pauls_second
     
-    APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","199.223.236.235","23.21.84.212","34.233.155.58"};
+    //Christians,Alexs,Pauls_first, Pauls_second
+    APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","34.201.187.203","23.21.84.212","34.233.155.58"};
     if(ips.size() != 4)
         {
         std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
