@@ -18,6 +18,7 @@
 
 
 void reduceFile(std::string path);
+void formatFile(APESEARCH::File &file);
 
 struct DBBucket
    {
@@ -26,6 +27,7 @@ struct DBBucket
    DBBucket( size_t index, const char * dir );
    ~DBBucket() {}
    DBBucket( DBBucket&& other ) : parsedFile( std::move( other.parsedFile ) ), anchorFile( std::move( other.parsedFile ) ) {}
+   
 
    DBBucket& operator=( DBBucket&& other )
       {

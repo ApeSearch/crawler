@@ -225,6 +225,30 @@ TEST(test_condense_file){
     check += "www.ape.com\napes are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"fuck\" 1\n";
     check.push_back('\0');
     ASSERT_EQUAL(check, readData);
+    condensed.truncate(0);
 
+}
+
+TEST(test_format_file){
+    std::string path = "./anchorFiles/anchorFile0.txt";
+    APESEARCH::File anchor(path.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    anchor.truncate(0);
+    std::string testString = "monkey ape chimpanzee bonobo \n monkeY Y Y\n";
+    testString.push_back('\0');
+    testString += " bad     \n \n input input bad input noooooooo";
+    anchor.write(testString.c_str(), testString.length());
+    formatFile(anchor);
+    std::string check = "monkey ape chimpanzee bonobo \n monkeY Y Y\n";
+    check.push_back('\0');
+    unique_mmap mmap( anchor.fileSize(), PROT_READ, MAP_SHARED, anchor.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( mmap.get() );
+    std::string read(ptr, ptr + anchor.fileSize());
+    ASSERT_EQUAL(check, read);
+    anchor.truncate(0);
+    formatFile(anchor);
+    std::string read2(ptr, ptr + anchor.fileSize());
+    check = "";
+    ASSERT_EQUAL(check, read2);
+    anchor.truncate(0);
 }
 TEST_MAIN()

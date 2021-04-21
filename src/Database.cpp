@@ -11,6 +11,21 @@
 #define MAX_PATH 1024
 #define MAX_INT_LENGTH 100
 
+
+void formatFile(APESEARCH::File &file){
+    if(file.fileSize() == 0){
+        return;
+    }
+    unique_mmap map( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( map.get() ); 
+    int end = file.fileSize() - 1;
+    while(end >= 0 && ptr[end] != '\0'){
+        end--;
+    }
+    file.truncate(end + 1);
+
+}
+
 bool sortbysecdesc(const std::pair<std::string,int> &a,
                    const std::pair<std::string,int> &b)
 {
@@ -98,6 +113,9 @@ DBBucket::DBBucket(size_t index, const char * dir ){
     anchorFile = APESEARCH::File( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
     snprintf( path, sizeof( path ), "%s%s%d%s", directory, parsed_root.cstr(), index, ".txt" );
     parsedFile = APESEARCH::File( path, O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
+
+    formatFile(anchorFile);
+    formatFile(parsedFile);
 }
 
 Database::Database( ) : Database( nullptr ) { }
@@ -328,5 +346,6 @@ void Database::cleanAnchorMap(int fileCount){
         file.truncate(0);
     }
 }
+
 
 
