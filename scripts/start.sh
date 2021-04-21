@@ -1,1 +1,1 @@
-sudo ./tests/bin/crawler 0
+./tests/bin/crawler 0
