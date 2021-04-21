@@ -1,5 +1,5 @@
 CC=g++ -g3 -std=c++17 -Wall -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
-CXX=g++ -O3 -DNDEBUG -std=c++1z -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
+CXX=g++ -O3 -DNDEBUG -std=c++17 -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
 CXXFLAGS = -std=c++1z
 
 LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread -lz
