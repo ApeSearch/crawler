@@ -101,7 +101,7 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    // Handle results by writing to file...
    //TODO put this on own thread
    writeToFile( parser );
-   std::cerr << "Crawled website successfully: " << url << '\n';
+   //std::cerr << "Crawled website successfully: " << url << '\n';
    APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForPages);
    size_t *num = ( size_t * ) pagesCrawled.get();
    ++(*num);
