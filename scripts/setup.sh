@@ -1,11 +1,10 @@
-git clone git@github.com:ApeSearch/crawler.git
 # Initialize for libraries
 git submodule update --remote --init
 # Initialize for Parser
 cd Parser
 git submodule update --remote --init
 cd ../
-echo "./bin/crawler $1" > ./scripts/start.sh
+echo "./tests/bin/crawler $1" > ./scripts/start.sh
 chmod +x ./scripts/start.sh
 # Setup make, g++
 sudo apt-get install build-essential

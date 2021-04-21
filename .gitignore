@@ -48,6 +48,8 @@ condensedFiles
 bloomFilter.bin
 
 others
+bin
+scripts/start.sh
 
 #dSYM directories
 *.dSYM

@@ -38,7 +38,6 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-release: ${CC}=${CXX} crawler
 
 all: test
 
@@ -65,6 +64,8 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 test: ${TEST_SRC} 
 
 crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
+	@mkdir -p storageFiles parsedFiles anchorFiles
+	@mkdir -p ${MODULEDIR}
 	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
 
 update:
@@ -81,7 +82,7 @@ HtmlParser: Parser/HtmlParser.cpp Parser/HtmlTags.cpp
 	${CC} -DLOCAL -o $@ $^
 
 release: CC=${CXX}
-release: clean all
+release: clean crawler
 
 .PHONY: clean
 
