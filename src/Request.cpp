@@ -13,7 +13,6 @@
 #include <vector>
 #include <string.h>
 
-
 #include <iostream>
 
 #ifdef testing
@@ -51,7 +50,8 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
    //construct string based off of buffer call our pase header function
    // Reached the end of header
 
-   std::cout << std::string(  &headerBuff.front(), bufPtr ) << std::endl;
+   //std::cout << std::string(  &headerBuff.front(), bufPtr ) << std::endl;
+
    return APESEARCH::pair< char const * const, char const * const  > 
       ( ( *place ? nullptr : bufPtr ), ( *place ? nullptr : headerEnd ) );
     } 
@@ -64,9 +64,11 @@ Result Request::getReqAndParse(const char *urlStr)
 {
     ParsedUrl url( urlStr );
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
-    bool httpProtocol = !strcmp(url.Service, "http://"); // 0 if http 1 if https
+    bool httpProtocol = !strcmp(url.Service, "http"); // 0 if http 1 if https
     Address address(url.Host, httpProtocol ? "80" : "443" );
-    int attempts = 0;
+    if(!address.valid)
+      return Result( getReqStatus::badURL );
+    int attempts = 0; 
     Result res;
     while(attempts < MAXATTEMPTS)
       {
@@ -75,7 +77,7 @@ Result Request::getReqAndParse(const char *urlStr)
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          char buff[1024];
          snprintf( buff, sizeof( buff ), "%s%s", req.first( ), fields );
-         printf( "%s\n", buff );
+         //printf( "%s\n", buff );
          socket->send( buff, strlen( buff ) );
          APESEARCH::pair< char const * const, char const * const  > headerPtrs( getHeader( socket ) );
          // first is end of header, second is end of buffer header is situated
@@ -89,11 +91,16 @@ Result Request::getReqAndParse(const char *urlStr)
          res = parseHeader( headerPtrs.first( ) );
 
          if ( headerBad || res.status == getReqStatus::badHtml || !( foundChunked ^ foundContentLength ) 
-            || foundContentLength && (contentLengthBytes > Request::maxBodyBytes || headerPtrs.second( ) - headerPtrs.first( ) > ( ssize_t ) contentLengthBytes ))
+            || foundContentLength && (contentLengthBytes > Request::maxBodyBytes || 
+               headerPtrs.second( ) - headerPtrs.first( ) > ( ssize_t ) contentLengthBytes ) )
             {
             res.status = getReqStatus::badHtml;
             return res;
             } // end if
+         else if ( res.status == getReqStatus::redirected )
+            {
+            return res;
+            }
 
          getBody( socket, headerPtrs );
          if ( headerBad )
@@ -310,7 +317,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             {
             auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
                {  
-               resultOfReq.url = std::string( front, end );
+               resultOfReq.url = APESEARCH::string( front, end );
                foundUrl = true;
                }; // end pred
             // Only look for Location when seen in first line
@@ -328,6 +335,8 @@ Result Request::parseHeader( char const * const endOfHeader )
 
 void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
+   if(contentLengthBytes == 0 )
+      return;
    bodyBuff.resize( contentLengthBytes );
    char *bufPtr = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), &bodyBuff.front( ) );
    char *bufEnd = &bodyBuff.front( ) + contentLengthBytes;
@@ -359,81 +368,59 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
       } // end while
    return num;
    }
-char const *getEndOfChunked( unique_ptr<Socket> &socket, char *bufferStart, char * bufferTrueEnd )
-   {      
-    size_t totBytesTransfered = 0;
-    int bytesReceived = 0;
-    static char const * const endChunked = "\r\n\r\n";
-    char const *place = endChunked;
-
-    char *bufPtr, *bufEnd;
-    bufEnd = bufPtr = bufferStart;
-
-    while ( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<int>( bufferTrueEnd - bufPtr ) ) ) ) 
-      {
-      bufEnd += bytesReceived;
-      totBytesTransfered += bytesReceived;
-      while( *place && bufPtr != bufEnd )
-         (*place == *bufPtr++) ? ++place : place = endChunked;
-      
-      if ( totBytesTransfered >= bufferTrueEnd - bufferStart )
-         return bufferTrueEnd;
-      } // end
-   }
-
-static char const *findSubStr( char const *begin, char const *end, char const * const substr )
-   {
-   char const *ptr = begin;
-   const char * at = substr;
-
-   while ( *at && ptr != end )
-      *ptr++ == *at ? ++at : at = substr;
-   return !( *at ) ? begin + ( static_cast<size_t>( ptr - begin ) - strlen( substr ) ) : end;
-   } // end findPtr()
 
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
 {
-   static constexpr char * const newline = "\r\n";
-   APESEARCH::vector<char> temp(131072);
+   APESEARCH::vector<char> temp;
+   temp.resize(262144);
+   APESEARCH::copy(partOfBody.first(), partOfBody.second(), temp.begin());
+   int total_read = partOfBody.second() - partOfBody.first();
+   
 
-   size_t chunksToRead = 0;
-   char *bufPtr =  &temp.front( );
-   char *bufEnd = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), bufPtr );
-   char const *endOfChunk;
-   char const * cbufEnd = getEndOfChunked( socket, bufEnd, temp.end( ) );
-
-   while( bufPtr < cbufEnd && ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
-      {         
-      ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
-      if ( ret == 0 || ret == -1 )
-         {
-         if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
-            headerBad = true;
-         return;
-         } // end if
-      size_t chunksToRead = ( size_t ) ret;
-      assert( ( endOfChunk[ 0 ] == '\r' ) );
-      assert( ( endOfChunk[ 1 ] == '\n' ) );
-      // skip past \r\n
-      bufPtr = ( char * ) endOfChunk + 2;
-
-      // Now push up to chunksToRead
-      size_t bytesInputted = 0;
-      endOfChunk = bufPtr + chunksToRead;
-      while( bufPtr != endOfChunk )
-         {
-         bodyBuff.push_back( *bufPtr++ );
-         ++bytesInputted;
-         } // end while
-      assert( bytesInputted == chunksToRead );
-      // Skip \r\n
-      if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
-         {
+   while(true)
+   {
+      if(temp.size() > maxBodyBytes)
+      {
          headerBad = true;
          return;
-         } // end if
-      } // end while
+      }
+      if((3*temp.size())/4 < total_read)
+         temp.resize(temp.size()*2);
+
+      int recvd = socket->receive( temp.begin() + total_read, temp.size() - total_read );
+      total_read += recvd;
+      //Stupid but simple
+      if( total_read > 5 && temp[total_read - 1] == '\n' && temp[total_read - 2] == '\r'
+      && temp[total_read - 3] == '\n' && temp[total_read - 4] == '\r' && temp[total_read - 5] == '0')  
+         break;
+      
+   }  
+   
+   int start = 0;
+   while(start < total_read)
+   {
+      
+      for(int i = start; i < total_read; ++i)
+      {
+         //we hit the end
+         if( temp[i] == '\r')
+         { 
+            ssize_t hex = hexaToDecimal(temp.begin() + start, temp.begin() + i) + 4;
+            //newline them out for parser to handle
+            start = i + hex;
+            if(start < total_read)
+            {
+               for(int j = i + 2; j < start - 2 ;++j)
+               {
+                  bodyBuff.push_back(temp[j]);
+               }
+            }
+            break;
+         }
+      }
+   }
 }
+
 
 static void DecompressResponse( APESEARCH::vector < char >& data_ );
 
@@ -441,12 +428,14 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    {
    
    if ( chunked )
+   {
       chunkedHtml( socket, partOfBody );
+   }
    else
       receiveNormally( socket, partOfBody );
       
    if ( gzipped )
-      //DecompressResponse( bodyBuff );
+      DecompressResponse( bodyBuff );
 
    return;
    }
@@ -467,7 +456,7 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
     std::array < char, 32768 > outBuffer;
 
     if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
-    throw std::runtime_error( "inflateInit2 fail" );
+      throw std::runtime_error( "inflateInit2 fail" );
 
     zs.next_in =
         const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
@@ -503,3 +492,6 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
 
     APESEARCH::swap( decompressed, data_ );
     }
+
+
+    

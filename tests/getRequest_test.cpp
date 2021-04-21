@@ -2,13 +2,13 @@
 #include "../include/crawler/Request.h"
 #include <assert.h>
 #include <openssl/ssl.h>
-// Simulates the behavior of a crawler
+// Simulates the behavior of a crawlers
 int main()
     {
     SSL_library_init();
     //const char * const exampleUrl = "https://umich.edu/";
-    const char * const exampleUrl = "https://www.reddit.com/";
-    //https://news.ycombinator.com/item?id=26839781
+    const char * const exampleUrl = "https://www.hypebot.com/hypebot/2015/07/bmg-gets-soul-acquires-minder-music-and-cavalcade-recordings.html+of+Brazil/";
+    //https://news.ycombinator.com/item?id=26854819
 
     Request requester;
     // Figure out results

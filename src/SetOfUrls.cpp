@@ -104,9 +104,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
 SetOfUrls::~SetOfUrls()
    {
    shutdown( );
-#ifdef DEBUG
-   std::cerr << "Running Destructor...\n";
-#endif
+
    if ( numOfUrlsInserted )
       {
       APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
@@ -207,17 +205,13 @@ void SetOfUrls::startNewFile()
       throw std::runtime_error( "Issue making a temporary file\n");
       }
    back = APESEARCH::File( fd );
-#ifdef DEBUG
-   fprintf( stderr, "Starting new file%s\n", backQPath );
-#endif
+
    } // end startNewFile()
 
 bool SetOfUrls::removeFile( const char *fileName )
    {
    assert( fileName );
-#ifdef DEBUG
-   fprintf( stderr, "Removing file %s from disk\n", fileName );
-#endif
+
    return !remove( fileName );
    }
 
@@ -237,7 +231,7 @@ bool SetOfUrls::popNewBatch()
    if ( !( dp = getNextDirEntry( dir ) ).empty( ) )
       {
       // Open and memory map it
-      printf("Opening: %s\n", dp.begin( ) );
+      //printf("Opening: %s\n", dp.begin( ) );
       snprintf( frontQFileName, sizeof ( frontQFileName ), "%s%c%s", dirPath, '/', dp.begin( ) );
       APESEARCH::File file( frontQFileName, O_RDONLY );
       const int fd = file.getFD();
@@ -248,7 +242,7 @@ bool SetOfUrls::popNewBatch()
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
       frontQEnd = frontQPtr + fileSize;
       } // end if
-   std::cout << "Returning with bool: " << std::boolalpha << !dp.empty( ) << std::endl;
+   //std::cout << "Returning with bool: " << std::boolalpha << !dp.empty( ) << std::endl;
    return !dp.empty( );
    } // end popNewBack()
 
@@ -279,8 +273,8 @@ void SetOfUrls::finalizeSection( )
       throw std::runtime_error( "Issue with finalizeSection" );
       }  // end if
 #ifdef DEBUG
-   fprintf( stderr, "File temp has now been renamed from %s to %s\n", backQPath, finalPath );
-   fprintf( stderr, "Written %s to disk\n", finalPath );
+   //fprintf( stderr, "File temp has now been renamed from %s to %s\n", backQPath, finalPath );
+   //fprintf( stderr, "Written %s to disk\n", finalPath );
 #endif
 
    numOfUrlsInserted.store(0);
@@ -331,7 +325,7 @@ inline UrlObj SetOfUrls::helperDeq()
       } // end while
 
    UrlObj obj;
-   assert( start && frontQPtr && start < frontQPtr );
+   assert( start && frontQPtr && start <= frontQPtr );
    obj.url = APESEARCH::string( start, frontQPtr );
    obj.priority = calcPriority( obj.url ); // All have a priority of 0
    

@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MAXTHREADS 17
+#define MAXTHREADS 16
 #define BLOOMFILTER
 #define BUFFERSIZE 65536
 #define PORT 6666
@@ -27,7 +27,7 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket()), wri
 
 }
 
-Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db) : frontier( fron ), bloomFilter()
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, Database &db, Bloomfilter &bf) : set( _set ), bloomFilter(bf)
     ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db), node_id(id)
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
@@ -142,6 +142,7 @@ void Node::connectionHandler()
                     found_ip = true;
                     node_buckets[i].cv.notify_all();
                     node_buckets[i].socket_lock.unlock();
+                    std::cerr << "Connected to node: " << i << "\n";
                     break;
                     }
             }
@@ -162,41 +163,62 @@ void Node::connectionHandler()
 
 void Node::sender(int index)
 {
-    std::cerr << "Sender is running to send on Node: " << index << '\n';
+    //std::cerr << "Sender is running to send on Node: " << index << '\n';
     node_buckets[index].socket_lock.lock();
     int fd = node_buckets[index].socket->getFD();
     node_buckets[index].socket_lock.unlock();
     
     while(true)
     {
-        sleep( 1u );
-
+        sleep(5u);
 
         node_buckets[index].writer_semaphore.down();
-        std::cerr << "Sender activated to send to Node: " << index << '\n';
-        node_buckets[index].high_prio_lock();
-        ssize_t file_size = node_buckets[index].storage_file.fileSize();
-        
+        //std::cerr << "Sender activated to send to Node: " << index << '\n';
+        APESEARCH::vector<char> local;
+        {
+            node_buckets[index].high_prio_lock();
+            ssize_t file_size = node_buckets[index].storage_file.fileSize();
+            local.resize(file_size);
 
-        unique_mmap mappedFile;
-        try
-        {
-            mappedFile = unique_mmap( file_size, PROT_READ, MAP_SHARED, node_buckets[index].storage_file.getFD(), 0 );
-        }
-        catch( unique_mmap::failure& error )
-        {
-            node_buckets[index].high_prio_unlock();
-            std::cerr << "VERY BAD ERROR ALERT NIKOLA unique_mmap failed on file: " << index << '\n';
-            std::cerr << error.what( ) << std::endl;
-            exit(1);
-        }
-        //Send call 
-        if( 0 > ::send(fd, mappedFile.get(), file_size, 0))
-        {
-            //Allow writer retries
+            unique_mmap mappedFile;
+            try
+            {
+                mappedFile = unique_mmap( file_size, PROT_READ, MAP_SHARED, node_buckets[index].storage_file.getFD(), 0 );
+            }
+            catch( unique_mmap::failure& error )
+            {
+                node_buckets[index].high_prio_unlock();
+                std::cerr << "VERY BAD ERROR ALERT NIKOLA unique_mmap failed on file: " << index << '\n';
+                std::cerr << error.what( ) << std::endl;
+                exit(1);
+            }
+            //Copy locally
+            char *sfile =  reinterpret_cast <char *>(mappedFile.get());
             
+            for(ssize_t i = 0; i < file_size; ++i)
+            {
+                local[i] = sfile[i];
+            }
+            //Truncate it 
+            if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
+            {
+                std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
+                exit(1);
+            }
+            //Unlock
+            node_buckets[index].high_prio_unlock();
+        }
+
+        //Send call 
+        if( 0 > ::send(fd, local.begin(), local.size(), 0))
+        {
             //Send fail
-            node_buckets[index].high_prio_unlock(); 
+
+            //rewrite the local buffer back in
+            node_buckets[index].high_prio_lock();
+            node_buckets[index].storage_file.write(local.begin(), local.size());
+            node_buckets[index].high_prio_unlock();
+            //Try to connect
             fd = retriesConnectAfterFailure(fd, index);
             assert( fd > 0 );
             // Allow to try again
@@ -205,16 +227,10 @@ void Node::sender(int index)
         else
         {
             //Send succeeded
-            if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
-            {
-                std::cerr << "VERY BAD ERROR ALERT NIKOLA truncating: " << index << '\n';
-                exit(1);
-            }
-            std::cerr << "SENT BUFFER\n";
+            //std::cerr << "SENT BUFFER\n";
             //Reseting semaphore to 0
             std::size_t count = node_buckets[index].writer_semaphore.getCount( );
             node_buckets[index].writer_semaphore.down( count );
-            node_buckets[index].high_prio_unlock();
         }
     }
 }
@@ -230,9 +246,8 @@ void Node::write( const Link &link )
     size_t val = hash(link.URL.cstr());
     val = val % node_buckets.size();
     bool new_link = false;
-    std::cerr << "Going into writer\n";
+    //std::cerr << "Going into writer\n";
     {
-        APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( bloomFilter_lock );
         if(!bloomFilter.contains(link.URL))
         {
             new_link = true;
@@ -244,17 +259,20 @@ void Node::write( const Link &link )
     }
     if(val == node_id)
     {
-        std::cerr << "Hashed and writing locally\n";
+        //std::cerr << "Hashed and writing locally\n";
         dataBase.addAnchorFile(link);
-        if(new_link)
+        if(new_link && !link.URL.empty())
         {
-            frontier.insertNewUrl( std::move( link.URL ) );
+            //std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
+            //frontier.insertNewUrl( std::move( link.URL ) );
+            
+            set.enqueue(std::move( link.URL ));
         }
     }
     else{ // Write to storage file and eventually send
         
         node_buckets[val].low_prio_lock();
-        std::cerr << "Writing to storage file\n";
+        //std::cerr << "Writing to storage file\n";
         node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size());
         node_buckets[val].storage_file.write(newline_char, 1);
         for (size_t i = 0; i < link.anchorText.size(); i++)
@@ -284,16 +302,16 @@ int Node::retriesConnectAfterFailure( int fd, int index )
 
     if(node_id < index)
     {   
-        std::cerr << "Reciever is connecting to Node: " << index << '\n';
+        //std::cerr << "Reciever is connecting to Node: " << index << '\n';
         // We must connect to this socket
         connect(index);
     }
     else
     {
-        std::cerr << "Reciever is waiting for connection to Node: " << index << '\n';
+        //std::cerr << "Reciever is waiting for connection to Node: " << index << '\n';
         //Wait for connector to notify you
         node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
-        std::cerr << "Reciever woke up from connection to Node: " << index << '\n';
+        //std::cerr << "Reciever woke up from connection to Node: " << index << '\n';
     }
     return node_buckets[index].socket->getFD();
     } // end retriesConnectAfterFailure( )
@@ -303,7 +321,7 @@ int Node::retriesConnectAfterFailure( int fd, int index )
 //Constantly reading from sockets
 void Node::receiver(int index)
 {
-    std::cerr << "Reciever is running to rec on Node: " << index << '\n';
+    //std::cerr << "Reciever is running to rec on Node: " << index << '\n';
     char buffer[BUFFERSIZE];
     APESEARCH::vector< char > intermediateBuf; 
     node_buckets[index].socket_lock.lock();
@@ -332,7 +350,6 @@ void Node::receiver(int index)
 
         for ( ;buffPtr != buffEnd; ++buffPtr )
         {
-        std::cerr << "RECEIVED BUFFER\n";
         switch( *buffPtr )
             {
             // Signifies end of url
@@ -354,18 +371,21 @@ void Node::receiver(int index)
                     //TODO change to .clear( );
                     intermediateBuf = APESEARCH::vector< char >( );
                     } // end if
-
+                
+               // std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
                 // Check bloomfilter
-                APESEARCH::unique_lock<APESEARCH::mutex> lk( bloomFilter_lock );             
+                if(linkOf.URL.empty())
+                    {
+                        linkOf = Link();
+                        continue;
+                    }
+
                 if ( !bloomFilter.contains( linkOf.URL ) )
                     {
                     bloomFilter.insert( linkOf.URL );
-                    lk.unlock( );
-                    frontier.insertNewUrl( std::move( linkOf.URL ) );
+                    //frontier.insertNewUrl( std::move( linkOf.URL ) );
+                    set.enqueue(std::move( linkOf.URL ));
                     }
-                else
-                    lk.unlock( );
-
                 // Add to DB
                 dataBase.addAnchorFile(linkOf);
 

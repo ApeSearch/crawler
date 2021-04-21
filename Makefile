@@ -38,6 +38,8 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
+release: ${CC}=${CXX} crawler
+
 all: test
 
 LinuxGetUrl: ${OBJS}
@@ -51,9 +53,10 @@ LinuxGetSsl: GetUrl/LinuxGetSsl.cpp
 
 # LinuxTinyServer:
 # 	${CC} -o $@ $^
-
 TEST_SRC:=$(basename $(wildcard ${TESTDIR}/*.cpp))
+
 $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
+	@mkdir -p storageFiles parsedFiles anchorFiles
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
@@ -61,7 +64,7 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 
 test: ${TEST_SRC} 
 
-crawler: %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
+crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
 	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
 
 update:
@@ -83,7 +86,7 @@ release: clean all
 .PHONY: clean
 
 clean:
-	rm -rf LinuxGetUrl LinuxGetSsl *.o tests/bin/* *.exe bin/* ${ASOBJS} ${OBJS} ${EXECDIR}/* ${STDEXECDIR}/* ${OUTPUT}/* ${STDEXECDIR}/*
+	rm -rf LinuxGetUrl LinuxGetSsl *.o tests/bin/* *.exe ${ASOBJS} ${OBJS} ${EXECDIR}/* ${STDEXECDIR}/* ${OUTPUT}/* ${STDEXECDIR}/*
 
 Christian:
 	git config user.name "cluc"

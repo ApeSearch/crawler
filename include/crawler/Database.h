@@ -8,14 +8,14 @@
 #include "../../libraries/AS/include/AS/vector.h"
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/HashTable/include/HashTable/FNV.h"
+#ifdef LINUX
 #include <linux/limits.h>
+#endif
 #include "../../libraries/AS/include/AS/unique_mmap.h"
 #include <unordered_map> //pls dont look at this hamilton
 #include <string>
 #include <algorithm> 
-#ifdef LINUX
-#include <linux/limits.h>
-#endif
+
 
 void reduceFile(std::string path);
 

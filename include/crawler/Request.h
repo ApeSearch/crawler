@@ -15,6 +15,8 @@
 #include "../../libraries/AS/include/AS/unique_ptr.h"
 #include "../../libraries/AS/include/AS/Socket.h"
 #include "../../libraries/AS/include/AS/vector.h"
+#include "../../libraries/AS/include/AS/string.h"
+
 #include <math.h>       /* pow */
 enum class getReqStatus
 {
@@ -22,13 +24,14 @@ enum class getReqStatus
    redirected, // What url to redirected ( give to frontier for them to check )
    timedOut,   // 
    badHtml,     // Tell crawler to throw away such html
+   badURL,
    ServerIssue
 };
 
 // Tells the crawler status of request
 struct Result
 {
-   std::string url; // For redirects...
+   APESEARCH::string url; // For redirects...
    getReqStatus status; 
    unsigned response;
    Result() = default;
@@ -64,7 +67,6 @@ class Request
             } // end switch
          }  // end operator()()
    };
-
    static constexpr size_t maxBodyBytes = 33554432; //2**25
    APESEARCH::vector< char > headerBuff;
    APESEARCH::vector< char > bodyBuff;
@@ -79,10 +81,10 @@ class Request
    // Helper Functions
   
    // Static Variables
-   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu (Linux)\r\nAccept: */*\r\nAccept-Encoding: identity\r\nConnection: close\r\n\r\n";
+   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu nikolag@umich.edu skarahan@umich.edu alexwong@umich.edu paulzhan@umich.edu cluc@umich.edu (Linux)\r\nAccept: */*\r\nAccept-Encoding: identity\r\nConnection: close\r\n\r\n";
    //static constexpr const char * const fields = "User-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
-   static constexpr time_t timeoutSec = 40;
+   static constexpr time_t timeoutSec = 10;
 
    inline void resetState()
       {
