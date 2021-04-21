@@ -17,7 +17,8 @@ bool sortbysecdesc(const std::pair<std::string,int> &a,
        return a.second > b.second;
 }
 
-void reduceFile(std::string path){
+void reduceFile( std::string path )
+    {
     APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
     unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
     std::unordered_map<std::string, int> phraseFreq;
@@ -75,7 +76,8 @@ void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
     char temp[MAX_INT_LENGTH];
-    for(int i = 0; i < indexes.size(); i++){
+    for( int i = 0; i < indexes.size(); i++ )
+    {
         size_t size = snprintf( temp, sizeof( temp ), "%d", indexes[i]);
         file.write(temp, size);
         file.write(space_char, 1);

@@ -1,13 +1,18 @@
 
-#include "include/crawler/Mercator.h"
+#include "../include/crawler/Mercator.h"
+#include <signal.h> 
 #include <fstream>
+#include <signal.h>
 
-#define MAXNODES 8
-// ./exec <NODE_ID> < IP ADDRESSES >
-// ./exec 1 < IPaddress.txt
+#define MAXNODES 4
+// ./exec <NODE_ID> 
+// ./exec 1 < seed_list.txt
+//34.201.187.203 ( 1 )
 int main( int argc, char **argv )
     {
-    
+    //SIGPIPE setting
+    signal(SIGPIPE, SIG_IGN);
+
     int node_id = atoi( argv[ 1 ] );
     if ( node_id < 0 || node_id > MAXNODES  )
        {
@@ -15,26 +20,31 @@ int main( int argc, char **argv )
        return 1;
        } // end if
     
+    APESEARCH::vector<Link> seed_links;
+    std::string url;
+
+    std::ifstream in( "./crawling_list.txt" );
     
-    APESEARCH::vector<APESEARCH::string> ips;
-    std::string ip;
-    //while( std::cin >> ip )
+    while( in >> url )
         {
-        // ips.emplace_back( ip.begin( ), ip.end( ) );
+        Link link;
+        link.URL = APESEARCH::string(url.begin(), url.end());
+        seed_links.push_back( link );
         } // end while
 
-    ips = {"1","1","1","1","1","1","1","1"};
-    if(ips.size() != 8)
+    
+    //Christians,Alexs,Pauls_first, Pauls_second
+    APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","34.201.187.203","23.21.84.212","34.233.155.58"};
+    if(ips.size() != 4)
         {
-        std::cerr << "Wrong amount of ips: " << ip.size() << std::endl;
+        std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
         return 2;
         } // end if
     
-
-
     
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 10, 10, 0);
+    // crawlers, parsers
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 512, 256, 0, seed_links);
     
     merc.user_handler( );
-    return 3;
+    return 0;
     } // end main( )

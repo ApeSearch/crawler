@@ -100,7 +100,7 @@ public:
     //Try to send n times 
     //If cannot send write to local file
     //
-    void write( const Link& link);
+    void write( Link& link);
 
     void sender(int index);
 

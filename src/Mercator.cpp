@@ -71,7 +71,7 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
                {
                Link link;
                link.URL = std::move( result.url );
-               auto func = [this, link{std::move( link ) } ]( ) { node.write( link ); };
+               auto func = [this, link{std::move( link ) } ]( ) mutable { node.write( link ); };
                pool.submitNoFuture( func );
                } // end if
             }

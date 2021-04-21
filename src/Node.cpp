@@ -238,7 +238,7 @@ void Node::sender(int index)
 //Try to send n times unless the connection is closed,
 //Then try to create a new socket
 //If sent n times and connection is still open or new connection cannot be made write to swap file
-void Node::write( const Link &link )
+void Node::write( Link &link )
 {
     static const char* const null_char = "\0";
     static const char* const newline_char = "\n";
@@ -273,15 +273,17 @@ void Node::write( const Link &link )
         
         node_buckets[val].low_prio_lock();
         //std::cerr << "Writing to storage file\n";
-        node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size());
-        node_buckets[val].storage_file.write(newline_char, 1);
+        
+        node_buckets[val].storage_file.write(link.URL.cstr(), link.URL.size() + 1 );
         for (size_t i = 0; i < link.anchorText.size(); i++)
         {
-            node_buckets[val].storage_file.write(link.anchorText[i].cstr(), link.anchorText[i].size());
-
-            node_buckets[val].storage_file.write(space_char, 1);            
+            size_t size = link.anchorText[i].size( );
+            if( i == link.anchorText.size( ) - 1 )
+                ++size;
+            else
+                link.anchorText[i].push_back( ' ' );
+            node_buckets[val].storage_file.write(link.anchorText[i].cstr( ), size );       
         }
-        node_buckets[val].storage_file.write(null_char, 1);   
         node_buckets[val].writer_semaphore.up();
         node_buckets[val].low_prio_unlock();
     }

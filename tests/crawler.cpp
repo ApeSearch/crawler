@@ -29,11 +29,10 @@ int main( int argc, char **argv )
         {
         Link link;
         link.URL = APESEARCH::string(url.begin(), url.end());
-	std::cerr << "read";
         seed_links.push_back( link );
         } // end while
 
-    signal(SIGPIPE, SIG_IGN); // Ignores SIGPIPE (tried to write to a socket that closed)
+    
     //Christians,Alexs,Pauls_first, Pauls_second
     APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","34.201.187.203","23.21.84.212","34.233.155.58"};
     if(ips.size() != 4)
