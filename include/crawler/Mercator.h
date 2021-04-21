@@ -71,7 +71,7 @@ namespace APESEARCH
             node.write(seed_links[i]);
          }
          
-         APESEARCH::File file( "./pagesCrawledDONTTOUCH.txt", O_RDWR | O_CREAT, (mode_t) 0600 );
+         APESEARCH::File file( "./VirtualFileSystem/Root/pagesCrawledDONTTOUCH.txt", O_RDWR | O_CREAT, (mode_t) 0600 );
          std::cout << "Opened: /VirtualFileSystem/Root/pagesCrawledDONTTOUCH.txt" << std::endl;
 
          int fileSize = lseek(  file.getFD( ), 0, SEEK_END );
