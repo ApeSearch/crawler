@@ -39,6 +39,10 @@ tests/anchorFiles
 storageFiles/*
 parsedFiles/*
 anchorFiles/*
+anchorMapFiles0
+anchorMapFiles2
+anchorMapFiles1
+condensedFiles
 
 #bloomfilter
 bloomFilter.bin

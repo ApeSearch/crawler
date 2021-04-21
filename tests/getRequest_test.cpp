@@ -1,19 +1,22 @@
 
 #include "../include/crawler/Request.h"
 #include <assert.h>
-
+#include <openssl/ssl.h>
 // Simulates the behavior of a crawler
 int main()
     {
+    SSL_library_init();
     //const char * const exampleUrl = "https://umich.edu/";
-    const char * const exampleUrl = "https://www.google.com";
+    const char * const exampleUrl = "https://www.reddit.com/";
+    //https://news.ycombinator.com/item?id=26839781
 
     Request requester;
     // Figure out results
     Result result( requester.getReqAndParse( exampleUrl ) );    
-    assert( result.status == getReqStatus::successful  );
-    // Get results
-    APESEARCH::pair< std::string, size_t> buff( requester.getResponseBuffer() );
 
-    
-    } // end main()
+    //assert( result.status == getReqStatus::successful  );
+    // Get results
+    APESEARCH::vector<char> buff = requester.getResponseBuffer();
+
+    write(1, buff.begin(), buff.size());
+    } // end main() https://news.ycombinator.comP

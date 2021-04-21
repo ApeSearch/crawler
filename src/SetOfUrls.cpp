@@ -46,12 +46,12 @@ bool SetOfUrls::verifyFile( const char *filename ) const
 
 bool SetOfUrls::forceWrite()
    {
+   //highPriorityThreadWaiting.store( true );
+   APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
+   //highPriorityThreadWaiting.store( false );
    bool retval = numOfUrlsInserted.load() > 0;
    if ( retval )
-      {
-      APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
       finalizeSection(); // Forcefully write to file
-      } // end if
 
    return retval;
    }
@@ -60,6 +60,18 @@ SetOfUrls::SetOfUrls() : SetOfUrls( SetOfUrls::frontierLoc )
    {
    }
 
+size_t SetOfUrls::numOfValidFiles(  )
+   {
+   struct dirent *dp;
+   size_t files = 0;
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
+   while( (dp = readdir (dir)) != NULL )
+      {
+      if ( dp->d_type == DT_REG && !strncmp( dp->d_name, "urlSlice", 8 ) && verifyFile( dp->d_name ) )
+         ++files;
+      } // end while   
+   rewinddir( dir );
+   }
 
 SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 ), liveliness( true )
    {
@@ -75,7 +87,8 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
       perror( dirPath );
       throw std::runtime_error( "VirtualFileSytem couldn't be opened" );
       } // end if
-   
+
+   //numOfFiles.store( numOfValidFiles( ) );
 
    if ( !popNewBatch() )
       {
@@ -132,29 +145,48 @@ SetOfUrls::~SetOfUrls()
  *  EFFECTS: Searches through DIR *dir's direntries for a file that can be memory-mapped for urls.
  *           Returns a pointer to it, else returns an empty one ( where direntry * is a nullptr )
 */
-struct dirent *SetOfUrls::getNextDirEntry( DIR *dir )
+APESEARCH::vector<char> SetOfUrls::getNextDirEntry( DIR *dir )
    {
+   std::cout << "In getNextDirEntry\n";
    struct dirent *dp;
-   do
-   {
-      APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
-      while( (dp = readdir (dir)) != NULL )
+   //highPriorityThreadWaiting.store( true );
+   //APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
+   //highPriorityThreadWaiting.store( false );
+{
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( dirLk );
+   while( (dp = readdir (dir)) != NULL )
+      {
+      if ( dp->d_type == DT_REG )
          {
-         if ( dp->d_type == DT_REG && !strncmp( "urlSlice", dp->d_name, 8 ) )
+         if ( !strncmp( dp->d_name, "urlSlice", 8 ) && verifyFile( dp->d_name ) )
             {
-            if ( verifyFile( dp->d_name ) )
-               break;
-            else // Possible something bad happened to this file
-               {
-               char filename[1024];
-               snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
-               removeFile( filename );
-               rewinddir( dir );
-               }
+            size_t length = strlen( dp->d_name );
+            APESEARCH::vector<char> vec( length + 1, 0 );
+            strcpy( &vec.front( ), dp->d_name );
+            return vec;
             }
-         } // end while
-   } while ( forceWrite() );
-   return dp;
+         // Possible something bad happened to this file or an old tmep file
+         else if( strncmp( backFileName, dp->d_name, 12 ) ) 
+            {
+            char filename[1024];
+            snprintf( filename, sizeof(filename), "%s%c%s", dirPath, '/', dp->d_name );
+            if ( removeFile( filename ) )
+               rewinddir( dir );
+            } // end else if
+         } // end if
+      } // end while
+}
+   APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );
+   if ( numOfUrlsInserted.load() > 0 )
+      {
+      finalizeSection(); // Forcefully write to file
+      bQLk.unlock( );
+      //backQLk.unlock( );
+      //priorityCV.notify_one( );
+      return getNextDirEntry( dir );
+      } // end if
+   //priorityCV.notify_one( );
+   return APESEARCH::vector<char>();
    }
 
 
@@ -168,6 +200,7 @@ void SetOfUrls::startNewFile()
    //snprintf( backQPath, sizeof( backQPath ), "%s", "temp.XXXXXX" );
    // Open a new temp file
    int fd = mkstemp( backQPath );
+   snprintf( backFileName, sizeof( backFileName ), "%s", strstr( backQPath, "temp." ) );
    if ( fd < 0 )
       {
       std::cerr << "Issue making a temporary file\n" << std::endl;
@@ -199,11 +232,13 @@ bool SetOfUrls::removeFile( const char *fileName )
 bool SetOfUrls::popNewBatch()
    {
    assert( !frontQPtr );
-   struct dirent *dp;
-   if ( ( dp = getNextDirEntry( dir ) ) )
+   //struct dirent *dp;
+   APESEARCH::vector<char> dp;
+   if ( !( dp = getNextDirEntry( dir ) ).empty( ) )
       {
       // Open and memory map it
-      snprintf( frontQFileName, sizeof ( frontQFileName ), "%s%c%s", dirPath, '/', dp->d_name );
+      printf("Opening: %s\n", dp.begin( ) );
+      snprintf( frontQFileName, sizeof ( frontQFileName ), "%s%c%s", dirPath, '/', dp.begin( ) );
       APESEARCH::File file( frontQFileName, O_RDONLY );
       const int fd = file.getFD();
       std::size_t fileSize = FileSize( fd );
@@ -213,7 +248,8 @@ bool SetOfUrls::popNewBatch()
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
       frontQEnd = frontQPtr + fileSize;
       } // end if
-   return dp;
+   std::cout << "Returning with bool: " << std::boolalpha << !dp.empty( ) << std::endl;
+   return !dp.empty( );
    } // end popNewBack()
 
 // assumes backQLk is acquired and acquires directory lock
@@ -248,6 +284,7 @@ void SetOfUrls::finalizeSection( )
 #endif
 
    numOfUrlsInserted.store(0);
+   ++numOfFiles;
    
    // Grab lock for DIR
    // Dir entries have now been changed
@@ -326,7 +363,7 @@ UrlObj SetOfUrls::blockingDequeue()
    APESEARCH::unique_lock<APESEARCH::mutex> uniqLk( frntQLk );
    do
    {
-      cv.wait( uniqLk, [this]( ){ return !liveliness.load() || frontQPtr || popNewBatch(); } );
+      cv.wait( uniqLk, [this]( ){ return !liveliness.load( ) || frontQPtr || popNewBatch(); } );
       url = helperDeq();
    } while ( liveliness.load() && url.url.empty() );
    
@@ -368,14 +405,18 @@ const char *SetOfUrls::front( )
 void SetOfUrls::enqueue( const APESEARCH::string &url )
    {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
-   assert( numOfUrlsInserted.load() < SetOfUrls::maxUrls && !url.empty() );
+   //priorityCV.wait( lk, [ this ]( ) 
+   //   { return !highPriorityThreadWaiting.load( ); } );
+   assert( numOfUrlsInserted.load() < SetOfUrls::maxUrls );
+   assert( !url.empty( ) );
 
    back.write( url.cbegin(), url.size() );
 
    // Mark as a delimiter
    back.write( "\n", 1 );
    ++numOfUrlsInserted;
-   cv.notify_one(); // Notify any potentially waiting threads
+   cv.notify_one(); // Notify any potewaiting threads
+   //priorityCV.notify_one( );
 
    if ( numOfUrlsInserted == SetOfUrls::maxUrls )
       {

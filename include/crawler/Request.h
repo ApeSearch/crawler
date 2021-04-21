@@ -14,6 +14,8 @@
 #include "../../libraries/AS/include/AS/utility.h"
 #include "../../libraries/AS/include/AS/unique_ptr.h"
 #include "../../libraries/AS/include/AS/Socket.h"
+#include "../../libraries/AS/include/AS/vector.h"
+#include <math.h>       /* pow */
 enum class getReqStatus
 {
    successful, // 
@@ -33,7 +35,6 @@ struct Result
    Result( getReqStatus _status, unsigned _response = 600 ) : status( _status ), response( _response ) {}
 };
 
-#define TIMEOUT 30
 class Request 
 {
 #ifdef DEBUG
@@ -64,29 +65,33 @@ class Request
          }  // end operator()()
    };
 
-   std::string buffer;
-   char *endHeaderPtr;
-   char *bufEnd;
+   static constexpr size_t maxBodyBytes = 33554432; //2**25
+   APESEARCH::vector< char > headerBuff;
+   APESEARCH::vector< char > bodyBuff;
+   //std::string buffer;
+   std::size_t contentLengthBytes = 0;
    unsigned state;
-   bool gzipped, chunked, redirect;
-   bool foundGzipped, foundChunked, foundUrl;
+   bool gzipped, chunked, redirect, contentLength, headerBad;
+   bool foundGzipped, foundChunked, foundUrl, foundContentLength;
    // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
    APESEARCH::pair< std::string, size_t > processedResponse;
    
    // Helper Functions
   
    // Static Variables
-   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/1.0 xiongrob@umich.edu (Linux)\r\n\
-   Accept: */*\r\n Accept-Encoding: identity\r\nConnection: close\r\n\r\n";
+   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu (Linux)\r\nAccept: */*\r\nAccept-Encoding: identity\r\nConnection: close\r\n\r\n";
+   //static constexpr const char * const fields = "User-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
-   static constexpr time_t timeoutSec = 30;
+   static constexpr time_t timeoutSec = 40;
 
    inline void resetState()
       {
-      gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = false; // Reset state
+      gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = contentLength = foundContentLength = headerBad = false; // Reset state
+      contentLengthBytes = 0;
       }
    
-   void normalHtml( APESEARCH::unique_ptr<Socket> &socket );
+   void receiveNormally( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody );
+   void chunkedHtml( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody);
 
 public:
    getReqStatus validateStatus( unsigned status );
@@ -95,15 +100,15 @@ public:
 
    Request();
 
-   char *getHeader( APESEARCH::unique_ptr<Socket> &socket );
+   APESEARCH::pair< char const * const, char const * const > getHeader( APESEARCH::unique_ptr<Socket> &socket );
 
    Result getReqAndParse( const char* );
 
    Result parseHeader(const char*);
 
-   void getBody( APESEARCH::unique_ptr<Socket> &socket );
+   void getBody( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody );
 
-   APESEARCH::pair< std::string, size_t> getResponseBuffer();
+   APESEARCH::vector< char > getResponseBuffer();
 
 };
 

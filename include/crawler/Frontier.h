@@ -129,8 +129,6 @@ class UrlFrontier
 
     using FrontierCircBuf = APESEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
     SetOfUrls set;
-    APESEARCH::PThreadPool<FrontierCircBuf> pool; // The main threads that serve tasks
-    std::atomic<bool> liveliness;
     
     static constexpr std::size_t frontQueueSize = 1024;
     // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
@@ -138,6 +136,9 @@ class UrlFrontier
 
     void startUp(); // Starts up threads...
 public:
+    APESEARCH::PThreadPool<FrontierCircBuf> pool; // The main threads that serve tasks
+    std::atomic<bool> liveliness;
+
     FrontEndPrioritizer frontEnd;
     BackendPolitenessPolicy backEnd;
     UrlFrontier( const size_t numOfCrawlerThreads );
@@ -146,6 +147,7 @@ public:
     APESEARCH::string getNextUrl( );
     // Will assume that bloom filter is already accounted for ( Node actually owns the bloomfilter here )
     bool insertNewUrl( APESEARCH::string&& url );
+    bool insertNewUrl( const APESEARCH::string& url );
 
     void shutdown(); // signals threads to stop
 };

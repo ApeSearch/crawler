@@ -1,0 +1,4 @@
+> GET / HTTP/2
+> Host: www.reddit.com
+> User-Agent: curl/7.64.1
+> Accept: */*

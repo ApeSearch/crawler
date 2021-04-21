@@ -3,14 +3,17 @@
 #include "../include/crawler/Database.h"
 #include "../libraries/AS/include/AS/string.h"
 #include "../libraries/AS/include/AS/unique_mmap.h"
+#include <cstdio>
+
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
 
 
+
 TEST( test_addAnchorFile )
 {
-    Database db( "./tests" );
+    Database db;
     Link input;
     input.URL = "www.google.com";
     input.anchorText = {"1", "2", "3", "4"};
@@ -135,9 +138,93 @@ TEST(test_parsed_site)
         HtmlParser parser3(ptr3, file3.fileSize(), "www.monkey.com" );
         db.addParsedFile(parser3);
     }
+TEST(test_parsed_anchor_file){
+    std::string check = "www.google.com";
+    check += "\n";
+    check += "1 2 3 4 ";
+    check += "\n";
+    check.push_back('\0');
+    check += "www.monkey.com";
+    check += "\n";
+    check += "monkey good";
+    check += "\n";
+    check.push_back('\0'); 
+    std::unordered_map<std::string, int> map;
 
-    
+    Database db;
+    int fileCount = 0;
+    db.parseAnchorFile(check.c_str(), check.length(), map, fileCount);
+    APESEARCH::string path = "./anchorMapFiles0/anchorMapFile0";
+    APESEARCH::File file(path.cstr(), O_RDWR , mode_t(0600));
+    unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( mmap.get() );
+    APESEARCH::string readData( ptr, ptr + file.fileSize() );
+    APESEARCH::string temp = "1 2 3 4 ";
+    temp.push_back('\n');
+    ASSERT_EQUAL( temp, readData );
+    db.cleanAnchorMap(2);
+}
 
+TEST(test_clean_anchor_map){
+    Database db;
+    db.cleanAnchorMap(5);
+    std::string path = "./anchorMapFiles0/anchorMapFile0";
+    APESEARCH::File file(path.c_str(), O_RDWR , mode_t(0600));
+    ASSERT_EQUAL( 0, file.fileSize() );
+}
 
+TEST(test_reduce_file){
+    std::string path = "./tests/anchorFiles/anchorFile0.txt";
+    std::string anchorInput = "";
+    for(int i = 0; i < 100; i++){
+        anchorInput += std::to_string(i % 3);
+        anchorInput += " ";
+        anchorInput += '\n';
+    }
+    anchorInput += "1 \n1 \n";
+    APESEARCH::File file(path.c_str(), O_RDWR , mode_t(0600));
+    file.write(anchorInput.c_str(), anchorInput.length());
+    reduceFile(path);
+    unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( mmap.get() );
+    APESEARCH::string readData( ptr, ptr + file.fileSize() );
+    APESEARCH::string check = "\"1\" 35\n\"0\" 34\n\"2\" 33\n";
+    ASSERT_EQUAL(check, readData);
+    file.truncate(0);
+}
 
+TEST(test_condense_file){
+    std::string path1 = "../testFiles/anchorTest";
+    std::string path2 ="../testFiles/parsedTest";
+    APESEARCH::File anchor(path1.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    APESEARCH::File parsed(path2.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    std::string anchorString = "www.monkey.com\nhello \n";
+    anchorString.push_back('\0');
+    anchorString += "www.ape.com\nfuck \n";
+    anchorString.push_back('\0');
+    anchorString += "www.monkey.com\nmonkey monkey \n";
+    anchorString.push_back('\0');
+    anchorString += "www.monkey.com\nmonkey monkey \n";
+
+    std::string parsedString = "www.monkey.com\nmonkeys are strong\n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "www.ape.com\napes are strong\n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    anchor.write(anchorString.c_str(), anchorString.length());
+    parsed.write(parsedString.c_str(), parsedString.length());
+
+    Database db;
+    db.condenseFile(anchor, parsed, 0);
+    std::string condPath = "./condensedFiles/condensedFile0";
+    APESEARCH::File condensed(condPath.c_str(), O_RDWR, mode_t(0600));
+    unique_mmap mmap( condensed.fileSize(), PROT_READ, MAP_SHARED, condensed.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( mmap.get() );
+    APESEARCH::string readData( ptr, ptr + condensed.fileSize() );
+    APESEARCH::string check = "www.monkey.com\nmonkeys are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"monkey monkey\" 2\n\"hello\" 1\n";
+    check.push_back('\0');
+    check += "www.ape.com\napes are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"fuck\" 1\n";
+    check.push_back('\0');
+    ASSERT_EQUAL(check, readData);
+
+}
 TEST_MAIN()

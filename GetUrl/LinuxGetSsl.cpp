@@ -8,9 +8,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <openssl/ssl.h>
-#include <libuv/1.41.0/epoll.h> // For epoll
-#include <memory>
-#include <atomic>
 
 /*
 class Crawler
@@ -93,13 +90,6 @@ class Socket
          }
          return ::recv(socketFD, buffer, length, 0);
       }
-      protected:
-         int transferSocket() {
-            assert(fd != -1);
-            int fd = socketFD;
-            socketFD = -1;
-            return fs;
-         } // end transferSocket()
 
    protected:
       struct timeval tv;
@@ -112,25 +102,12 @@ class SSLSocket : public Socket
    public:
    SSLSocket(const Address& address) : Socket(address) 
    {
-      setupSSLLayer();
-   }
-   // Upgrading a regular socket
-   SSLSocket(Socket& socket) : socketFD(socket.transferSocket())
-   {
       // Initialize the SSL Library
       sslFramework = SSL_CTX_new(SSLv23_method());
       ssl = SSL_new(sslFramework);
       SSL_set_fd(ssl, socketFD);
       SSL_connect(ssl);
    }
-
-   void setupSSLLayer() {
-      sslFramework = SSL_CTX_new(SSLv23_method());
-      ssl = SSL_new(sslFramework);
-      SSL_set_fd(ssl, socketFD);
-      SSL_connect(ssl);
-   }
-
    ~SSLSocket() 
    {
       SSL_shutdown(ssl);
@@ -184,9 +161,6 @@ class ParsedUrl
       char *Service, *Host, *Port, *Path;
       bool protocolType; // true == http, false == https
 
-      static const std::string reqType("GET /");
-
-      static constexpr char * const reqType = "GET /";
       std::string formRequest() 
       {
          std::string header;
@@ -289,9 +263,10 @@ int main( int argc, char **argv )
    ParsedUrl url( argv[ 1 ] );
    
    // Get the host address.
-   Address address(url.Host, url.Port); 
+   bool httpProtocol = !strcmp(url.Service, "http://");
+   Address address(url.Host, ( httpProtocol ? "80" : "443" ) ); 
    
-   Socket *socket = strcmp(url.Service, "http://") ? new Socket(address) : new SSLSocket(address);
+   Socket *socket = ( httpProtocol ? new Socket(address) : new SSLSocket(address) );
    //TODO
    // Maybe use another addrinfo in linked-list if this timesout 
    // Create a TCP/IP socket.
@@ -335,16 +310,3 @@ int main( int argc, char **argv )
 
    delete socket;
   }
-
-
-
-// Perform the decompression
-void DecompressResponse( std::vector < char > data_ ) 
-   {
-   z_stream zs;                        // z_stream is zlib's control structure    
-   memset( &zs, 0, sizeof( zs ) );
-   std::vector < char > decompressed;    
-   std::array < char, 32768 > outBuffer;    
-   if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK ) 
-   throw std::runtime_error( "inflateInit2 fail" );
-   zs.next_in =        const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( data_.data( ) ) );    zs.avail_in = static_cast < unsigned int >( data_.size( ) );    int ret;    // get the decompressed bytes blockwise using repeated calls to inflate    do        {        zs.next_out = reinterpret_cast < Bytef* >( outBuffer.data( ) );        zs.avail_out = sizeof( outBuffer );        ret = inflate( &zs, 0 );        if ( decompressed.size( ) < zs.total_out )            {            decompressed.insert( decompressed.end( ), outBuffer.data( ),                    outBuffer.data( ) + zs.total_out - decompressed.size( ) );            }        }    while ( ret == Z_OK );    inflateEnd( &zs );    if ( ret != Z_STREAM_END )        {          // an error occurred that was not EOF        throw std::runtime_error( "Non-EOF occurred while decompressing" );        }    std::swap( decompressed, data_ );    }

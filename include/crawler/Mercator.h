@@ -38,7 +38,6 @@ namespace APESEARCH
    using CircBuf = circular_buffer< Func, dynamicBuffer< Func > >;
     class Mercator
        {
-      static constexpr size_t nodeID = 0;
       PThreadPool<CircBuf> pool; // The main threads that serve tasks
       UrlFrontier frontier;
       Database db;
@@ -46,18 +45,24 @@ namespace APESEARCH
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
 
-      void crawlWebsite( Request& requester, APESEARCH::string& buffer );
+      void crawlWebsite( Request& requester, APESEARCH::string& buffer, unsigned& );
       void crawler();
-      void parser( const std::string& buffer, const APESEARCH::string &url );
+      void parser( const APESEARCH::vector< char >& buffer, const APESEARCH::string &url );
+      //TODO fix
       void writeToFile( const HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void intel();
       void cleanUp(); 
+      void startUpCrawlers( const std::size_t );
     public:
-      Mercator( APESEARCH::vector<APESEARCH::string>& ips, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
-         pool( CircBuf( amtOfCrawlers + amtOfParsers + amtOfFWriters ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 2 ) 
-         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), node( ips, nodeID, frontier, db  ), liveliness( true ) {}
+      Mercator( APESEARCH::vector<APESEARCH::string>& ips, int id, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters ) : 
+         // Size of buffer, amount of threads, max submits
+         pool( CircBuf( ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ) 
+         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), node( ips, id, frontier, db  ), liveliness( true )
+         {
+         startUpCrawlers( amtOfCrawlers );
+         }
       ~Mercator();
       void run();
       void user_handler(); // Interacts with user to provide intel, look at stats, and to shutdown

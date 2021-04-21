@@ -227,6 +227,8 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          if ( itr != domainsMap.end() && itr->second != index )
             qLk.lock( );
          } // end if
+         else
+            qLk.lock();
       } // end for
    // Notify any waiting threads...
    domainQueues[ index ].queueCV.notify_one();
@@ -372,6 +374,11 @@ APESEARCH::string UrlFrontier::getNextUrl( )
    } // end getNextUrl()
 
 bool UrlFrontier::insertNewUrl( APESEARCH::string&& url )
+   {
+   return insertNewUrl( url ); 
+   }
+
+bool UrlFrontier::insertNewUrl( const APESEARCH::string& url )
    {
    set.enqueue( url );
    return true;

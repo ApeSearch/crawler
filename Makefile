@@ -2,7 +2,7 @@ CC=g++ -g3 -std=c++17 -Wall -pedantic -Wconversion -Wextra -Wreorder -fno-builti
 CXX=g++ -O3 -DNDEBUG -std=c++1z -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
 CXXFLAGS = -std=c++1z
 
-LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread
+LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread -lz
 # Define certain variables based on system
 # -I likely means (Include) -L likely means (Library)
 FLAGS:=EMPTY
@@ -61,10 +61,13 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 
 test: ${TEST_SRC} 
 
+crawler: %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
+	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
+
 update:
 
 %.o: %.cpp
-	${CC} -D${FLAGS} ${LDFLAGS} -c $< -o $@
+	${CC} -D${FLAGS} -DTESTING ${LDFLAGS} -c $< -o $@
 %.o: %.cc
 	${CC} -c $< -o $@
 

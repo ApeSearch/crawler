@@ -9,10 +9,19 @@
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/HashTable/include/HashTable/FNV.h"
 #include <linux/limits.h>
+#include "../../libraries/AS/include/AS/unique_mmap.h"
+#include <unordered_map> //pls dont look at this hamilton
+#include <string>
+#include <algorithm> 
+#ifdef LINUX
+#include <linux/limits.h>
+#endif
+
+void reduceFile(std::string path);
 
 struct DBBucket
    {
-   char directory[PATH_MAX];
+   char directory[1024];
    DBBucket();
    DBBucket( size_t index, const char * dir );
    ~DBBucket() {}
@@ -41,8 +50,12 @@ class Database
         Database( );
         Database( const char *directory );
         ~Database();
-        void addAnchorFile(Link &link);
-        void addParsedFile(HtmlParser &parser);
+        void addAnchorFile(const Link &link);
+        void addParsedFile(const HtmlParser &parser);
+        void condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsedFile, int index);
+        void condenseFiles();
+        void parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap, int &fileCount);
+        void cleanAnchorMap(int fileCount);
         FNV hash;
 };
 

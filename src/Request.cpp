@@ -5,9 +5,13 @@
 #include "../include/crawler/ParsedUrl.h"
 #include <utility> // for std::move
 
-#include "../libraries/AS/include/AS/algorithms.h"
+#include "../libraries/AS/include/AS/algorithms.h" // use Algorithms
 
 #include <stdlib.h> /* atoi */
+#include <zlib.h>
+#include <array>
+#include <vector>
+#include <string.h>
 
 
 #include <iostream>
@@ -23,37 +27,33 @@
 #endif
 
 
-Request::Request() : buffer(65536, '\0'), endHeaderPtr( nullptr ) {}
+Request::Request() : headerBuff( 16384, 0 ) {}
 
-char *Request::getHeader( unique_ptr<Socket> &socket )
+APESEARCH::pair< char const * const, char const * const > Request::getHeader( unique_ptr<Socket> &socket )
     {
-    int bytesToWrite = 0;
+    int bytesReceived = 0;
     static char const * const endHeader = "\r\n\r\n";
     char const *place = endHeader;
     
-    char *bufPtr;
-    bufEnd = bufPtr = &*buffer.begin();
+    char *bufPtr, *headerEnd;
+    headerEnd = bufPtr = &*headerBuff.begin();
     //TODO check string.end() 
 
-    while( *place && (bytesToWrite = socket->receive(bufPtr, static_cast<int> ( &*buffer.end() - bufPtr) ) ) > 0 )
+    while( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
         {
-        bufEnd += bytesToWrite;
-        while(*place && bufPtr != bufEnd)
-        (*place == *bufPtr++) ? ++place : place = endHeader;
+        headerEnd += bytesReceived;
+        while( *place && bufPtr != headerEnd )
+            (*place == *bufPtr++) ? ++place : place = endHeader;
         //TODO Some statistics tracking to see how many times this runs
-        if ( bufPtr == &*buffer.end() )
-            {
-            unsigned sizeOfHeaderSoFar = static_cast<unsigned> ( buffer.size() );
-            //TODO implemnent resize for string.h
-            buffer.resize( buffer.size() << 1 );
-            bufPtr = bufEnd = &*buffer.begin() + sizeOfHeaderSoFar;
-            }
-        }
-        //construct string based off of buffer call our pase header function
-        // Reached the end of header
-        
-        std::cout << std::string(&*buffer.begin(), bufPtr) << std::endl;
-        return *place ? nullptr : bufPtr;
+
+        } // end while
+
+   //construct string based off of buffer call our pase header function
+   // Reached the end of header
+
+   std::cout << std::string(  &headerBuff.front(), bufPtr ) << std::endl;
+   return APESEARCH::pair< char const * const, char const * const  > 
+      ( ( *place ? nullptr : bufPtr ), ( *place ? nullptr : headerEnd ) );
     } 
 
 
@@ -63,9 +63,9 @@ char *Request::getHeader( unique_ptr<Socket> &socket )
 Result Request::getReqAndParse(const char *urlStr)
 {
     ParsedUrl url( urlStr );
-    Address address(url.Host, "80");
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
-    bool httpProtocol = strcmp(url.Service, "http://"); // 0 if http 1 if https
+    bool httpProtocol = !strcmp(url.Service, "http://"); // 0 if http 1 if https
+    Address address(url.Host, httpProtocol ? "80" : "443" );
     int attempts = 0;
     Result res;
     while(attempts < MAXATTEMPTS)
@@ -73,36 +73,64 @@ Result Request::getReqAndParse(const char *urlStr)
       try
          {
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
-         socket->send( req.first(), static_cast<int>( req.second() ) ); // Send get part
-         socket->send( fields, fieldSize ); // Send fields
-         char *endOfHeader = endHeaderPtr = getHeader( socket );
-         if ( !endOfHeader ) // If end of file is reached w.o. coming across header sentinel
+         char buff[1024];
+         snprintf( buff, sizeof( buff ), "%s%s", req.first( ), fields );
+         printf( "%s\n", buff );
+         socket->send( buff, strlen( buff ) );
+         APESEARCH::pair< char const * const, char const * const  > headerPtrs( getHeader( socket ) );
+         // first is end of header, second is end of buffer header is situated
+         assert( headerPtrs.first( ) <= headerPtrs.second( ) );
+
+         if ( !headerPtrs.first( ) ) // If end of file is reached w.o. coming across header sentinel
             return Result( getReqStatus::badHtml );
-         resetState(); // set all bites to zero
-         res = parseHeader(endOfHeader);
+         resetState(); // set all bits to zero
 
-         getBody( socket );
-
-         break;
          // Parse header
+         res = parseHeader( headerPtrs.first( ) );
+
+         if ( headerBad || res.status == getReqStatus::badHtml || !( foundChunked ^ foundContentLength ) 
+            || foundContentLength && (contentLengthBytes > Request::maxBodyBytes || headerPtrs.second( ) - headerPtrs.first( ) > ( ssize_t ) contentLengthBytes ))
+            {
+            res.status = getReqStatus::badHtml;
+            return res;
+            } // end if
+
+         getBody( socket, headerPtrs );
+         if ( headerBad )
+            return Result( getReqStatus::badHtml );
+
+         return res;
          }
       //TODO Add error catching functionality for errono in Socket and SSLSocket
       catch(...)
          {
+         if(errno == EWOULDBLOCK)
+            return Result( getReqStatus::timedOut );
+         //TODO check errno         
          address.info = address.info->ai_next ? address.info->ai_next : address.info = address.head;
          ++attempts;
          }
       } // end while
 
-   return res;
-    
+   return Result( getReqStatus::ServerIssue );
 }  // end parseRequest()  
+
+bool insenstiveCharCompare( char const *A, char const *B )
+   {
+   int letterA, letterB;
+   letterA = *((unsigned char *)A);
+   letterB = *((unsigned char *)B);
+   letterA = tolower(toupper(letterA));
+   letterB = tolower(toupper(letterB));
+   return letterA == letterB;
+   }
 
 char * findString(char * begin, const char* end , const char *str )
    {
    const char *place = str;
    while(*place && begin != end)
-      (*place == *begin++) ? ++place : place = str;
+      ( insenstiveCharCompare( begin++, place ) )  ? ++place : place = str;
+
    return begin;
    } // end findString
 
@@ -113,7 +141,7 @@ static char const *safeStrNCmp( char const * start, const char * const end, cons
    {
    for (; *strLookingFor && start != end; ++start, ++strLookingFor )
       {
-      if ( *strLookingFor != *start )
+      if ( !insenstiveCharCompare( strLookingFor, start ) )
          return end;
       } // end while
    return start;
@@ -123,8 +151,8 @@ static bool strCmp( char const *start, const char * const end, const char* strLo
    {
    for (; *strLookingFor && start != end; ++start, ++strLookingFor )
       {
-      if ( *strLookingFor != *start )
-         return end;
+      if ( !insenstiveCharCompare( strLookingFor, start ) )
+         return false;
       } // end while
    return !*strLookingFor;
    }
@@ -152,7 +180,6 @@ int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
       *space = '\0'; // Change to null-character
       status = atoi( *header );
 
-      std::cout << "Response: " << status << std::endl;
       } // end if
    *header = endOfLine; // Skip to the end of the line
    return status;
@@ -207,7 +234,7 @@ void processField( char const * headerPtr, char const * const endOfLine, const c
 Result Request::parseHeader( char const * const endOfHeader )
 {
    static constexpr char * const newline = "\r\n";
-   char *headerPtr = &*buffer.begin(); // Pointer to where request is in header
+   char *headerPtr = &*headerBuff.begin(); // Pointer to where request is in header
    char *endOfLine; // Relatie pointer to end of a specific line for a header field
    
    // Assume connection HTTP/1.x 200 OK\r\n
@@ -220,11 +247,12 @@ Result Request::parseHeader( char const * const endOfHeader )
       }
 
    // Evaluate each header's fields
-   while ( ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) != endOfHeader )
+   while ( !headerBad && ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) != endOfHeader )
       {
       switch( *headerPtr )
          {
          case 'T':
+         case 't':
             {
             auto Tpred = [this]( char const * front, char const *end ) 
                {  
@@ -233,22 +261,52 @@ Result Request::parseHeader( char const * const endOfHeader )
                else if ( strCmp( front, end, "gzip" ) )
                   gzipped = foundGzipped = true; 
                }; // end pred
-            if ( !foundChunked || !foundGzipped )
+            if ( ( !foundChunked && !foundContentLength ) || !foundGzipped )
                processField( headerPtr, endOfLine, "Transfer-Encoding: ", Tpred, FieldTerminator() );
             break;
             } // end case 'T'
          case 'C':
+         case 'c':
             {
             auto Cpred = [this]( char const * front, char const * end ) 
                {  
                if ( strCmp( front, end, "gzip" ) )
                   gzipped = foundGzipped = true;
                }; // end pred
+            
+            auto ContentLen = [ this ]( char const * front, char const * end )
+               {
+               char const *trueEnd = end - 1;
+
+               while( front != trueEnd )
+                  {
+                  contentLengthBytes *= 10;
+                  int digit = *front - '0';
+                  if ( digit < 0 || digit > 10 )
+                     {
+                     contentLengthBytes = 0;
+                     headerBad = true;
+                     return;
+                     } // end if
+                  contentLengthBytes += std::size_t ( *front++ - '0' );
+                  } // end while
+               foundContentLength = contentLength = true; 
+               };
             if ( !foundGzipped )
                processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
+            if ( !foundChunked && !foundContentLength )
+               {
+               processField( headerPtr, endOfLine, "Content-Length: ", ContentLen, FieldTerminator() );
+               if ( contentLengthBytes > Request::maxBodyBytes )
+                  {
+                  resultOfReq.status = getReqStatus::badHtml;
+                  return resultOfReq;
+                  } // end if
+               }
             break;
             } // end case 'C'
          case 'L':
+         case 'l':
             {
             auto Lpred = [&resultOfReq, this]( char const * front, char const *end ) 
                {  
@@ -266,29 +324,182 @@ Result Request::parseHeader( char const * const endOfHeader )
    return resultOfReq;
 }
 
-void Request::normalHtml( unique_ptr<Socket> &socket )
+// Transfer-Encoding can be chunked
+
+void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
-   int bytesToWrite = 0;
-   while((bytesToWrite = socket->receive(bufEnd, static_cast<int>( &*buffer.end( ) - bufEnd ))) > 0)
-      bufEnd += bytesToWrite;
-   } // end normalHtml( )
-void Request::getBody( unique_ptr<Socket> &socket )
+   bodyBuff.resize( contentLengthBytes );
+   char *bufPtr = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), &bodyBuff.front( ) );
+   char *bufEnd = &bodyBuff.front( ) + contentLengthBytes;
+
+   while( bufPtr < bufEnd )
+      bufPtr += socket->receive( bufPtr, static_cast<int>( bufEnd - bufPtr ));
+
+   }  // end normalHtml( )
+
+//size_t ctoh()
+
+static ssize_t hexaToDecimal( char const *begin, char const *end )
    {
+   ssize_t num = 0;
+   while( begin != end )
+      {
+      num <<= 4;
+      int hexa = *begin - '0';
+      char character = *begin++;
+      if ( '0' <= character && character <= '9')
+         hexa = character - '0';
+      else if ( 'A' <= character && character <= 'F' )
+         hexa = character - 'A' + 10;
+      else if ( 'a' <= character && character <= 'f' )
+         hexa = character - 'a' + 10;
+      else
+         return -1;
+      num += hexa;
+      } // end while
+   return num;
+   }
+char const *getEndOfChunked( unique_ptr<Socket> &socket, char *bufferStart, char * bufferTrueEnd )
+   {      
+    size_t totBytesTransfered = 0;
+    int bytesReceived = 0;
+    static char const * const endChunked = "\r\n\r\n";
+    char const *place = endChunked;
+
+    char *bufPtr, *bufEnd;
+    bufEnd = bufPtr = bufferStart;
+
+    while ( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<int>( bufferTrueEnd - bufPtr ) ) ) ) 
+      {
+      bufEnd += bytesReceived;
+      totBytesTransfered += bytesReceived;
+      while( *place && bufPtr != bufEnd )
+         (*place == *bufPtr++) ? ++place : place = endChunked;
+      
+      if ( totBytesTransfered >= bufferTrueEnd - bufferStart )
+         return bufferTrueEnd;
+      } // end
+   }
+
+static char const *findSubStr( char const *begin, char const *end, char const * const substr )
+   {
+   char const *ptr = begin;
+   const char * at = substr;
+
+   while ( *at && ptr != end )
+      *ptr++ == *at ? ++at : at = substr;
+   return !( *at ) ? begin + ( static_cast<size_t>( ptr - begin ) - strlen( substr ) ) : end;
+   } // end findPtr()
+
+void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
+{
+   static constexpr char * const newline = "\r\n";
+   APESEARCH::vector<char> temp(131072);
+
+   size_t chunksToRead = 0;
+   char *bufPtr =  &temp.front( );
+   char *bufEnd = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), bufPtr );
+   char const *endOfChunk;
+   char const * cbufEnd = getEndOfChunked( socket, bufEnd, temp.end( ) );
+
+   while( bufPtr < cbufEnd && ( endOfChunk = findSubStr( bufPtr, cbufEnd, newline ) ) != cbufEnd )
+      {         
+      ssize_t ret = hexaToDecimal( bufPtr, endOfChunk );
+      if ( ret == 0 || ret == -1 )
+         {
+         if ( ret != -1 || !strCmp( endOfChunk, endOfChunk + 4, "\r\n\r\n" ) )
+            headerBad = true;
+         return;
+         } // end if
+      size_t chunksToRead = ( size_t ) ret;
+      assert( ( endOfChunk[ 0 ] == '\r' ) );
+      assert( ( endOfChunk[ 1 ] == '\n' ) );
+      // skip past \r\n
+      bufPtr = ( char * ) endOfChunk + 2;
+
+      // Now push up to chunksToRead
+      size_t bytesInputted = 0;
+      endOfChunk = bufPtr + chunksToRead;
+      while( bufPtr != endOfChunk )
+         {
+         bodyBuff.push_back( *bufPtr++ );
+         ++bytesInputted;
+         } // end while
+      assert( bytesInputted == chunksToRead );
+      // Skip \r\n
+      if ( *bufPtr++ != '\r' || *bufPtr++ != '\n' )
+         {
+         headerBad = true;
+         return;
+         } // end if
+      } // end while
+}
+
+static void DecompressResponse( APESEARCH::vector < char >& data_ );
+
+void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
+   {
+   
    if ( chunked )
-      {
-      
-      }
-   if ( gzipped )
-      {
-      
-      }
+      chunkedHtml( socket, partOfBody );
    else
-      normalHtml( socket );
+      receiveNormally( socket, partOfBody );
+      
+   if ( gzipped )
+      //DecompressResponse( bodyBuff );
+
    return;
    }
 
-APESEARCH::pair< std::string, size_t> Request::getResponseBuffer()
+   APESEARCH::vector< char > Request::getResponseBuffer()
    {
-   return APESEARCH::pair< std::string, size_t> ( std::move( buffer ), 0);
+      return std::move( bodyBuff );
    }
 
+
+// Perform the decompression
+void DecompressResponse( APESEARCH::vector < char >& data_ )
+    {
+    z_stream zs;                        // z_stream is zlib's control structure
+    memset( &zs, 0, sizeof( zs ) );
+
+    APESEARCH::vector < char > decompressed;
+    std::array < char, 32768 > outBuffer;
+
+    if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
+    throw std::runtime_error( "inflateInit2 fail" );
+
+    zs.next_in =
+        const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
+    zs.avail_in = static_cast < unsigned int >( data_.size( ) );
+
+    int ret;
+
+    // get the decompressed bytes blockwise using repeated calls to inflate
+    do
+        {
+        zs.next_out = reinterpret_cast < Bytef* >( outBuffer.data( ) );
+        zs.avail_out = sizeof( outBuffer );
+
+        ret = inflate( &zs, 0 );
+
+        if ( decompressed.size( ) < zs.total_out )
+            {
+            unsigned bytesToTransfer = zs.total_out - decompressed.size( );
+            unsigned sizeOfDec = decompressed.size( );
+            decompressed.resize( decompressed.size( ) + bytesToTransfer );
+            char *decompressedPtr = &decompressed.front( ) + sizeOfDec;
+            APESEARCH::copy( outBuffer.data( ), outBuffer.data( ) + zs.total_out - sizeOfDec, decompressedPtr );
+            } // end if
+        }
+    while ( ret == Z_OK );
+
+    inflateEnd( &zs );
+
+    if ( ret != Z_STREAM_END )
+        {          // an error occurred that was not EOF
+        throw std::runtime_error( "Non-EOF occurred while decompressing" );
+        }
+
+    APESEARCH::swap( decompressed, data_ );
+    }
