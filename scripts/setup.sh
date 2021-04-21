@@ -4,7 +4,7 @@ git submodule update --remote --init
 cd Parser
 git submodule update --remote --init
 cd ../
-echo "./bin/crawler $1" > ./scripts/start.sh
+echo "./tests/bin/crawler $1" > ./scripts/start.sh
 chmod +x ./scripts/start.sh
 # Setup make, g++
 sudo apt-get install build-essential
