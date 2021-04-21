@@ -1,4 +1,3 @@
-git clone git@github.com:ApeSearch/crawler.git
 # Initialize for libraries
 git submodule update --remote --init
 # Initialize for Parser
