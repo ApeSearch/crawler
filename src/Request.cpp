@@ -310,6 +310,7 @@ Result Request::parseHeader( char const * const endOfHeader )
                   return resultOfReq;
                   } // end if
                }
+            
             break;
             } // end case 'C'
          case 'L':
