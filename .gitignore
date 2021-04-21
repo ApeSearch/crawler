@@ -39,10 +39,13 @@ tests/anchorFiles
 storageFiles/*
 parsedFiles/*
 anchorFiles/*
+<<<<<<< HEAD
 anchorMapFiles0
 anchorMapFiles2
 anchorMapFiles1
 condensedFiles
+=======
+>>>>>>> frontier
 
 #bloomfilter
 bloomFilter.bin
@@ -55,5 +58,11 @@ others
 #miscellaneous
 .vscode
 .DS_Store
+<<<<<<< HEAD
 GetUrl/
 extras
+=======
+GetUrl
+extras
+keys
+>>>>>>> frontier

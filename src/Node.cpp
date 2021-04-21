@@ -27,8 +27,8 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket()), wri
 
 }
 
-Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, Database &db, Bloomfilter &bf) : set( _set ), bloomFilter(bf)
-    ,pool( MAXTHREADS, MAXTHREADS ), dataBase(db), node_id(id)
+Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db, Bloomfilter &bf) : frontier( fron ), bloomFilter(bf)
+    ,pool( MAXTHREADS, MAXTHREADS ), dataBase( db ), node_id( id )
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
     node_buckets.reserve( ips.size() );
@@ -36,7 +36,7 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, SetOfUrls& _set, D
         {   
             try
             {
-                node_buckets.emplace_back( i, ips[i].cstr());
+                node_buckets.emplace_back( i, ips[i].cstr() );
             }
             catch(APESEARCH::File::failure &f)
             {
@@ -264,9 +264,9 @@ void Node::write( const Link &link )
         if(new_link && !link.URL.empty())
         {
             //std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
-            //frontier.insertNewUrl( std::move( link.URL ) );
+            frontier.insertNewUrl( std::move( link.URL ) );
             
-            set.enqueue(std::move( link.URL ));
+            //set.enqueue(std::move( link.URL ));
         }
     }
     else{ // Write to storage file and eventually send
@@ -374,7 +374,7 @@ void Node::receiver(int index)
                 
                // std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
                 // Check bloomfilter
-                if(linkOf.URL.empty())
+                if( linkOf.URL.empty() )
                     {
                         linkOf = Link();
                         continue;
@@ -383,8 +383,8 @@ void Node::receiver(int index)
                 if ( !bloomFilter.contains( linkOf.URL ) )
                     {
                     bloomFilter.insert( linkOf.URL );
-                    //frontier.insertNewUrl( std::move( linkOf.URL ) );
-                    set.enqueue(std::move( linkOf.URL ));
+                    frontier.insertNewUrl( std::move( linkOf.URL ) );
+                    //set.enqueue(std::move( linkOf.URL ));
                     }
                 // Add to DB
                 dataBase.addAnchorFile(linkOf);

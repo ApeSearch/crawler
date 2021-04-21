@@ -40,18 +40,21 @@ APESEARCH::Mercator::~Mercator()
 void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& buffer)
    {
 
-   //std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+   std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
    Result result = requester.getReqAndParse( buffer.cstr() );
    // At the end of this task, the buffer will be reinserted back into urlBuffers...
-   //std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+   std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
 
-   //std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
+   std::chrono::time_point<std::chrono::system_clock> whenCanCrawlAgain( getNewTime( start, end ) );
    ParsedUrl parsedUrl( buffer.cstr() );
+
+   frontier.pool.submitNoFuture( [this, whenCanCrawlAgain{ std::move( whenCanCrawlAgain ) }, domain{ std::string( parsedUrl.Host, parsedUrl.Port ) } ](  ) 
+   { this->frontier.backEnd.insertTiming( whenCanCrawlAgain, domain ); } );   
+
    // This should be the case
    if( !*parsedUrl.Host )
       return;
-   assert( *parsedUrl.Host ); 
-
+   
    switch( result.status )
          {
          case getReqStatus::successful:
@@ -68,7 +71,6 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
                {
                Link link;
                link.URL = std::move( result.url );
-               //TODO put on writer threadpool
                auto func = [this, link{std::move( link ) } ]( ) { node.write( link ); };
                pool.submitNoFuture( func );
                } // end if
@@ -81,22 +83,20 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
 
 // Only need one thread for this since it would otherwise 
 // create contention...
-void APESEARCH::Mercator::crawler()
+void APESEARCH::Mercator::crawler( )
    {
     Request requester;
-    UrlObj next;
 
     while( true )
        {
-        next = set.dequeue( ); // Writes directly to buffer
-        if(next.url.empty())
+        APESEARCH::string url = frontier.getNextUrl( ); // Writes directly to buffer
+        if( url.empty( ) )
             continue;
-        assert(!next.url.empty());
         //std::cerr << "ACTUALLY GOT A URL\n";
-        crawlWebsite( requester, next.url );
+        crawlWebsite( requester, url );
        } // end while
-   } // end urlExtractor()
-
+   } // end urlExtractor( )
+   
 void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const APESEARCH::string &url )
    {
    HtmlParser parser( buffer.begin( ), buffer.size(), url );
@@ -105,17 +105,16 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    //TODO put this on own thread
    writeToFile( parser );
    //std::cerr << "Crawled website successfully: " << url << '\n';
-   APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForPages);
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( lkForPages );
    size_t *num = ( size_t * ) pagesCrawled.get();
    ++(*num);
    } // end parser()
 
 void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
 {
+   db.addParsedFile( parser );
 
-   db.addParsedFile(parser);
-
-   if(parser.base.empty())
+   if( parser.base.empty( ) )
       {
        char combinedUrl[1024];
        ParsedUrl parsedUrl( parser.url.cstr( ), true );
@@ -124,7 +123,7 @@ void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
 
    //write to DB
    //write to Nodes
-   for(int i = 0; i < parser.links.size(); ++i)
+   for(int i = 0; i < parser.links.size( ); ++i)
    {
       //Does it need a base tag ( has protocal ) and do we have it
       ParsedUrl parsedUrl( parser.links[i].URL.cstr() );

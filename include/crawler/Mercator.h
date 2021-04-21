@@ -12,7 +12,7 @@
 #include "../../Parser/HtmlParser.h"
 #include "../../libraries/bloomFilter/include/bloomFilter/BloomFilter.h"
 #include "Request.h"
-#include "SetOfUrls.h"
+#include "Frontier.h"
 #include "Node.h"
 #include "DynamicBuffer.h"
 #include <atomic>
@@ -45,6 +45,7 @@ namespace APESEARCH
       Node node;
       Bloomfilter bloomfilter;
       unique_mmap pagesCrawled;
+      UrlFrontier frontier;
       APESEARCH::mutex lkForPages;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       //Node networkNode;
@@ -56,14 +57,14 @@ namespace APESEARCH
       void writeToFile( HtmlParser& );
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
-      void intel();
-      void cleanUp(); 
+      void intel( );
+      void cleanUp( ); 
       void startUpCrawlers( const std::size_t );
     public:
       Mercator( APESEARCH::vector<APESEARCH::string>& ips, int id, const char *frontDir, const char * dbDir, size_t amtOfCrawlers, size_t amtOfParsers, size_t amtOfFWriters, APESEARCH::vector<Link>& seed_links ) : 
          // Size of buffer, amount of threads, max submits
          pool( CircBuf( ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ), amtOfCrawlers + amtOfParsers + amtOfFWriters, ( amtOfCrawlers + amtOfParsers + amtOfFWriters ) * 3 ) 
-         ,set( frontDir ), db( dbDir ), bloomfilter(), node( ips, id, set, db, bloomfilter ), liveliness( true )
+         ,frontier( frontDir, amtOfCrawlers ), db( dbDir ), bloomfilter(), node( ips, id, frontier, db, bloomfilter ), liveliness( true )
          {
          for (size_t i = 0; i < seed_links.size(); i++)
          {
