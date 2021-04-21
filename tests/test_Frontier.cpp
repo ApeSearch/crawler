@@ -99,7 +99,7 @@ TEST( test_frontier_NoName_After )
 
 void func(UrlFrontier &frontier, APESEARCH::string &str)
 {
-    for ( unsigned n = 0; n < 500; ++n )
+    for ( unsigned n = 0; n < 5; ++n )
       {
       frontier.insertNewUrl( str );
       }
@@ -112,15 +112,15 @@ TEST( test_Concurrent )
    UrlFrontier frontier( 1 );
    APESEARCH::vector<APESEARCH::string> vec = {"https://www.yahoo.com/something", "https://www.youtube.com/something", "https://www.gmail.com/something", "https://www.reddit.com/something", "https://www.blue.com/something"};
 
-   for ( size_t n = 0; n < 200; ++n )
-      {
+   //for ( size_t n = 0; n < 200; ++n )
+   //   {
       for ( size_t n = 0; n < vec.size( ); ++n )
          {
          std::thread t = std::thread( func, std::ref( frontier ), std::ref( vec[n] ) );
          t.detach();
          }
-      } // end for
-   for ( unsigned n = 0; n < vec.size( ) * 200 * 500; ++n )
+   //   } // end for
+   for ( unsigned n = 0; n < vec.size( ) * 5; ++n )
         {
         coutLk.lock( );
         std::cout << "Getting next url:\n";

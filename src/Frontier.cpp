@@ -169,7 +169,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
    std::unordered_map< std::string, size_t >::iterator itr;
 
    auto& queue = domainQueues[ index ].queueWLk.pQueue;
-   while ( liveliness.load() && queue.empty() )
+   while ( liveliness.load() && queue.empty() && domainQueues[ index ].domain == domain )
       {
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
@@ -196,9 +196,21 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          else
             {
             indToInsert = index;
+            qLk.lock( );
             // Delete previously domain from map
             if ( !domain.empty() )
                {
+               // In the case that no longer has queue associated...
+               // Another thread is now responsible...
+               // Also needs to account for timeStampInDomain is true ( say returned back to domain ( from a previous one) )
+               // Still needs to check
+               if ( domainQueues[ index ].domain != domain || domainQueues[ index ].timeStampInDomain )
+                  {
+                  uniqMLk.unlock(); // Must happen after obtaining the queue lock
+                  qLk.unlock( );
+                  set.enqueue( url ); // Need to return back to frontier
+                  return; // Pass responsiblity to another thread
+                  } // end if
                itr = domainsMap.find( domain );
                assert( itr != domainsMap.end() );
                assert( indToInsert == index );
@@ -210,7 +222,6 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
                std::tuple<char *, char*>(  parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
             itr = domainsMap.end( );
             assert( domainsMap.find( extractedDomain ) != domainsMap.end( ) );
-            qLk.lock( );
             uniqMLk.unlock(); // Must happen after obtaining the queue lock
 
             // Reinsert a fresh new timestamp
@@ -422,6 +433,10 @@ APESEARCH::string UrlFrontier::getNextUrl( )
    if ( ind != backEnd.domainQueues.size() )
       {
       APESEARCH::unique_lock< APESEARCH::mutex > uniqQLk( backEnd.domainQueues[ ind ].queueWLk.queueLk );
+      if ( backEnd.domainQueues[ ind ].timeStampInDomain )
+         {
+         int held = 0;
+         }
       assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
 
       auto func = [ this, domain{ std::string( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )

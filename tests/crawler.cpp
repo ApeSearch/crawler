@@ -38,8 +38,8 @@ int main( int argc, char **argv )
         } // end if
     
     
-    // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 1024, 512, 0, seed_links);
+    // crawlers, parsers, writers
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 2048, 512, 512, seed_links);
     
     merc.user_handler( );
     return 0;

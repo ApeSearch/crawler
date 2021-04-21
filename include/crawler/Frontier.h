@@ -20,6 +20,7 @@
 #include "../../libraries/AS/include/AS/File.h"
 #include "../../libraries/AS/include/AS/as_semaphore.h"
 #include "../../libraries/AS/include/AS/pthread_pool.h"
+#include "../../libraries/AS/include/AS/unique_ptr.h"
 #include "../../libraries/AS/include/AS/utility.h"
 #include "ParsedUrl.h"
 #include "SetOfUrls.h"
@@ -100,6 +101,7 @@ class UrlFrontier
             QueueWLock< endQueueSize > queueWLk;
             std::string domain; // Used for insert timing to check once it's been woken up that queue it's sleeping on still has the same domain
             APESEARCH::condition_variable queueCV;
+            APESEARCH::unique_ptr< std::chrono::time_point<std::chrono::system_clock> >heldDT;
             bool timeStampInDomain = false;
             };
     
