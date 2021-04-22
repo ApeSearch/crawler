@@ -101,6 +101,8 @@ Result Request::getReqAndParse(const char *urlStr)
             {
             return res;
             }
+         else if ( !isHtml )
+            return Result( getReqStatus::notHtml );
 
          getBody( socket, headerPtrs );
          if ( headerBad )
@@ -299,6 +301,13 @@ Result Request::parseHeader( char const * const endOfHeader )
                   } // end while
                foundContentLength = contentLength = true; 
                };
+            
+            auto ContentType = [ this ]( char const * front, char const * end )  
+               {
+               if ( strCmp( front, end, "text/html" ) )
+                  isHtml = true;
+               };
+            
             if ( !foundGzipped )
                processField( headerPtr, endOfLine, "Content-Encoding: ", Cpred, FieldTerminator() );
             if ( !foundChunked && !foundContentLength )
@@ -310,7 +319,9 @@ Result Request::parseHeader( char const * const endOfHeader )
                   return resultOfReq;
                   } // end if
                }
-            
+            if( !isHtml )
+               processField( headerPtr, endOfLine, "Content-Type: ", ContentType ,FieldTerminator() );
+
             break;
             } // end case 'C'
          case 'L':

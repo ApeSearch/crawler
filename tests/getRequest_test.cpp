@@ -7,16 +7,16 @@ int main()
     {
     SSL_library_init();
     //const char * const exampleUrl = "https://umich.edu/";
-    const char * const exampleUrl = "https://www.hypebot.com/hypebot/2015/07/bmg-gets-soul-acquires-minder-music-and-cavalcade-recordings.html+of+Brazil/";
+    const char * const exampleUrl = "https://web.archive.org/web/20070614025835/http://www.unhcr.org/publ/PUBL/4492677f0.pdf";
     //https://news.ycombinator.com/item?id=26854819
 
     Request requester;
     // Figure out results
     Result result( requester.getReqAndParse( exampleUrl ) );    
 
-    //assert( result.status == getReqStatus::successful  );
+    assert( result.status == getReqStatus::notHtml  );
     // Get results
-    APESEARCH::vector<char> buff = requester.getResponseBuffer();
+    //APESEARCH::vector<char> buff = requester.getResponseBuffer();
 
-    write(1, buff.begin(), buff.size());
+    //write(1, buff.begin(), buff.size());
     } // end main() https://news.ycombinator.comP

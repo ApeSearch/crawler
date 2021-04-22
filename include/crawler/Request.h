@@ -24,6 +24,7 @@ enum class getReqStatus
    redirected, // What url to redirected ( give to frontier for them to check )
    timedOut,   // 
    badHtml,     // Tell crawler to throw away such html
+   notHtml,
    badURL,
    ServerIssue
 };
@@ -61,6 +62,7 @@ class Request
             case '\n':
             case ' ':
             case ',':
+            case ';':
                return true;
             default:
                return false;
@@ -73,7 +75,7 @@ class Request
    //std::string buffer;
    std::size_t contentLengthBytes = 0;
    unsigned state;
-   bool gzipped, chunked, redirect, contentLength, headerBad;
+   bool gzipped, chunked, redirect, contentLength, headerBad, isHtml;
    bool foundGzipped, foundChunked, foundUrl, foundContentLength;
    // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
    APESEARCH::pair< std::string, size_t > processedResponse;
