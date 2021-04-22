@@ -205,6 +205,9 @@ TEST(test_condense_file){
     anchorString += "www.monkey.com\nmonkey monkey \n";
     anchorString.push_back('\0');
     anchorString += "www.monkey.com\nmonkey monkey \n";
+    anchorString.push_back('\0');
+    anchorString += "www.bonobo.com\npoop \n";
+    anchorString.push_back('\0');
 
     std::string parsedString = "www.monkey.com\nmonkeys are strong\n0 2 \n\n1 \n\n2\n3\n4\n";
     parsedString.push_back('\0');
@@ -223,6 +226,8 @@ TEST(test_condense_file){
     APESEARCH::string check = "www.monkey.com\nmonkeys are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"monkey monkey\" 2\n\"hello\" 1\n";
     check.push_back('\0');
     check += "www.ape.com\napes are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"fuck\" 1\n";
+    check.push_back('\0');
+    check += "www.bonobo.com\n\n\n\n\n\n\n\n\n\"poop\" 1\n";
     check.push_back('\0');
     ASSERT_EQUAL(check, readData);
     condensed.truncate(0);

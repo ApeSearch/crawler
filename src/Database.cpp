@@ -306,8 +306,21 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
             char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
             std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
             condensedFile.write(anchorContent.c_str(), anchorContent.length());
+            anchorMap.erase(url);
         }
         condensedFile.write(null_char, 1);
+    }
+    for(const auto &it : anchorMap){
+        std::string writeString = it.first + "\n\n\n\n\n\n\n\n\n";
+        std::string anchorMapPath = (anchorMap[it.first] < 50000) ? path0 : (anchorMap[it.first] < 100000) ? path1 : path2;
+        anchorMapPath += std::to_string(anchorMap[it.first]);
+        APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
+        unique_mmap anchorMapMem( anchorMapFile.fileSize(), PROT_READ, MAP_SHARED, anchorMapFile.getFD(), 0 );
+        char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
+        std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
+        writeString += anchorContent;
+        writeString.push_back('\0');
+        condensedFile.write(writeString.c_str(), writeString.length());
     }
 }
 
