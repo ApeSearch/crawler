@@ -15,4 +15,4 @@ sudo apt-get install libz-dev
 sudo apt autoremove
 chmod +x ./scripts/reset.sh
 ./scripts/reset.sh
-make clean; make -j release
+make clean; make -j tests/crawler
