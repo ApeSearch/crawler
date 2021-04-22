@@ -4,6 +4,9 @@
 #include <fstream>
 #include <signal.h>
 #include "../include/crawler/SSLSocket.h"
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
 
 #define MAXNODES 12
 // ./exec <NODE_ID> 
@@ -16,12 +19,11 @@ int main( int argc, char **argv )
     //SIGPIPE setting
     signal(SIGPIPE, SIG_IGN);
 
-    int node_id = atoi( argv[ 1 ] );
-    if ( node_id < 0 || node_id > MAXNODES  )
-       {
-       std::cerr << "Node id is out of bounds: " << node_id << std::endl;
-       return 1;
-       } // end if
+    //if ( node_id < 0 || node_id > MAXNODES  )
+    //   {
+    //   std::cerr << "Node id is out of bounds: " << node_id << std::endl;
+    //   return 1;
+    //   } // end if
     
     APESEARCH::vector<Link> seed_links;
     std::string url;
@@ -43,11 +45,39 @@ int main( int argc, char **argv )
         std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
         return 2;
         } // end if
-    
+
+    struct ifaddrs *ifap, *ifa;
+    struct sockaddr_in *sa;
+    char *addr;
+    int node_id = -1;
+
+    getifaddrs (&ifap);
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
+            sa = (struct sockaddr_in *) ifa->ifa_addr;
+            addr = inet_ntoa(sa->sin_addr);
+            
+            for(int i =0; i < ips.size(); ++i)
+                {
+                if( !strcmp( ips[ i ].cstr( ), addr ) )
+                    {
+                        std::cerr << "Starting to run on this ip: " << ips[ i ] <<  " this is Node " << i << "\n";
+                        node_id = i;
+                        break; 
+                    }                    
+                }
+        }
+    } // end for
+    freeifaddrs(ifap);
+    if( node_id < 0)
+    {
+        std::cerr << "Could not find your local ip address\n";
+        return 3;
+    }
     
     // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
+    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
     
-    merc.user_handler( );
+    //merc.user_handler( );
     return 0;
     } // end main( )
