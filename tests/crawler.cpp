@@ -25,6 +25,8 @@ int main( int argc, char **argv )
     //   return 1;
     //   } // end if
     
+    printf("IP address: %s\n", argv[1]);
+
     APESEARCH::vector<Link> seed_links;
     std::string url;
 
@@ -46,29 +48,17 @@ int main( int argc, char **argv )
         return 2;
         } // end if
 
-    struct ifaddrs *ifap, *ifa;
-    struct sockaddr_in *sa;
-    char *addr;
     int node_id = -1;
-
-    getifaddrs (&ifap);
-    for (ifa = ifap; ifa && node_id == -1; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
-            sa = (struct sockaddr_in *) ifa->ifa_addr;
-            addr = inet_ntoa(sa->sin_addr);
             
-            for(int i =0; i < ips.size(); ++i)
-                {
-                if( !strcmp( ips[ i ].cstr( ), addr ) )
-                    {
-                        std::cerr << "Starting to run on this ip: " << ips[ i ] <<  " this is Node " << i << "\n";
-                        node_id = i;
-                        break; 
-                    }                    
-                }
-        }
-    } // end for
-    freeifaddrs(ifap);
+    for(int i =0; i < ips.size(); ++i)
+        {
+        if( !strcmp( ips[ i ].cstr( ), argv[ 1 ] ) )
+            {
+                std::cerr << "Starting to run on this ip: " << ips[ i ] <<  " this is Node " << i << "\n";
+                node_id = i;
+                break; 
+            }                    
+        } // end for
     if( node_id < 0)
     {
         std::cerr << "Could not find your local ip address\n";
@@ -76,8 +66,8 @@ int main( int argc, char **argv )
     }
     
     // crawlers, parsers
-    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
     
-    //merc.user_handler( );
+    merc.user_handler( );
     return 0;
     } // end main( )
