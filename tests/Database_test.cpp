@@ -215,6 +215,8 @@ TEST(test_condense_file){
     anchor.write(anchorString.c_str(), anchorString.length());
     parsed.write(parsedString.c_str(), parsedString.length());
 
+    std::cout << anchor.fileSize() << " " << parsed.fileSize() << std::endl;
+
     Database db;
     db.condenseFile(anchor, parsed, 0);
     std::string condPath = "./condensedFiles/condensedFile0";
@@ -254,5 +256,10 @@ TEST(test_format_file){
     check = "";
     ASSERT_EQUAL(check, read2);
     anchor.truncate(0);
+}
+
+TEST(test_condense_files_empty){
+    Database db;
+    db.condenseFiles();
 }
 TEST_MAIN()
