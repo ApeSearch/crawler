@@ -70,7 +70,7 @@ class UrlFrontier
     {
     public:
         // Member Variables
-        static const constexpr std::size_t urlsPerPriority = 1024;
+        static const constexpr std::size_t urlsPerPriority = 3096;
         APESEARCH::vector< QueueWLock< urlsPerPriority > > pQueues;
         APESEARCH::semaphore empty;
         APESEARCH::semaphore full;

@@ -57,3 +57,6 @@ https://www.costco.com
 https://nypost.com
 https://www.businessinsider.com
 https://www.samsung.com/us/
+https://hamiltonlabs.com/
+http://www.umich.edu/~eecs381/
+https://umich.edu/

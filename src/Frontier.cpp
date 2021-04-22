@@ -14,9 +14,9 @@
 // .gov
 // .edu
 // Any other domain
-#define SECSTOWAIT 10
+#define SECSTOWAIT 7
 
-// Returns a timepoint about 10 seconds into the future...
+// Returns a timepoint about 7 seconds into the future...
 std::chrono::time_point<std::chrono::system_clock> newTime( )
    {
    auto startMs = std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() );

@@ -5,7 +5,7 @@
 #include <signal.h>
 #include "../include/crawler/SSLSocket.h"
 
-#define MAXNODES 4
+#define MAXNODES 12
 // ./exec <NODE_ID> 
 // ./exec 1 < seed_list.txt
 //34.201.187.203 ( 1 )

@@ -4,7 +4,7 @@
 #ifndef REQUEST_H_APESEARCH
 #define REQUEST_H_APESEARCH
 
-#define MAXATTEMPTS 5
+#define MAXATTEMPTS 3
 
 
 #include <memory>
@@ -84,7 +84,7 @@ class Request
    static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu nikolag@umich.edu skarahan@umich.edu alexwong@umich.edu paulzhan@umich.edu cluc@umich.edu (Linux)\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n";
    //static constexpr const char * const fields = "User-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
-   static constexpr time_t timeoutSec = 10;
+   static constexpr time_t timeoutSec = 7;
 
    inline void resetState()
       {

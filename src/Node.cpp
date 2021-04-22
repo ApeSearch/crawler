@@ -6,9 +6,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MAXTHREADS 16
-#define BLOOMFILTER
-#define BUFFERSIZE 65536
+#define MAXTHREADS 25
+#define BUFFERSIZE 262144
 #define PORT 6666
 
 using APESEARCH::unique_ptr;
