@@ -319,13 +319,9 @@ Result Request::parseHeader( char const * const endOfHeader )
                   return resultOfReq;
                   } // end if
                }
-<<<<<<< HEAD
             if( !isHtml )
                processField( headerPtr, endOfLine, "Content-Type: ", ContentType ,FieldTerminator() );
 
-=======
-            
->>>>>>> 5e305c39b6061167d1b9ef4296f778bbb1297562
             break;
             } // end case 'C'
          case 'L':
