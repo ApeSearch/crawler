@@ -400,7 +400,7 @@ APESEARCH::string UrlFrontier::getNextUrl( )
    if ( ind != backEnd.domainQueues.size() )
       {
       APESEARCH::unique_lock< APESEARCH::mutex > uniqQLk( backEnd.domainQueues[ ind ].queueWLk.queueLk );
-      assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
+      //assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
 
       auto func = [ this, domain{ std::string( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )
          { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, domain ); };
