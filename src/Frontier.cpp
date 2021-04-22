@@ -286,12 +286,9 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
             backendHeap.emplace( time, ind );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
-            //domainQueues[ ind ].queueCV.notify_one( );
-            //std::cout << "Succeeded in placing " << domain << "into heap\n";
             return true;
             }
          // Indicates failure
-         //std::cout << "Couldn't place into heap Alread in domainMap\n";
          return false;
          } // end if
       } // end for
@@ -400,7 +397,7 @@ APESEARCH::string UrlFrontier::getNextUrl( )
    if ( ind != backEnd.domainQueues.size() )
       {
       APESEARCH::unique_lock< APESEARCH::mutex > uniqQLk( backEnd.domainQueues[ ind ].queueWLk.queueLk );
-      assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
+      //assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
 
       auto func = [ this, domain{ std::string( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )
          { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, domain ); };

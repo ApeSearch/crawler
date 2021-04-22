@@ -156,7 +156,7 @@ APESEARCH::vector<char> SetOfUrls::getNextDirEntry( DIR *dir )
       {
       if ( dp->d_type == DT_REG )
          {
-         if ( !strncmp( dp->d_name, "urlSlice", 8 ) && verifyFile( dp->d_name ) )
+         if ( !strncmp( dp->d_name, "urlSlice", 8 )/* && verifyFile( dp->d_name ) */)
             {
             size_t length = strlen( dp->d_name );
             APESEARCH::vector<char> vec( length + 1, 0 );

@@ -12,7 +12,7 @@ class SSLSocket : public Socket
    public:
      SSLSocket(const Address& address, time_t seconds);
       
-     ~SSLSocket();
+     virtual ~SSLSocket();
 
      ssize_t send(const char* buffer, int length) override;
 
