@@ -54,7 +54,7 @@ void reduceFile( std::string path )
     }
     file.truncate(0);
     APESEARCH::vector<std::pair<std::string, int>> tempVec;
-    for(auto i : phraseFreq){
+    for( auto& i : phraseFreq ) {
         tempVec.push_back(std::make_pair(i.first, i.second));
     }
     std::sort(tempVec.begin(), tempVec.end(), sortbysecdesc);

@@ -1,5 +1,5 @@
 CC=g++ -g3 -std=c++17 -Wall -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
-CXX=g++ -O3 -DNDEBUG -std=c++1z -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
+CXX=g++ -O3 -DNDEBUG -std=c++17 -pedantic -Wconversion -Wextra -Wreorder -fno-builtin
 CXXFLAGS = -std=c++1z
 
 LDFLAGS:=-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto -lpthread -lz
@@ -38,7 +38,6 @@ OUTPUT=tests/output
 STDEXECDIR=tests/std_bin
 TESTDIR=tests
 
-release: ${CC}=${CXX} crawler
 
 all: test
 
@@ -65,6 +64,8 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 test: ${TEST_SRC} 
 
 crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
+	@mkdir -p storageFiles parsedFiles anchorFiles
+	@mkdir -p ${MODULEDIR}
 	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
 
 update:
@@ -81,7 +82,7 @@ HtmlParser: Parser/HtmlParser.cpp Parser/HtmlTags.cpp
 	${CC} -DLOCAL -o $@ $^
 
 release: CC=${CXX}
-release: clean all
+release: clean crawler
 
 .PHONY: clean
 

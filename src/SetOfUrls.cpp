@@ -145,7 +145,7 @@ SetOfUrls::~SetOfUrls()
 */
 APESEARCH::vector<char> SetOfUrls::getNextDirEntry( DIR *dir )
    {
-   std::cout << "In getNextDirEntry\n";
+   //std::cout << "In getNextDirEntry\n";
    struct dirent *dp;
    //highPriorityThreadWaiting.store( true );
    //APESEARCH::unique_lock<APESEARCH::mutex> bQLk( backQLk );

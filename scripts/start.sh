@@ -1,1 +1,0 @@
-./tests/bin/crawler 0

@@ -1,8 +1,9 @@
 
-#include "../include/crawler/Mercator.h"
+#include "include/crawler/Mercator.h"
 #include <signal.h> 
 #include <fstream>
 #include <signal.h>
+#include "include/crawler/SSLSocket.h"
 
 #define MAXNODES 4
 // ./exec <NODE_ID> 
@@ -10,6 +11,8 @@
 //34.201.187.203 ( 1 )
 int main( int argc, char **argv )
     {
+    // Initialize SSLlibrary
+    SSL_library_init( );
     //SIGPIPE setting
     signal(SIGPIPE, SIG_IGN);
 
