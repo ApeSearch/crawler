@@ -64,7 +64,7 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 test: ${TEST_SRC} 
 
 crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
-	@mkdir -p storageFiles parsedFiles anchorFiles
+	@mkdir -p storageFiles parsedFiles anchorFiles anchorMapFiles0 anchorMapFiles1 anchorMapFiles2 condensedFiles
 	@mkdir -p ${MODULEDIR}
 	${CC} -D${FLAGS} $^ ${LDFLAGS} -o ${MODULEDIR}/$(notdir $@)
 
