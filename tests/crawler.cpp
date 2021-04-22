@@ -18,12 +18,6 @@ int main( int argc, char **argv )
     SSL_library_init( );
     //SIGPIPE setting
     signal(SIGPIPE, SIG_IGN);
-
-    //if ( node_id < 0 || node_id > MAXNODES  )
-    //   {
-    //   std::cerr << "Node id is out of bounds: " << node_id << std::endl;
-    //   return 1;
-    //   } // end if
     
     printf("IP address: %s\n", argv[1]);
 
@@ -57,7 +51,7 @@ int main( int argc, char **argv )
                 std::cerr << "Starting to run on this ip: " << ips[ i ] <<  " this is Node " << i << "\n";
                 node_id = i;
                 break; 
-            }                    
+            } // end if             
         } // end for
     if( node_id < 0)
     {
