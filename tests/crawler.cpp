@@ -37,8 +37,8 @@ int main( int argc, char **argv )
 
     
     //Christians,Alexs,Pauls_first, Pauls_second
-    APESEARCH::vector<APESEARCH::string> ips = {"54.84.17.85","34.201.187.203","23.21.84.212","34.233.155.58"};
-    if(ips.size() != 4)
+    APESEARCH::vector<APESEARCH::string> ips = {"35.230.41.55", ""};
+    if(ips.size() != MAXNODES)
         {
         std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
         return 2;
