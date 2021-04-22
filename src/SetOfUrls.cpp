@@ -242,7 +242,6 @@ bool SetOfUrls::popNewBatch()
       frontQPtr = reinterpret_cast< char *>( frontOfQueue.get() );
       frontQEnd = frontQPtr + fileSize;
       } // end if
-   //std::cout << "Returning with bool: " << std::boolalpha << !dp.empty( ) << std::endl;
    return !dp.empty( );
    } // end popNewBack()
 
