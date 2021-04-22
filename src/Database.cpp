@@ -248,6 +248,10 @@ void writePhrase(int fileCount, std::string phrase){
 }
 
 void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap, int &fileCount){
+
+    if(fileSize == 0){
+        return;
+    }
     
     char const *startingPtr = anchorPtr;
     while(anchorPtr < startingPtr + fileSize){
@@ -285,7 +289,7 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
     APESEARCH::File condensedFile( path.c_str(), O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
     condensedFile.truncate(0);
     char const *it = parsedPtr;
-    while(it < parsedPtr + fileSize){
+    while(it && it < parsedPtr + fileSize){
         char const *beg = it;
         
         while(*it != '\n'){
