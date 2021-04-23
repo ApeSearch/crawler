@@ -263,7 +263,7 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
         }
         anchorPtr++;
         if(anchorPtr >= startingPtr + fileSize){
-            std::cerr << "Anchor was improperly formatted" <<std::endl;
+            std::cerr << "Anchor was improperly formatted and went over filesize" <<std::endl;
             return;
         }
 
@@ -277,15 +277,26 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
         }
 
         
-
+        bool isAlphaNum = true;
         std::string phrase = "";
         while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\n'){
+            if(!std::isalnum(*anchorPtr) && *anchorPtr != ' '){
+                isAlphaNum = false;
+            }
             phrase.push_back(*anchorPtr);
             anchorPtr++;
         }
         anchorPtr++;
+        if(!isAlphaNum){
+            std::cerr << "Anchor text was not alphanum" <<std::endl;
+            while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
+                anchorPtr++;
+            }
+            anchorPtr++;
+            continue;
+        }
         if(anchorPtr >= startingPtr + fileSize){
-            std::cerr << "Anchor was improperly formatted" <<std::endl;
+            std::cerr << "Anchor was improperly formatted and went over fileSize" <<std::endl;
             return;
         }
         if(*anchorPtr == '\0'){
@@ -295,13 +306,13 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
             writePhrase(anchorMap[url], phrase);
         }
         else{
-            std::cerr << "Anchor was improperly formatted" <<std::endl;
+            std::cerr << "Anchor was improperly formatted did not find a null where it was supposed to" <<std::endl;
             while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
                 anchorPtr++;
             }
         }
         if(anchorPtr >= startingPtr + fileSize){
-            std::cerr << "Anchor was improperly formatted" <<std::endl;
+            std::cerr << "Anchor was improperly formatted amd went over filesize" <<std::endl;
             return;
         }
         

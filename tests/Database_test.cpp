@@ -232,6 +232,8 @@ TEST(test_condense_file){
     check.push_back('\0');
     ASSERT_EQUAL(check, readData);
     condensed.truncate(0);
+    anchor.truncate(0);
+    parsed.truncate(0);
 
 }
 
@@ -292,7 +294,7 @@ TEST(test_parsed_anchor_file_broken){
     db.cleanAnchorMap(2);
 }
 
-TEST(test_condense_broken){
+TEST(test_condense_broken_parsed){
     std::string path1 = "../testFiles/anchorTest";
     std::string path2 ="../testFiles/parsedTest";
     APESEARCH::File anchor(path1.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
@@ -322,6 +324,41 @@ TEST(test_condense_broken){
     std::string condPath = "./condensedFiles/condensedFile0";
     APESEARCH::File condensed(condPath.c_str(), O_RDWR, mode_t(0600));
     ASSERT_EQUAL(condensed.fileSize(), 0);
+    condensed.truncate(0);
+    anchor.truncate(0);
+    parsed.truncate(0);
+}
+
+TEST(test_condense_broken_anchor){
+    std::string path1 = "../testFiles/anchorTest";
+    std::string path2 ="../testFiles/parsedTest";
+    APESEARCH::File anchor(path1.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    APESEARCH::File parsed(path2.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    std::string anchorString = "https://www.monkey.com\n23 \n";
+    anchorString.push_back('\0');
+    anchorString += "https://www.monkey.com\nmonkey!!!! \n";
+    anchorString.push_back('\0');
+
+    std::string parsedString = "https://www.monkey.com\nyes no \n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "https://www.ape.com\n,, !! ++ \n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "http://www.bonobo.com\n\n\n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    anchor.write(anchorString.c_str(), anchorString.length());
+    parsed.write(parsedString.c_str(), parsedString.length());
+
+    Database db;
+    db.condenseFile(anchor, parsed, 0);
+    std::string condPath = "./condensedFiles/condensedFile0";
+    APESEARCH::File condensed(condPath.c_str(), O_RDWR, mode_t(0600));
+    unique_mmap mmap( condensed.fileSize(), PROT_READ, MAP_SHARED, condensed.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( mmap.get() );
+    std::string readData( ptr, ptr + condensed.fileSize() );
+    std::string check = "https://www.monkey.com\nyes no \n0 2 \n\n1 \n\n2\n3\n4\n\"23\" 1\n";
+    check.push_back('\0');
+
+    ASSERT_EQUAL(readData, check);
     condensed.truncate(0);
     anchor.truncate(0);
     parsed.truncate(0);
