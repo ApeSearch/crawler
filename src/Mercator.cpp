@@ -134,8 +134,8 @@ void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
          parser.links[i].URL = parser.base;
          parser.links[i].URL += rel;
       }
-      
-      node.write(parser.links[i]);
+      if ( !strncmp( parser.links[i].URL.cstr(), "https", 5 ) )
+            node.write(parser.links[i]);
       
    }
 }
