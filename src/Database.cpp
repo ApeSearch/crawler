@@ -32,7 +32,7 @@ bool sortbysecdesc(const std::pair<std::string,int> &a,
        return a.second > b.second;
 }
 
-void reduceFile( std::string path )
+void reduceFile( const std::string& path )
     {
     APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
     if(file.fileSize() == 0){
@@ -90,7 +90,7 @@ APESEARCH::vector<size_t> &headingWords, APESEARCH::vector<size_t> &boldWords, c
     }
 }
 
-void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
+void writeIndex(APESEARCH::vector<size_t>& indexes, APESEARCH::File &file){
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
     char temp[MAX_INT_LENGTH];
@@ -233,7 +233,7 @@ void reduceAnchorMapFiles(int &fileCount){
 }
 
 
-void writePhrase(int fileCount, std::string phrase){
+void writePhrase( int fileCount, const std::string& phrase ){
     static const char* const newline_char = "\n";
     std::string path0 = "./anchorMapFiles0/anchorMapFile";
     std::string path1 = "./anchorMapFiles1/anchorMapFile";

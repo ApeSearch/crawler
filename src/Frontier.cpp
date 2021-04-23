@@ -284,7 +284,6 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
             backendHeap.emplace( time, ind );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
-            //domainQueues[ ind ].queueCV.notify_one( );
             //std::cout << "Succeeded in placing " << domain << "into heap\n";
             return true;
             }
