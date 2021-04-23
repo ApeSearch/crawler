@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <cctype> 
 
-
+int verifyWords(char const *parsedPtr);
 void reduceFile(std::string path);
 void formatFile(APESEARCH::File &file);
 

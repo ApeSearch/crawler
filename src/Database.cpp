@@ -413,7 +413,7 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
         }
         assert(*it == '\0');
         it++;
-        if(numNewLine > 7){
+        if(numNewLine > 8){
             anchorMap.erase(url);
             continue;
         }
@@ -497,6 +497,7 @@ void Database::cleanAnchorMap(int fileCount){
         file.truncate(0);
     }
 }
+
 
 
 
