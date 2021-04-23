@@ -263,7 +263,7 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
         }
         anchorPtr++;
         if(anchorPtr >= startingPtr + fileSize){
-            std::cerr << "Anchor was improperly formatted and went over filesize" <<std::endl;
+            //std::cerr << "Anchor was improperly formatted and went over filesize" <<std::endl;
             return;
         }
 
@@ -288,7 +288,7 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
         }
         anchorPtr++;
         if(!isAlphaNum){
-            std::cerr << "Anchor text was not alphanum" <<std::endl;
+            //std::cerr << "Anchor text was not alphanum" <<std::endl;
             while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
                 anchorPtr++;
             }
@@ -296,7 +296,7 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
             continue;
         }
         if(anchorPtr >= startingPtr + fileSize){
-            std::cerr << "Anchor was improperly formatted and went over fileSize" <<std::endl;
+            //std::cerr << "Anchor was improperly formatted and went over fileSize" <<std::endl;
             return;
         }
         if(*anchorPtr == '\0'){
@@ -306,13 +306,13 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
             writePhrase(anchorMap[url], phrase);
         }
         else{
-            std::cerr << "Anchor was improperly formatted did not find a null where it was supposed to" <<std::endl;
+            //std::cerr << "Anchor was improperly formatted did not find a null where it was supposed to" <<std::endl;
             while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
                 anchorPtr++;
             }
         }
         if(anchorPtr >= startingPtr + fileSize){
-            std::cerr << "Anchor was improperly formatted amd went over filesize" <<std::endl;
+            //std::cerr << "Anchor was improperly formatted amd went over filesize" <<std::endl;
             return;
         }
         
@@ -337,7 +337,7 @@ int verifyWords(char const *parsedPtr){
         bool isAlphaNum = true;
         while(*it != ' '){
             if(*it == '\n'){
-                std::cerr << "Parsed file incorrect format" << std::endl;
+                //std::cerr << "Parsed file incorrect format" << std::endl;
                 return -1;
             }
             if(!std::isalnum(*it)){
