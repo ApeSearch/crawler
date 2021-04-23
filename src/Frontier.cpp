@@ -97,9 +97,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
    if ( pQueues[ ind ].pQueue.empty() )
       {
       lk.unlock();
-#ifdef DEBUG
-      //std::cerr << "Empty fill in with an asynchronous thread\n";
-#endif
+
       // Start from the highest priority all the way to zero
       int n;
       for ( n = int ( pQueues.size() - 1 ); n >= 0; --n ) 
@@ -157,7 +155,6 @@ UrlFrontier::BackendPolitenessPolicy::~BackendPolitenessPolicy( )
       } // end for
    }
 
-// No need for lock since it's impossible for another thread to pop from this queue
 // Inserts its another time domain if new, otherwise, 
 // If domain is empty, accept any url,
 // otherwise, insert into any queue up to the one in which 
