@@ -35,6 +35,9 @@ bool sortbysecdesc(const std::pair<std::string,int> &a,
 void reduceFile( const std::string& path )
     {
     APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
+    if(file.fileSize() == 0){
+        return;
+    }
     unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
     std::unordered_map<std::string, int> phraseFreq;
     char const *mmapPtr = reinterpret_cast< char const *>( mmap.get() );
@@ -245,35 +248,126 @@ void writePhrase( int fileCount, const std::string& phrase ){
 }
 
 void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap, int &fileCount){
+
+    if(fileSize == 0){
+        return;
+    }
     
     char const *startingPtr = anchorPtr;
     while(anchorPtr < startingPtr + fileSize){
 
         std::string url = "";
-        while(*anchorPtr != '\n'){
+        while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\n'){
             url.push_back(*anchorPtr);
             anchorPtr++;
         }
         anchorPtr++;
-
-        if(anchorMap.find(url) == anchorMap.end()){
-            anchorMap[url] = fileCount++;
+        if(anchorPtr >= startingPtr + fileSize){
+            //std::cerr << "Anchor was improperly formatted and went over filesize" <<std::endl;
+            return;
         }
 
+        std::string prot = url.substr(0, 5);
+        if(prot != "https"){
+            while(*anchorPtr != '\0'){
+                anchorPtr++;
+            }
+            anchorPtr++;
+            continue;
+        }
+
+        
+        bool isAlphaNum = true;
         std::string phrase = "";
-        while(*anchorPtr != '\n'){
+        while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\n'){
+            if(!std::isalnum(*anchorPtr) && *anchorPtr != ' '){
+                isAlphaNum = false;
+            }
             phrase.push_back(*anchorPtr);
             anchorPtr++;
         }
         anchorPtr++;
-
-        writePhrase( anchorMap[url], phrase );
+        if(!isAlphaNum){
+            //std::cerr << "Anchor text was not alphanum" <<std::endl;
+            while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
+                anchorPtr++;
+            }
+            anchorPtr++;
+            continue;
+        }
+        if(anchorPtr >= startingPtr + fileSize){
+            //std::cerr << "Anchor was improperly formatted and went over fileSize" <<std::endl;
+            return;
+        }
+        if(*anchorPtr == '\0'){
+            if(anchorMap.find(url) == anchorMap.end()){
+                anchorMap[url] = fileCount++;
+            }
+            writePhrase(anchorMap[url], phrase);
+        }
+        else{
+            //std::cerr << "Anchor was improperly formatted did not find a null where it was supposed to" <<std::endl;
+            while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
+                anchorPtr++;
+            }
+        }
+        if(anchorPtr >= startingPtr + fileSize){
+            //std::cerr << "Anchor was improperly formatted amd went over filesize" <<std::endl;
+            return;
+        }
+        
         assert(*anchorPtr == '\0');
+        
         anchorPtr++;
     }
 }
 
-void writeCondensedFile(const std::string& path, std::unordered_map<std::string, int> &anchorMap, char const *parsedPtr, int fileSize){
+int verifyWords(char const *parsedPtr){
+    double totalWords = 0;
+    double numWord = 0;
+    double nonAlphaNumWord = 0;
+
+    char const *it = parsedPtr;
+    std::string word = "";
+    if(*it == '\n'){
+        return 0;
+    }
+    while(it && *it != '\n'){
+        bool isNum= true;
+        bool isAlphaNum = true;
+        while(*it != ' '){
+            if(*it == '\n'){
+                //std::cerr << "Parsed file incorrect format" << std::endl;
+                return -1;
+            }
+            if(!std::isalnum(*it)){
+                isAlphaNum = false;
+            }
+            if(!std::isdigit(*it)){
+                isNum = false;
+            }
+            it++;
+        }
+        totalWords++;
+        if(!isAlphaNum){
+            nonAlphaNumWord++;
+        }
+        if(isNum){
+            numWord++;
+        }
+        if(totalWords >= 100){
+            break;
+        }
+        it++;
+    }
+    it++;
+    if(numWord / totalWords >= .5 || nonAlphaNumWord / totalWords >= .5){
+        return -1;
+    }
+    return it - parsedPtr;
+}
+
+void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &anchorMap, char const *parsedPtr, int fileSize){
     std::string path0 = "./anchorMapFiles0/anchorMapFile";
     std::string path1 = "./anchorMapFiles1/anchorMapFile";
     std::string path2 = "./anchorMapFiles2/anchorMapFile";
@@ -282,41 +376,96 @@ void writeCondensedFile(const std::string& path, std::unordered_map<std::string,
     APESEARCH::File condensedFile( path.c_str(), O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
     condensedFile.truncate(0);
     char const *it = parsedPtr;
-    while(it < parsedPtr + fileSize){
+    while(it && it < parsedPtr + fileSize){
         char const *beg = it;
         
         while(*it != '\n'){
             it++;
         }
         std::string url(beg, it);
+        std::string prot = url.substr(0, 5);
+        if(prot != "https"){
+            anchorMap.erase(url);
+            while(*it != '\0'){
+                it++;
+            }
+            it++;
+            continue;
+        }
         it++;
-        
+        int parsedWordLen = verifyWords(it);
+        if(parsedWordLen == -1){
+            anchorMap.erase(url);
+            while(*it != '\0'){
+                it++;
+            }
+            it++;
+            continue;
+        }
+        it += parsedWordLen;
+
+        int numNewLine = 0;
         while(*it != '\0'){
+            if(*it == '\n'){
+                numNewLine++;
+            }
             it++;
         }
-        std::string parsedInfo(beg, it);
         assert(*it == '\0');
         it++;
-        condensedFile.write(parsedInfo.c_str(), parsedInfo.length());
+        if(numNewLine > 7){
+            anchorMap.erase(url);
+            continue;
+        }
+        std::string parsedInfo(beg, it);
+        condensedFile.write(parsedInfo.c_str(), parsedInfo.length() - 1);
         if(anchorMap.find(url) != anchorMap.end()){
             std::string anchorMapPath = (anchorMap[url] < 50000) ? path0 : (anchorMap[url] < 100000) ? path1 : path2;
             anchorMapPath += std::to_string(anchorMap[url]);
             APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
+            if(anchorMapFile.fileSize() != 0){
+                unique_mmap anchorMapMem( anchorMapFile.fileSize(), PROT_READ, MAP_SHARED, anchorMapFile.getFD(), 0 );
+                char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
+                std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
+                condensedFile.write(anchorContent.c_str(), anchorContent.length());
+            }
+            anchorMap.erase(url);
+        }
+        condensedFile.write(null_char, 1);
+    }
+    for(const auto &it : anchorMap){
+        std::string writeString = it.first + "\n\n\n\n\n\n\n\n\n";
+        std::string anchorMapPath = (anchorMap[it.first] < 50000) ? path0 : (anchorMap[it.first] < 100000) ? path1 : path2;
+        anchorMapPath += std::to_string(anchorMap[it.first]);
+        APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
+        if(anchorMapFile.fileSize() != 0){
             unique_mmap anchorMapMem( anchorMapFile.fileSize(), PROT_READ, MAP_SHARED, anchorMapFile.getFD(), 0 );
             char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
             std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
-            condensedFile.write(anchorContent.c_str(), anchorContent.length());
+            writeString += anchorContent;
+            writeString.push_back('\0');
+            condensedFile.write(writeString.c_str(), writeString.length());
         }
-        condensedFile.write(null_char, 1);
+        
     }
 }
 
 void Database::condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsedFile, int index){
-    unique_mmap anchorMem( anchorFile.fileSize(), PROT_READ, MAP_SHARED, anchorFile.getFD(), 0 );
-    char const *anchorPtr = reinterpret_cast< char const *>( anchorMem.get() );
+    char *anchorPtr = nullptr; 
+    char *parsedPtr = nullptr;
+    unique_mmap anchorMem;
 
-    unique_mmap parsedMem( parsedFile.fileSize(), PROT_READ, MAP_SHARED, parsedFile.getFD(), 0 );
-    char const *parsedPtr = reinterpret_cast< char const *>( parsedMem.get() );
+    if(anchorFile.fileSize() != 0){
+        anchorMem = unique_mmap( anchorFile.fileSize(), PROT_READ, MAP_SHARED, anchorFile.getFD(), 0 );
+        anchorPtr = reinterpret_cast< char *>( anchorMem.get() );
+    }
+
+    unique_mmap parsedMem;
+    if(parsedFile.fileSize() != 0){
+        parsedMem = unique_mmap( parsedFile.fileSize(), PROT_READ, MAP_SHARED, parsedFile.getFD(), 0 );
+        parsedPtr = reinterpret_cast< char *>( parsedMem.get() );
+    }
+    
 
     std::unordered_map<std::string, int> anchorMap;
     assert(anchorMap.max_size() > 150000);

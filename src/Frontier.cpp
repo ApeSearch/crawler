@@ -97,9 +97,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
    if ( pQueues[ ind ].pQueue.empty() )
       {
       lk.unlock();
-#ifdef DEBUG
-      //std::cerr << "Empty fill in with an asynchronous thread\n";
-#endif
+
       // Start from the highest priority all the way to zero
       int n;
       for ( n = int ( pQueues.size() - 1 ); n >= 0; --n ) 
@@ -157,7 +155,6 @@ UrlFrontier::BackendPolitenessPolicy::~BackendPolitenessPolicy( )
       } // end for
    }
 
-// No need for lock since it's impossible for another thread to pop from this queue
 // Inserts its another time domain if new, otherwise, 
 // If domain is empty, accept any url,
 // otherwise, insert into any queue up to the one in which 
@@ -174,7 +171,8 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      if ( !strncmp( url.cstr(), "http", 4 ) && *parsedUrl.Host )
+      // A quick fix to filter out http documents
+      if ( !strncmp( url.cstr(), "https", 5 ) && *parsedUrl.Host )
          {
          unsigned indToInsert = 0;
          std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );
@@ -399,7 +397,7 @@ APESEARCH::string UrlFrontier::getNextUrl( )
    if ( ind != backEnd.domainQueues.size() )
       {
       APESEARCH::unique_lock< APESEARCH::mutex > uniqQLk( backEnd.domainQueues[ ind ].queueWLk.queueLk );
-      assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
+      //assert( !backEnd.domainQueues[ ind ].timeStampInDomain );
 
       auto func = [ this, domain{ std::string( backEnd.domainQueues[ ind ].domain ) }]( const size_t index )
          { this->backEnd.fillUpEmptyBackQueue( frontEnd, set, index, domain ); };
