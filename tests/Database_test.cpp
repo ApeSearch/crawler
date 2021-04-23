@@ -14,12 +14,12 @@ TEST( test_addAnchorFile )
 {
     Database db;
     Link input;
-    input.URL = "www.google.com";
+    input.URL = "https://www.google.com";
     input.anchorText = {"1", "2", "3", "4"};
     size_t ind = db.hash( input.URL.cstr() ) % db.file_vector.size();
     db.file_vector[ind].anchorFile.truncate(0);
     db.addAnchorFile(input);
-    APESEARCH::string check = "www.google.com";
+    APESEARCH::string check = "https://www.google.com";
     check += "\n";
     check += "1 2 3 4 ";
     check += "\n";
@@ -42,8 +42,8 @@ TEST( test_addAnchorFile_ReOpen )
    {
     Database db;
     Link input;
-    input.URL = "www.google.com";
-    APESEARCH::string check = "www.google.com";
+    input.URL = "https://www.google.com";
+    APESEARCH::string check = "https://www.google.com";
     check += "\n";
     check += "1 2 3 4 ";
     check += "\n";
@@ -67,18 +67,18 @@ TEST(test_add_parsed_file)
     {
         Database db;
         HtmlParser parser;
-        parser.url = "www.google.com";
+        parser.url = "https://www.google.com";
         APESEARCH::vector<Word> temp;
         for(int i = 0; i < 10; i++){
             temp.emplace_back("monke", static_cast<Type>(i % 4));
         }
         parser.parsed_text = temp;
-        parser.base = "monkey.com";
+        parser.base = "https://www.monkey.com";
         parser.numHeadings = 420;
         parser.numParagraphs = 666;
         parser.numSentences = 440;
         db.addParsedFile(parser);
-        APESEARCH::string check = "www.google.com\nmonke monke monke monke monke monke monke monke monke monke \n1 5 9 \n2 6 \n3 7 \nmonkey.com\n666\n420\n440\n";
+        APESEARCH::string check = "https://www.google.com\nmonke monke monke monke monke monke monke monke monke monke \n1 5 9 \n2 6 \n3 7 \nhttps://www.monkey.com\n666\n420\n440\n";
         check.push_back('\0');
 
 
@@ -105,7 +105,7 @@ TEST(test_parsed_site)
         unique_mmap map( file.fileSize(), PROT_WRITE, MAP_SHARED, file.getFD(), 0 );
         const char *ptr = reinterpret_cast< const char *>( map.get() );
 
-        HtmlParser parser(ptr, file.fileSize(), "www.monkey.com" );
+        HtmlParser parser(ptr, file.fileSize(), "https://www.monkey.com" );
         Database db;
         size_t ind = db.hash( parser.url.cstr() ) % db.file_vector.size();
         std::cout << ind << std::endl;
@@ -116,7 +116,7 @@ TEST(test_parsed_site)
         unique_mmap map1( file1.fileSize(), PROT_WRITE, MAP_SHARED, file1.getFD(), 0 );
         const char *ptr1 = reinterpret_cast< const char *>( map1.get() );
 
-        HtmlParser parser1(ptr1, file1.fileSize(), "www.monkey.com" );
+        HtmlParser parser1(ptr1, file1.fileSize(), "https://www.monkey.com" );
         // size_t ind1 = db.hash( parser1.url.cstr() ) % db.file_vector.size();
         // std::cout << ind1 << std::endl;
         db.addParsedFile(parser1);
@@ -126,7 +126,7 @@ TEST(test_parsed_site)
         unique_mmap map2( file2.fileSize(), PROT_WRITE, MAP_SHARED, file2.getFD(), 0 );
         const char *ptr2 = reinterpret_cast< const char *>( map2.get() );
 
-        HtmlParser parser2(ptr2, file2.fileSize(), "www.monkey.com" );
+        HtmlParser parser2(ptr2, file2.fileSize(), "https://www.monkey.com" );
         db.addParsedFile(parser2);
 
         path = "./Parser/inputs/yoast.html";
@@ -134,18 +134,18 @@ TEST(test_parsed_site)
         unique_mmap map3( file3.fileSize(), PROT_WRITE, MAP_SHARED, file3.getFD(), 0 );
         const char *ptr3 = reinterpret_cast< const char *>( map3.get() );
 
-        HtmlParser parser3(ptr3, file3.fileSize(), "www.monkey.com" );
+        HtmlParser parser3(ptr3, file3.fileSize(), "https://www.monkey.com" );
         db.addParsedFile(parser3);
     }
 TEST(test_parsed_anchor_file){
-    std::string check = "www.google.com";
+    std::string check = "https://www.google.com";
     check += "\n";
     check += "1 2 3 4 ";
     check += "\n";
     check.push_back('\0');
-    check += "www.monkey.com";
+    check += "https://www.monkey.com";
     check += "\n";
-    check += "monkey good";
+    check += "monkey good ";
     check += "\n";
     check.push_back('\0'); 
     std::unordered_map<std::string, int> map;
@@ -197,20 +197,20 @@ TEST(test_condense_file){
     std::string path2 ="../testFiles/parsedTest";
     APESEARCH::File anchor(path1.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
     APESEARCH::File parsed(path2.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
-    std::string anchorString = "www.monkey.com\nhello \n";
+    std::string anchorString = "https://www.monkey.com\nhello \n";
     anchorString.push_back('\0');
-    anchorString += "www.ape.com\nfuck \n";
+    anchorString += "https://www.ape.com\nfuck \n";
     anchorString.push_back('\0');
-    anchorString += "www.monkey.com\nmonkey monkey \n";
+    anchorString += "https://www.monkey.com\nmonkey monkey \n";
     anchorString.push_back('\0');
-    anchorString += "www.monkey.com\nmonkey monkey \n";
+    anchorString += "https://www.monkey.com\nmonkey monkey \n";
     anchorString.push_back('\0');
-    anchorString += "www.bonobo.com\npoop \n";
+    anchorString += "https://www.bonobo.com\npoop \n";
     anchorString.push_back('\0');
 
-    std::string parsedString = "www.monkey.com\nmonkeys are strong\n0 2 \n\n1 \n\n2\n3\n4\n";
+    std::string parsedString = "https://www.monkey.com\nmonkeys are strong \n0 2 \n\n1 \n\n2\n3\n4\n";
     parsedString.push_back('\0');
-    parsedString += "www.ape.com\napes are strong\n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString += "https://www.ape.com\napes are strong \n0 2 \n\n1 \n\n2\n3\n4\n";
     parsedString.push_back('\0');
     anchor.write(anchorString.c_str(), anchorString.length());
     parsed.write(parsedString.c_str(), parsedString.length());
@@ -224,11 +224,11 @@ TEST(test_condense_file){
     unique_mmap mmap( condensed.fileSize(), PROT_READ, MAP_SHARED, condensed.getFD(), 0 );
     char const *ptr = reinterpret_cast< char const *>( mmap.get() );
     APESEARCH::string readData( ptr, ptr + condensed.fileSize() );
-    APESEARCH::string check = "www.monkey.com\nmonkeys are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"monkey monkey\" 2\n\"hello\" 1\n";
+    APESEARCH::string check = "https://www.monkey.com\nmonkeys are strong \n0 2 \n\n1 \n\n2\n3\n4\n\"monkey monkey\" 2\n\"hello\" 1\n";
     check.push_back('\0');
-    check += "www.ape.com\napes are strong\n0 2 \n\n1 \n\n2\n3\n4\n\"fuck\" 1\n";
+    check += "https://www.ape.com\napes are strong \n0 2 \n\n1 \n\n2\n3\n4\n\"fuck\" 1\n";
     check.push_back('\0');
-    check += "www.bonobo.com\n\n\n\n\n\n\n\n\n\"poop\" 1\n";
+    check += "https://www.bonobo.com\n\n\n\n\n\n\n\n\n\"poop\" 1\n";
     check.push_back('\0');
     ASSERT_EQUAL(check, readData);
     condensed.truncate(0);
@@ -262,4 +262,70 @@ TEST(test_condense_files_empty){
     Database db;
     db.condenseFiles();
 }
+
+TEST(test_parsed_anchor_file_broken){
+    std::string check = "https://www.google.com";
+    check += "\n";
+    check += "1 2 3 4 \n";
+    check += "\n";                  //this is broken format extra newline 
+    check.push_back('\0');
+    check += "https://www.monkey.com\n";
+    check += "\n";
+    check += "monkey good";
+    check += "\n";
+    check.push_back('\0');
+    check += "https://www.google.com\n1 2 3 4 \n";
+    check.push_back('\0');
+    std::unordered_map<std::string, int> map;
+
+    Database db;
+    int fileCount = 0;
+    db.parseAnchorFile(check.c_str(), check.length(), map, fileCount);
+    APESEARCH::string path = "./anchorMapFiles0/anchorMapFile0";
+    APESEARCH::File file(path.cstr(), O_RDWR , mode_t(0600));
+    unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
+    char const *ptr = reinterpret_cast< char const *>( mmap.get() );
+    APESEARCH::string readData( ptr, ptr + file.fileSize() );
+    APESEARCH::string temp = "1 2 3 4 ";
+    temp.push_back('\n');
+    ASSERT_EQUAL( temp, readData );
+    db.cleanAnchorMap(2);
+}
+
+TEST(test_condense_broken){
+    std::string path1 = "../testFiles/anchorTest";
+    std::string path2 ="../testFiles/parsedTest";
+    APESEARCH::File anchor(path1.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    APESEARCH::File parsed(path2.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    std::string anchorString = "https://www.monkey.com\nhello \n";
+    anchorString.push_back('\0');
+    anchorString += "https://www.ape.com\nfuck \n";
+    anchorString.push_back('\0');
+    anchorString += "http://www.monkey.com\nmonkey monkey \n";
+    anchorString.push_back('\0');
+    anchorString += "https://www.monkey.com\nmonkey monkey \n";
+    anchorString.push_back('\0');
+    anchorString += "http://www.bonobo.com\npoop \n";
+    anchorString.push_back('\0');
+
+    std::string parsedString = "https://www.monkey.com\n12 54 67 8 \n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "https://www.ape.com\napes !@ %^# << \n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "http://www.bonobo.com\n\n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    anchor.write(anchorString.c_str(), anchorString.length());
+    parsed.write(parsedString.c_str(), parsedString.length());
+
+    Database db;
+    db.condenseFile(anchor, parsed, 0);
+    std::string condPath = "./condensedFiles/condensedFile0";
+    APESEARCH::File condensed(condPath.c_str(), O_RDWR, mode_t(0600));
+    ASSERT_EQUAL(condensed.fileSize(), 0);
+    condensed.truncate(0);
+    anchor.truncate(0);
+    parsed.truncate(0);
+
+}
+
 TEST_MAIN()
