@@ -38,7 +38,7 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
     headerEnd = bufPtr = &*headerBuff.begin();
     //TODO check string.end() 
 
-    while( *place && ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
+    while( *place && static_cast<size_t > ( headerEnd - headerBuff.begin( ) ) < headerBuff.size( ) && ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
         {
         headerEnd += bytesReceived;
         while( *place && bufPtr != headerEnd )

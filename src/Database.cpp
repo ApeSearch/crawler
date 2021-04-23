@@ -35,6 +35,9 @@ bool sortbysecdesc(const std::pair<std::string,int> &a,
 void reduceFile( std::string path )
     {
     APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
+    if(file.fileSize() == 0){
+        return;
+    }
     unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
     std::unordered_map<std::string, int> phraseFreq;
     char const *mmapPtr = reinterpret_cast< char const *>( mmap.get() );
@@ -245,6 +248,10 @@ void writePhrase(int fileCount, std::string phrase){
 }
 
 void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap, int &fileCount){
+
+    if(fileSize == 0){
+        return;
+    }
     
     char const *startingPtr = anchorPtr;
     while(anchorPtr < startingPtr + fileSize){
@@ -282,7 +289,7 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
     APESEARCH::File condensedFile( path.c_str(), O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
     condensedFile.truncate(0);
     char const *it = parsedPtr;
-    while(it < parsedPtr + fileSize){
+    while(it && it < parsedPtr + fileSize){
         char const *beg = it;
         
         while(*it != '\n'){
@@ -302,21 +309,49 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
             std::string anchorMapPath = (anchorMap[url] < 50000) ? path0 : (anchorMap[url] < 100000) ? path1 : path2;
             anchorMapPath += std::to_string(anchorMap[url]);
             APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
+            if(anchorMapFile.fileSize() != 0){
+                unique_mmap anchorMapMem( anchorMapFile.fileSize(), PROT_READ, MAP_SHARED, anchorMapFile.getFD(), 0 );
+                char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
+                std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
+                condensedFile.write(anchorContent.c_str(), anchorContent.length());
+            }
+            anchorMap.erase(url);
+        }
+        condensedFile.write(null_char, 1);
+    }
+    for(const auto &it : anchorMap){
+        std::string writeString = it.first + "\n\n\n\n\n\n\n\n\n";
+        std::string anchorMapPath = (anchorMap[it.first] < 50000) ? path0 : (anchorMap[it.first] < 100000) ? path1 : path2;
+        anchorMapPath += std::to_string(anchorMap[it.first]);
+        APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
+        if(anchorMapFile.fileSize() != 0){
             unique_mmap anchorMapMem( anchorMapFile.fileSize(), PROT_READ, MAP_SHARED, anchorMapFile.getFD(), 0 );
             char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
             std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
-            condensedFile.write(anchorContent.c_str(), anchorContent.length());
+            writeString += anchorContent;
+            writeString.push_back('\0');
+            condensedFile.write(writeString.c_str(), writeString.length());
         }
-        condensedFile.write(null_char, 1);
+        
     }
 }
 
 void Database::condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsedFile, int index){
-    unique_mmap anchorMem( anchorFile.fileSize(), PROT_READ, MAP_SHARED, anchorFile.getFD(), 0 );
-    char const *anchorPtr = reinterpret_cast< char const *>( anchorMem.get() );
+    char *anchorPtr = nullptr; 
+    char *parsedPtr = nullptr;
+    unique_mmap anchorMem;
 
-    unique_mmap parsedMem( parsedFile.fileSize(), PROT_READ, MAP_SHARED, parsedFile.getFD(), 0 );
-    char const *parsedPtr = reinterpret_cast< char const *>( parsedMem.get() );
+    if(anchorFile.fileSize() != 0){
+        anchorMem = unique_mmap( anchorFile.fileSize(), PROT_READ, MAP_SHARED, anchorFile.getFD(), 0 );
+        anchorPtr = reinterpret_cast< char *>( anchorMem.get() );
+    }
+
+    unique_mmap parsedMem;
+    if(parsedFile.fileSize() != 0){
+        parsedMem = unique_mmap( parsedFile.fileSize(), PROT_READ, MAP_SHARED, parsedFile.getFD(), 0 );
+        parsedPtr = reinterpret_cast< char *>( parsedMem.get() );
+    }
+    
 
     std::unordered_map<std::string, int> anchorMap;
     assert(anchorMap.max_size() > 150000);
