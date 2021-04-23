@@ -66,12 +66,12 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
             }
          case getReqStatus::redirected:
             {
-            APESEARCH::string url( result.url.begin(), result.url.end() );
-            if( !bloomfilter.contains(url) )
+            // A quick fix to filter out http documents
+            if( !strncmp( result.url.cstr(), "https", 5 ) && !bloomfilter.contains( result.url ) )
                {
                Link link;
                link.URL = std::move( result.url );
-               auto func = [this, link{std::move( link ) } ]( ) mutable { node.write( link ); };
+               auto func = [this, link{ std::move( link ) } ]( ) mutable { node.write( link ); };
                pool.submitNoFuture( func );
                } // end if
             }
