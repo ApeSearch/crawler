@@ -92,6 +92,7 @@ class Request
       {
       gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = contentLength = foundContentLength = headerBad = false; // Reset state
       contentLengthBytes = 0;
+      bodyBuff = APESEARCH::vector< char >( );
       }
    
    void receiveNormally( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody );
