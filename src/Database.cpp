@@ -7,7 +7,7 @@
 
 //#include <linux/limits.h>
 
-#define NUM_OF_FILES 256
+#define NUM_OF_FILES 512
 #define MAX_PATH 1024
 #define MAX_INT_LENGTH 100
 

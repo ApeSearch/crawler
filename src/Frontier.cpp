@@ -16,6 +16,7 @@
 // Any other domain
 static APESEARCH::mutex coutLk;
 #define SECSTOWAIT 7
+#define NUMOFPRIORITY 3
 
 std::atomic<size_t> queuesChosen[ 3 ];
 
@@ -102,18 +103,17 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
       lk.unlock();
 
       // Start from the highest priority all the way to zero
-      size_t n = 0;
+      ind = 0;
       do
       {
-         lk = APESEARCH::unique_lock<APESEARCH::mutex> ( pQueues[ ( unsigned ) n  ].queueLk );
-         if ( !pQueues[ ( unsigned ) n ].pQueue.empty() )
+         lk = APESEARCH::unique_lock<APESEARCH::mutex> ( pQueues[ ind  ].queueLk );
+         if ( !pQueues[ ind ].pQueue.empty() )
             {
-            queue = &pQueues[ ( unsigned ) n ].pQueue;
+            queue = &pQueues[ ind ].pQueue;
             break;
             } // end if
-         n = ( n + 1 ) % 3;
+         ind = ( ind + 1 ) % NUMOFPRIORITY;
       } while ( true );
-      ind = n;
       } // end if
    else
       queue = &pQueues[ ind ].pQueue;
