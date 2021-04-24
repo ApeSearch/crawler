@@ -9,6 +9,7 @@
 #include "../../libraries/AS/include/AS/string.h"
 #include "../../libraries/AS/include/AS/mutex.h"
 #include "../../libraries/AS/include/AS/condition_variable.h"
+#include "ParsedUrl.h"
 #include <sys/types.h>
 #include <dirent.h> // for DIR 
 #include <atomic>
@@ -79,5 +80,8 @@ public:
         const char *front();
         void enqueue( const APESEARCH::string &url );
    }; // SetOfUrls
+
+
+unsigned calcPriority( const APESEARCH::string& );
 
 #endif

@@ -152,6 +152,13 @@ void APESEARCH::Mercator::user_handler()
             case 'I':
                 intel();
                 break;
+            case 'S':
+               for ( unsigned n = 0; n < 3; ++n )
+                  std::cout << "N=" << n << ": " << queuesChosen[n].load( ) << '\n';
+               break;
+            case 'R':
+               rate( );
+               break;
             // Add here for more functionality
             default:
                 std::cerr << "Unrecognized command\n";
@@ -171,6 +178,33 @@ void APESEARCH::Mercator::intel()
 
    std::cout << "Pages Crawled: " << num << std::endl;
    return;
+   }
+
+void APESEARCH::Mercator::rate( )
+   {
+   static std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+   static std::size_t crawledSinceLastCall = *( ( size_t * ) pagesCrawled.get() );
+   std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+
+   APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForPages);
+   size_t getCurrCrawled = *( ( size_t * ) pagesCrawled.get() );
+   lk.unlock( );
+   auto startMs = std::chrono::time_point_cast<std::chrono::milliseconds>( start );
+   auto endMs = std::chrono::time_point_cast<std::chrono::milliseconds>( end );
+   auto startVal = startMs.time_since_epoch();
+   auto endVal = endMs.time_since_epoch();
+   long duration = endVal.count() - startVal.count();
+
+   size_t diff = getCurrCrawled - crawledSinceLastCall;
+
+   std::cout << "Milliseconds: " << duration << '\n';
+   std::cout << "Pages Crawled since last call: " << diff << '\n';
+   if ( duration > 0 )
+      std::cout << "Rate of Pages Crawled (page/min): " << ( double( diff ) / duration ) * 1000 * 60 << '\n';
+
+   lk.lock( );
+   crawledSinceLastCall = *( ( std::size_t * ) pagesCrawled.get() );
+   start = std::chrono::system_clock::now();
    }
 
 void APESEARCH::Mercator::cleanUp()

@@ -14,7 +14,10 @@
 // .gov
 // .edu
 // Any other domain
+static APESEARCH::mutex coutLk;
 #define SECSTOWAIT 7
+
+std::atomic<size_t> queuesChosen[ 3 ];
 
 // Returns a timepoint about 7 seconds into the future...
 std::chrono::time_point<std::chrono::system_clock> newTime( )
@@ -31,9 +34,9 @@ std::chrono::time_point<std::chrono::system_clock> newTime( )
 
 inline std::size_t UrlFrontier::FrontEndPrioritizer::pickQueue( )
    {
-   //srand( time( 0 ) );
-   //int num = rand() % 100;
-   return 0;
+   static APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2 };
+   unsigned num = rand() & discreteDist.size( ) - 1;
+   return discreteDist[ num ];
    } // end pickQueue()
 
 // Keeps trying until it gets a url that fits in one of the queues
@@ -99,23 +102,24 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
       lk.unlock();
 
       // Start from the highest priority all the way to zero
-      int n;
-      for ( n = int ( pQueues.size() - 1 ); n >= 0; --n ) 
-         {
-         // Skip the own queue
-         if ( n != ( int )ind )
+      size_t n = 0;
+      do
+      {
+         lk = APESEARCH::unique_lock<APESEARCH::mutex> ( pQueues[ ( unsigned ) n  ].queueLk );
+         if ( !pQueues[ ( unsigned ) n ].pQueue.empty() )
             {
-            lk = APESEARCH::unique_lock<APESEARCH::mutex> ( pQueues[ ( unsigned ) n  ].queueLk );
-            if ( !pQueues[ ( unsigned ) n ].pQueue.empty() )
-               queue = &pQueues[ ( unsigned ) n ].pQueue;
-
+            queue = &pQueues[ ( unsigned ) n ].pQueue;
+            break;
             } // end if
-         } // end for
-      assert( n >= 0 );
+         n = ( n + 1 ) % 3;
+      } while ( true );
+      ind = n;
       } // end if
    else
       queue = &pQueues[ ind ].pQueue;
+   queuesChosen[ ind ].fetch_add( 1 );
 
+   APESEARCH::unique_lock<APESEARCH::mutex> coutUniqLk( coutLk );
    assert( queue && !queue->empty() );
    APESEARCH::string url = std::move( queue->front() );
    queue->pop();
@@ -347,6 +351,7 @@ UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThread
    {
    // Need to start up threads...
    startUp();
+   srand( time( 0 ) );
    }
 
 UrlFrontier::~UrlFrontier( )

@@ -19,6 +19,7 @@
 #include <assert.h>
 #include "ParsedUrl.h"
 
+extern std::atomic<size_t> queuesChosen[ 3 ];
 /*
  * The general flow of this design is to seperate out
  * different parts of the crawler into smaller tasks
@@ -58,6 +59,7 @@ namespace APESEARCH
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void intel( );
+      void rate( );
       void cleanUp( ); 
       void startUpCrawlers( const std::size_t );
     public:
@@ -94,7 +96,7 @@ namespace APESEARCH
                }
             } // end if
          pagesCrawled = unique_mmap( 0, sizeof( size_t ), PROT_READ | PROT_WRITE, MAP_SHARED, file.getFD( ) , 0 );
-
+         rate( ); // Called to initialize variables
          startUpCrawlers( amtOfCrawlers );
          }
       ~Mercator();

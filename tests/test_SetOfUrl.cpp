@@ -146,4 +146,42 @@ void func(SetOfUrls &set, APESEARCH::vector<APESEARCH::string>& vec, std::unorde
          ASSERT_EQUAL( itr->second, 0 );
       }
 
+TEST( test_CalcPriority )
+   {
+   
+   APESEARCH::string url( "https://www.youtube.com/watch?v=VYsrx6gZ1As" );
+
+   unsigned priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 2u );
+
+   url = "http://www.youtube.com/watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 0u );
+   url = "https://www.youtube.co/&watch?v=VYsrx6gZ1As";
+    priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 2u );
+   url = "https://www.youtube.edu/&watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 2u );
+   url = "https://www.youtube.io/&watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 1u );
+   url = "https://www.youtube.net/&watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 2u );
+   url = "https://www.youtube.org/&watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 2u );
+   url = "https://www.youtube.us/&watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 2u );
+   url = "";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 0u );
+   url = "https://www.youtube.jp/&watch?v=VYsrx6gZ1As";
+   priority = calcPriority( url );
+   ASSERT_EQUAL( priority, 1u );
+
+   }
+
 TEST_MAIN()
