@@ -15,6 +15,7 @@ static const char *topLevelDomains[ ] =
    ".co" ,
    ".com",
    ".edu",
+   ".gov",
    ".net",
    ".org",
    ".us"
