@@ -32,7 +32,7 @@ bool sortbysecdesc(const std::pair<std::string,int> &a,
        return a.second > b.second;
 }
 
-void reduceFile( std::string path )
+void reduceFile( const std::string& path )
     {
     APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
     if(file.fileSize() == 0){
@@ -90,7 +90,7 @@ APESEARCH::vector<size_t> &headingWords, APESEARCH::vector<size_t> &boldWords, c
     }
 }
 
-void writeIndex(APESEARCH::vector<size_t> indexes, APESEARCH::File &file){
+void writeIndex(APESEARCH::vector<size_t>& indexes, APESEARCH::File &file){
     static const char* const newline_char = "\n";
     static const char* const space_char = " ";
     char temp[MAX_INT_LENGTH];
@@ -233,7 +233,7 @@ void reduceAnchorMapFiles(int &fileCount){
 }
 
 
-void writePhrase(int fileCount, std::string phrase){
+void writePhrase( int fileCount, const std::string& phrase ){
     static const char* const newline_char = "\n";
     std::string path0 = "./anchorMapFiles0/anchorMapFile";
     std::string path1 = "./anchorMapFiles1/anchorMapFile";
@@ -257,27 +257,114 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
     while(anchorPtr < startingPtr + fileSize){
 
         std::string url = "";
-        while(*anchorPtr != '\n'){
+        while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\n'){
             url.push_back(*anchorPtr);
             anchorPtr++;
         }
         anchorPtr++;
-
-        if(anchorMap.find(url) == anchorMap.end()){
-            anchorMap[url] = fileCount++;
+        if(anchorPtr >= startingPtr + fileSize){
+            //std::cerr << "Anchor was improperly formatted and went over filesize" <<std::endl;
+            return;
         }
 
+        std::string prot = url.substr(0, 5);
+        if(prot != "https"){
+            while(*anchorPtr != '\0'){
+                anchorPtr++;
+            }
+            anchorPtr++;
+            continue;
+        }
+
+        
+        bool isAlphaNum = true;
         std::string phrase = "";
-        while(*anchorPtr != '\n'){
+        while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\n'){
+            if(!std::isalnum(*anchorPtr) && *anchorPtr != ' '){
+                isAlphaNum = false;
+            }
             phrase.push_back(*anchorPtr);
             anchorPtr++;
         }
         anchorPtr++;
-
-        writePhrase(anchorMap[url], phrase);
+        if(!isAlphaNum){
+            //std::cerr << "Anchor text was not alphanum" <<std::endl;
+            while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
+                anchorPtr++;
+            }
+            anchorPtr++;
+            continue;
+        }
+        if(anchorPtr >= startingPtr + fileSize){
+            //std::cerr << "Anchor was improperly formatted and went over fileSize" <<std::endl;
+            return;
+        }
+        if(*anchorPtr == '\0'){
+            if(anchorMap.find(url) == anchorMap.end()){
+                anchorMap[url] = fileCount++;
+            }
+            writePhrase(anchorMap[url], phrase);
+        }
+        else{
+            //std::cerr << "Anchor was improperly formatted did not find a null where it was supposed to" <<std::endl;
+            while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\0'){
+                anchorPtr++;
+            }
+        }
+        if(anchorPtr >= startingPtr + fileSize){
+            //std::cerr << "Anchor was improperly formatted amd went over filesize" <<std::endl;
+            return;
+        }
+        
         assert(*anchorPtr == '\0');
+        
         anchorPtr++;
     }
+}
+
+int verifyWords(char const *parsedPtr){
+    double totalWords = 0;
+    double numWord = 0;
+    double nonAlphaNumWord = 0;
+
+    char const *it = parsedPtr;
+    std::string word = "";
+    if(*it == '\n'){
+        return 0;
+    }
+    while(it && *it != '\n'){
+        bool isNum= true;
+        bool isAlphaNum = true;
+        while(*it != ' '){
+            if(*it == '\n'){
+                //std::cerr << "Parsed file incorrect format" << std::endl;
+                return -1;
+            }
+            if(!std::isalnum(*it)){
+                isAlphaNum = false;
+            }
+            if(!std::isdigit(*it)){
+                isNum = false;
+            }
+            it++;
+        }
+        totalWords++;
+        if(!isAlphaNum){
+            nonAlphaNumWord++;
+        }
+        if(isNum){
+            numWord++;
+        }
+        if(totalWords >= 100){
+            break;
+        }
+        it++;
+    }
+    it++;
+    if(numWord / totalWords >= .25 || nonAlphaNumWord / totalWords >= .25){
+        return -1;
+    }
+    return it - parsedPtr;
 }
 
 void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &anchorMap, char const *parsedPtr, int fileSize){
@@ -296,15 +383,42 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
             it++;
         }
         std::string url(beg, it);
+        std::string prot = url.substr(0, 5);
+        if(prot != "https"){
+            anchorMap.erase(url);
+            while(*it != '\0'){
+                it++;
+            }
+            it++;
+            continue;
+        }
         it++;
-        
+        int parsedWordLen = verifyWords(it);
+        if(parsedWordLen == -1){
+            anchorMap.erase(url);
+            while(*it != '\0'){
+                it++;
+            }
+            it++;
+            continue;
+        }
+        it += parsedWordLen;
+
+        int numNewLine = 0;
         while(*it != '\0'){
+            if(*it == '\n'){
+                numNewLine++;
+            }
             it++;
         }
-        std::string parsedInfo(beg, it);
         assert(*it == '\0');
         it++;
-        condensedFile.write(parsedInfo.c_str(), parsedInfo.length());
+        if(numNewLine > 8){
+            anchorMap.erase(url);
+            continue;
+        }
+        std::string parsedInfo(beg, it);
+        condensedFile.write(parsedInfo.c_str(), parsedInfo.length() - 1);
         if(anchorMap.find(url) != anchorMap.end()){
             std::string anchorMapPath = (anchorMap[url] < 50000) ? path0 : (anchorMap[url] < 100000) ? path1 : path2;
             anchorMapPath += std::to_string(anchorMap[url]);
@@ -383,6 +497,7 @@ void Database::cleanAnchorMap(int fileCount){
         file.truncate(0);
     }
 }
+
 
 
 

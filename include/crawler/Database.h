@@ -14,10 +14,11 @@
 #include "../../libraries/AS/include/AS/unique_mmap.h"
 #include <unordered_map> //pls dont look at this hamilton
 #include <string>
-#include <algorithm> 
+#include <algorithm>
+#include <cctype> 
 
-
-void reduceFile(std::string path);
+int verifyWords(char const *parsedPtr);
+void reduceFile(const std::string &path);
 void formatFile(APESEARCH::File &file);
 
 struct DBBucket
