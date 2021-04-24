@@ -361,7 +361,7 @@ int verifyWords(char const *parsedPtr){
         it++;
     }
     it++;
-    if(numWord / totalWords >= .5 || nonAlphaNumWord / totalWords >= .5){
+    if(numWord / totalWords >= .25 || nonAlphaNumWord / totalWords >= .25){
         return -1;
     }
     return it - parsedPtr;
