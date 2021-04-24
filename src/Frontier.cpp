@@ -175,8 +175,8 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      // A quick fix to filter out http documents
-      if ( !strncmp( url.cstr(), "https", 5 ) && *parsedUrl.Host )
+      // Now allow http but don't allow it to be put into frontier
+      if ( !strncmp( url.cstr(), "http", 4 ) && *parsedUrl.Host )
          {
          unsigned indToInsert = 0;
          std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );
