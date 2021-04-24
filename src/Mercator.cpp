@@ -166,7 +166,7 @@ void APESEARCH::Mercator::user_handler()
                 break;
            } // end switch()
        }
-    while( input.front() != 'Q' );
+    while( input.front() != 'Q' || input.front() != 'q' );
 
     // call cleanup handler
     cleanUp();
@@ -198,7 +198,7 @@ void APESEARCH::Mercator::rate( )
 
    size_t diff = getCurrCrawled - crawledSinceLastCall;
 
-   std::cout << "Milliseconds: " << duration << '\n';
+   std::cout << "Milliseconds Elapsed: " << duration << '\n';
    std::cout << "Pages Crawled since last call: " << diff << '\n';
    if ( duration > 0 )
       std::cout << "Rate of Pages Crawled (page/min): " << ( double( diff ) / duration ) * 1000 * 60 << '\n';
