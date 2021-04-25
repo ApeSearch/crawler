@@ -16,7 +16,6 @@
 // Any other domain
 //static APESEARCH::mutex coutLk;
 #define SECSTOWAIT 7
-#define NUMOFPRIORITY 3
 
 std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
 
@@ -349,7 +348,7 @@ UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThread
    {
    // Need to start up threads...
    startUp();
-   srand( time( 0 ) );
+   srand( time( 0 ) ); // Called only once
    }
 
 UrlFrontier::~UrlFrontier( )
