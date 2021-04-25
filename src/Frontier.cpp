@@ -112,7 +112,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
             queue = &pQueues[ ind ].pQueue;
             break;
             } // end if
-         ind = ( ind + 1 ) % NUMOFPRIORITY;
+         ind = ( ind + 1 ) % pQueues.size( );
       } while ( true );
       } // end if
    else
@@ -176,7 +176,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
       // Now allow http but don't allow it to be put into frontier
-      if ( !strncmp( url.cstr(), "http", 4 ) && *parsedUrl.Host )
+      if ( *parsedUrl.Host )
          {
          unsigned indToInsert = 0;
          std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );

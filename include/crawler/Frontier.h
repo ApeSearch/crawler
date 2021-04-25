@@ -85,7 +85,7 @@ class UrlFrontier
         void readInUrl( SetOfUrls& set, std::atomic<bool>& );
         APESEARCH::string getUrl();
 
-        FrontEndPrioritizer( SetOfUrls& _set, std::atomic<bool>& boolean, size_t numOfQueues = NUMOFFRONTQUEUES ) : 
+        FrontEndPrioritizer( SetOfUrls& _set, std::atomic<bool>& boolean, size_t numOfQueues = SetOfUrls::maxPriority ) : 
             pQueues( numOfQueues ), empty( FrontEndPrioritizer::urlsPerPriority * numOfQueues ), full( 0 ), setRef( _set ), liveliness( boolean ) {}
         ~FrontEndPrioritizer( );
     };
