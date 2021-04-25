@@ -175,7 +175,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      // Now allow http but don't allow it to be put into frontier
+      // Used to check if https ( now done in helperDeq )
       if ( *parsedUrl.Host )
          {
          unsigned indToInsert = 0;

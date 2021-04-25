@@ -94,7 +94,7 @@ class UrlFrontier
     {
     public:
         // Member Variables
-        static constexpr std::size_t endQueueSize = 100;
+        static constexpr std::size_t endQueueSize = 128;
         struct BackEndQueue
             {
             QueueWLock< endQueueSize > queueWLk;
