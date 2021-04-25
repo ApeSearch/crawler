@@ -99,6 +99,10 @@ class Request
    void receiveNormally( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody );
    void chunkedHtml( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody);
 
+   // Helper functions for chunkedHtml
+   ssize_t findChunkSize( APESEARCH::unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer );
+   bool writeChunked( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::vector<char>& buffer, char **ptr, char const **currEnd, const size_t bytesToReceive );
+   bool attemptPushBack( char val );
 public:
    getReqStatus validateStatus( unsigned status );
    int evalulateRespStatus( char **header, const char* const endOfHeader );
