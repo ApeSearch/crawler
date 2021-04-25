@@ -388,6 +388,7 @@ inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char co
    char const *start = **ptr;
    char const *place = endChunkSize;
    ssize_t bytesReceived = 0;
+   assert( **ptr <= **currEnd );
 
    do
    {
@@ -413,7 +414,7 @@ inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char co
          **currEnd -= shift; // currEnd is shifted down start - buffer.begin( ) bytes
          } // end if
    } while ( *place && ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
-   return true;
+   return !*place;
    }
 
 ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer )
@@ -428,9 +429,9 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
 
    if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
       {
-      char const *itreator = buffer.begin( );
-      while( itreator != *currEnd )
-         std::cout << *itreator++;
+      char const *iterator = buffer.begin( );
+      while( iterator != *currEnd )
+         std::cout << *iterator++;
       printf("\nIssue with Url: %s\n", urlPtr);
       assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
       } // end if
@@ -451,7 +452,8 @@ bool Request::attemptPushBack( char val )
 bool Request::writeChunked( unique_ptr<Socket> &socket, APESEARCH::vector<char>& buffer, char **ptr, char const**currEnd, const size_t bytesToReceive )
    {
    assert( bytesToReceive > 0 );
-   size_t bytesToWrite = 0;
+   assert( *ptr <= *currEnd );
+   ssize_t bytesToWrite = 0;
    size_t bytesWritten = 0;
 
    do
@@ -469,6 +471,7 @@ bool Request::writeChunked( unique_ptr<Socket> &socket, APESEARCH::vector<char>&
       *ptr = buffer.begin( );
       *currEnd = ( const char * ) buffer.begin( );
    } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
+   return false;
    } // end writeChunked( )
 
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
@@ -493,7 +496,10 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
 
    // Resets if reaches the end
    if ( buffPtr == temp.end( ) )  
+      {
       buffPtr = temp.begin( );
+      currEnd = ( char const * ) temp.begin( );
+      }
    
    // Now attempt to continue to write into BodyBuff
    if ( !writeChunked( socket, temp, &buffPtr, &currEnd, ( size_t ) chunkSize ) )

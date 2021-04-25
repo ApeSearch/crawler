@@ -10,6 +10,7 @@ int main()
     //const char * const exampleUrl = "https://web.archive.org/web/20070614025835/http://www.unhcr.org/publ/PUBL/4492677f0.pdf";
     //const char * const exampleUrl = "https://www.youtube.com/";
     const char * const exampleUrl = "https://www.cmbchina.com";
+    //const char * const exampleUrl = "https://apimagesblog.com/blog/2014/06/25/photographer-andy-wong";
     //https://news.ycombinator.com/item?id=26854819
 
     Request requester;
