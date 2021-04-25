@@ -26,7 +26,7 @@
 #include "DynamicBuffer.h"
 
 
-#define NUMOFFRONTQUEUES 3
+#define NUMOFFRONTQUEUES 2
 
 struct domainTiming
 {
@@ -70,7 +70,7 @@ class UrlFrontier
     {
     public:
         // Member Variables
-        static const constexpr std::size_t urlsPerPriority = 1024;
+        static const constexpr std::size_t urlsPerPriority = 2048;
         APESEARCH::vector< QueueWLock< urlsPerPriority > > pQueues;
         APESEARCH::semaphore empty;
         APESEARCH::semaphore full;
@@ -152,7 +152,7 @@ public:
     void shutdown(); // signals threads to stop
 };
 
-extern std::atomic<size_t> queuesChosen[ 3 ];
+extern std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
 std::chrono::time_point<std::chrono::system_clock> newTime( );
 #endif
 

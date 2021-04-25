@@ -154,9 +154,17 @@ void APESEARCH::Mercator::user_handler()
                 intel();
                 break;
             case 'S':
-               for ( unsigned n = 0; n < 3; ++n )
-                  std::cout << "N=" << n << ": " << queuesChosen[n].load( ) << '\n';
+               {
+               size_t pagesCrawled = 0;
+               for ( unsigned n = 0; n < SetOfUrls::maxPriority; ++n )
+                  {
+                  size_t num = queuesChosen[n].load( );
+                  std::cout << "N=" << n << ": " << num << '\n';
+                  pagesCrawled += num;
+                  } // end for
+               std::cout << "Tot: " << pagesCrawled << '\n';
                break;
+               }
             case 'R':
                rate( );
                break;
@@ -201,7 +209,7 @@ void APESEARCH::Mercator::rate( )
    std::cout << "Milliseconds Elapsed: " << duration << '\n';
    std::cout << "Pages Crawled since last call: " << diff << '\n';
    if ( duration > 0 )
-      std::cout << "Rate of Pages Crawled (page/min): " << ( double( diff ) / duration ) * 1000 * 60 << '\n';
+      std::cout << "Rate of Pages Crawled (page/min): " << ( double( diff ) / duration ) * 60000 << '\n';
 
    lk.lock( );
    crawledSinceLastCall = *( ( std::size_t * ) pagesCrawled.get() );

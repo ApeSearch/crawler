@@ -19,7 +19,7 @@
 #include <assert.h>
 #include "ParsedUrl.h"
 
-extern std::atomic<size_t> queuesChosen[ 3 ];
+extern std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
 /*
  * The general flow of this design is to seperate out
  * different parts of the crawler into smaller tasks

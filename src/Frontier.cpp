@@ -18,7 +18,7 @@ static APESEARCH::mutex coutLk;
 #define SECSTOWAIT 7
 #define NUMOFPRIORITY 3
 
-std::atomic<size_t> queuesChosen[ 3 ];
+std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
 
 // Returns a timepoint about 7 seconds into the future...
 std::chrono::time_point<std::chrono::system_clock> newTime( )
@@ -35,7 +35,7 @@ std::chrono::time_point<std::chrono::system_clock> newTime( )
 
 inline std::size_t UrlFrontier::FrontEndPrioritizer::pickQueue( )
    {
-   static APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2 };
+   static APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 };
    unsigned num = rand() & discreteDist.size( ) - 1;
    return discreteDist[ num ];
    } // end pickQueue()
