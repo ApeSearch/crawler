@@ -496,6 +496,78 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
       } // end if
    } while ( true );
    } // end chunkedHtml( )
+
+
+static void DecompressResponse( APESEARCH::vector < char >& data_ );
+
+void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
+   {
+   
+   if ( chunked )
+   {
+      chunkedHtml( socket, partOfBody );
+   }
+   else
+      receiveNormally( socket, partOfBody );
+      
+   if ( !headerBad && gzipped )
+      DecompressResponse( bodyBuff );
+
+   return;
+   }
+
+   APESEARCH::vector< char > Request::getResponseBuffer()
+   {
+      return std::move( bodyBuff );
+   }
+
+// Perform the decompression
+void DecompressResponse( APESEARCH::vector < char >& data_ )
+    {
+    z_stream zs;                        // z_stream is zlib's control structure
+    memset( &zs, 0, sizeof( zs ) );
+
+    APESEARCH::vector < char > decompressed;
+    std::array < char, 32768 > outBuffer;
+
+    if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
+      throw std::runtime_error( "inflateInit2 fail" );
+
+    zs.next_in =
+        const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
+    zs.avail_in = static_cast < unsigned int >( data_.size( ) );
+
+    int ret;
+
+    // get the decompressed bytes blockwise using repeated calls to inflate
+    do
+        {
+        zs.next_out = reinterpret_cast < Bytef* >( outBuffer.data( ) );
+        zs.avail_out = sizeof( outBuffer );
+
+        ret = inflate( &zs, 0 );
+
+        if ( decompressed.size( ) < zs.total_out )
+            {
+            unsigned bytesToTransfer = zs.total_out - decompressed.size( );
+            unsigned sizeOfDec = decompressed.size( );
+            decompressed.resize( decompressed.size( ) + bytesToTransfer );
+            char *decompressedPtr = &decompressed.front( ) + sizeOfDec;
+            APESEARCH::copy( outBuffer.data( ), outBuffer.data( ) + zs.total_out - sizeOfDec, decompressedPtr );
+            } // end if
+        }
+    while ( ret == Z_OK );
+
+    inflateEnd( &zs );
+
+    if ( ret != Z_STREAM_END )
+        {          // an error occurred that was not EOF
+        throw std::runtime_error( "Non-EOF occurred while decompressing" );
+        }
+
+    APESEARCH::swap( decompressed, data_ );
+    }
+
 /*
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
 {
@@ -549,78 +621,3 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
    }
 }
 */
-
-
-static void DecompressResponse( APESEARCH::vector < char >& data_ );
-
-void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
-   {
-   
-   if ( chunked )
-   {
-      chunkedHtml( socket, partOfBody );
-   }
-   else
-      receiveNormally( socket, partOfBody );
-      
-   if ( !headerBad && gzipped )
-      DecompressResponse( bodyBuff );
-
-   return;
-   }
-
-   APESEARCH::vector< char > Request::getResponseBuffer()
-   {
-      return std::move( bodyBuff );
-   }
-
-
-// Perform the decompression
-void DecompressResponse( APESEARCH::vector < char >& data_ )
-    {
-    z_stream zs;                        // z_stream is zlib's control structure
-    memset( &zs, 0, sizeof( zs ) );
-
-    APESEARCH::vector < char > decompressed;
-    std::array < char, 32768 > outBuffer;
-
-    if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
-      throw std::runtime_error( "inflateInit2 fail" );
-
-    zs.next_in =
-        const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
-    zs.avail_in = static_cast < unsigned int >( data_.size( ) );
-
-    int ret;
-
-    // get the decompressed bytes blockwise using repeated calls to inflate
-    do
-        {
-        zs.next_out = reinterpret_cast < Bytef* >( outBuffer.data( ) );
-        zs.avail_out = sizeof( outBuffer );
-
-        ret = inflate( &zs, 0 );
-
-        if ( decompressed.size( ) < zs.total_out )
-            {
-            unsigned bytesToTransfer = zs.total_out - decompressed.size( );
-            unsigned sizeOfDec = decompressed.size( );
-            decompressed.resize( decompressed.size( ) + bytesToTransfer );
-            char *decompressedPtr = &decompressed.front( ) + sizeOfDec;
-            APESEARCH::copy( outBuffer.data( ), outBuffer.data( ) + zs.total_out - sizeOfDec, decompressedPtr );
-            } // end if
-        }
-    while ( ret == Z_OK );
-
-    inflateEnd( &zs );
-
-    if ( ret != Z_STREAM_END )
-        {          // an error occurred that was not EOF
-        throw std::runtime_error( "Non-EOF occurred while decompressing" );
-        }
-
-    APESEARCH::swap( decompressed, data_ );
-    }
-
-
-    

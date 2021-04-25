@@ -169,6 +169,10 @@ void APESEARCH::Mercator::user_handler()
                rate( );
                break;
             // Add here for more functionality
+            case 'Q':
+            case 'q':
+               std::cout << "Attempting to exit elegantly\n";
+               break;
             default:
                 std::cerr << "Unrecognized command\n";
                 break;
