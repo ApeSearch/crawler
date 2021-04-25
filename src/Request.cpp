@@ -400,7 +400,6 @@ inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char co
          {
          if ( buffer.end( ) - start == buffer.size( ) )
             return false;
-            return -1;
 
          size_t shift = start - buffer.begin( );
 
