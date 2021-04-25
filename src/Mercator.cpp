@@ -189,7 +189,7 @@ void APESEARCH::Mercator::user_handler()
                 break;
            } // end switch()
        }
-    while( input.front() != 'Q' || input.front() != 'q' );
+    while( input.front() != 'Q' && input.front() != 'q' );
 
     // call cleanup handler
     cleanUp();
