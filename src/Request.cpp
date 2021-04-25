@@ -62,6 +62,7 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
 */
 Result Request::getReqAndParse(const char *urlStr)
 {
+   urlPtr= urlStr;
     ParsedUrl url( urlStr );
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = !strcmp(url.Service, "http"); // 0 if http 1 if https
@@ -426,7 +427,14 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
    if ( !seekLineSeperator( socket, &ptr, &currEnd, buffer ) )
       return -1;
 
-   assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
+   if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
+      {
+      char const *itreator = buffer.begin( );
+      while( itreator != *currEnd )
+         std::cout << *itreator++;
+      printf("\nIssue with Url: %s\n", urlPtr);
+      assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
+      } // end if
 
    return hexaToDecimal( start, *ptr - 2 );
    } // end findChunkSize( )

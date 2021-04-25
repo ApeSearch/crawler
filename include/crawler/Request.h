@@ -74,6 +74,7 @@ class Request
    APESEARCH::vector< char > bodyBuff;
    //std::string buffer;
    std::size_t contentLengthBytes = 0;
+   char const *urlPtr;
    unsigned state;
    bool gzipped, chunked, redirect, contentLength, headerBad, isHtml;
    bool foundGzipped, foundChunked, foundUrl, foundContentLength;
