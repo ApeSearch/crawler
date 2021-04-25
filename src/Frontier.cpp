@@ -35,7 +35,7 @@ std::chrono::time_point<std::chrono::system_clock> newTime( )
 
 inline std::size_t UrlFrontier::FrontEndPrioritizer::pickQueue( )
    {
-   static APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 };
+   static const APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 };
    unsigned num = rand() & discreteDist.size( ) - 1;
    return discreteDist[ num ];
    } // end pickQueue()
