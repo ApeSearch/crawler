@@ -286,11 +286,9 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
             backendHeap.emplace( time, ind );
             domainQueues[ ind ].timeStampInDomain = true;
             semaHeap.up(); // Okay for waiting threads to proceed    
-            //std::cout << "Succeeded in placing " << domain << "into heap\n";
             return true;
             }
          // Indicates failure
-         //std::cout << "Couldn't place into heap Alread in domainMap\n";
          return false;
          } // end if
       } // end for

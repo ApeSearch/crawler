@@ -405,7 +405,7 @@ inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char co
 
          // Copy buffer to the beginning
          char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( )  );
-         assert( retPtr - buffer.begin( ) == shift );
+         assert( ( retPtr - buffer.begin( ) ) == ( buffer.end( ) - start ) );
 
          // Readjust pointers
          start = buffer.begin( ); // start now begins at the beginning
