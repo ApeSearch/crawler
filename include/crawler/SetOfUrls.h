@@ -79,9 +79,10 @@ public:
         UrlObj blockingDequeue();
         const char *front();
         void enqueue( const APESEARCH::string &url );
+    static constexpr size_t maxPriority = 2u;
    }; // SetOfUrls
 
 
-unsigned calcPriority( const APESEARCH::string& );
+int calcPriority( const APESEARCH::string& );
 
 #endif

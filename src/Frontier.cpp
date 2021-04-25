@@ -14,11 +14,10 @@
 // .gov
 // .edu
 // Any other domain
-static APESEARCH::mutex coutLk;
+//static APESEARCH::mutex coutLk;
 #define SECSTOWAIT 7
-#define NUMOFPRIORITY 3
 
-std::atomic<size_t> queuesChosen[ 3 ];
+std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
 
 // Returns a timepoint about 7 seconds into the future...
 std::chrono::time_point<std::chrono::system_clock> newTime( )
@@ -35,7 +34,7 @@ std::chrono::time_point<std::chrono::system_clock> newTime( )
 
 inline std::size_t UrlFrontier::FrontEndPrioritizer::pickQueue( )
    {
-   static APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2 };
+   static const APESEARCH::vector< unsigned > discreteDist = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 };
    unsigned num = rand() & discreteDist.size( ) - 1;
    return discreteDist[ num ];
    } // end pickQueue()
@@ -112,14 +111,13 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
             queue = &pQueues[ ind ].pQueue;
             break;
             } // end if
-         ind = ( ind + 1 ) % NUMOFPRIORITY;
+         ind = ( ind + 1 ) % pQueues.size( );
       } while ( true );
       } // end if
    else
       queue = &pQueues[ ind ].pQueue;
    queuesChosen[ ind ].fetch_add( 1 );
 
-   APESEARCH::unique_lock<APESEARCH::mutex> coutUniqLk( coutLk );
    assert( queue && !queue->empty() );
    APESEARCH::string url = std::move( queue->front() );
    queue->pop();
@@ -175,8 +173,8 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
       qLk.unlock();
       APESEARCH::string url( frontEnd.getUrl( ) ); 
       ParsedUrl parsedUrl( url.cstr() );
-      // Now allow http but don't allow it to be put into frontier
-      if ( !strncmp( url.cstr(), "http", 4 ) && *parsedUrl.Host )
+      // Used to check if https ( now done in helperDeq )
+      if ( *parsedUrl.Host )
          {
          unsigned indToInsert = 0;
          std::string extractedDomain( parsedUrl.Host, parsedUrl.Port );
@@ -229,9 +227,9 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             // Reinsert a fresh new timestamp
             APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
             backendHeap.emplace( newTime(), index );
-            domainQueues[ index ].timeStampInDomain = true;
             semaHeap.up();
             uniqPQLk.unlock();
+            domainQueues[ index ].timeStampInDomain = true;
             domainQueues[ index ].domain = std::move( extractedDomain ); // okay to steal now
             } // end else
 
@@ -350,7 +348,7 @@ UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThread
    {
    // Need to start up threads...
    startUp();
-   srand( time( 0 ) );
+   srand( time( 0 ) ); // Called only once
    }
 
 UrlFrontier::~UrlFrontier( )
