@@ -205,7 +205,10 @@ void APESEARCH::Mercator::intel()
    std::cout << "Crawled Since Launch: " << num - startCrawled << '\n';
 
    lk = APESEARCH::unique_lock<APESEARCH::mutex> ( lkForWritten );
-   std::cout << "Pages Written To Disk: " << ptr[ 1 ] << '\n';
+   size_t totWritten = ptr[ 1 ];
+   lk.unlock( );
+   std::cout << "Pages Written To Disk: " << totWritten << '\n';
+   std::cout << "Written Since Launch: " << totWritten - writtenAtStart << '\n';
    return;
    }
 
