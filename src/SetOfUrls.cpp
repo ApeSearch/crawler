@@ -10,6 +10,19 @@
 #include <chrono>
 #include <ctime>
 
+static const char *topLevelDomains[ ] =
+   {
+   ".co" ,
+   ".com",
+   ".edu",
+   ".gov",
+   ".net",
+   ".org",
+   ".us"
+   };
+
+static const size_t numOfTopLevelDomains = 6u;
+
 //--------------------------------------------------------------------------------
 //
 //
@@ -98,7 +111,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
    
    // Open a temporary file to write into...
    APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
-   startNewFile();
+   startNewFile( );
    }
 
 SetOfUrls::~SetOfUrls()
@@ -288,10 +301,59 @@ void SetOfUrls::finalizeSection( )
    startNewFile();
    }
 
-static unsigned calcPriority( const APESEARCH::string& )
+static const size_t numOfChar = 3u;
+/*
+unsigned calcPriority( const APESEARCH::string& url )
    {
-   return 0;
-   }
+   ParsedUrl parsed( url.cstr( ), true );
+
+   // Lowest priority if not https
+   if ( strncmp( parsed.Service, "https", 5 ) )
+      return 2;
+
+   char const * const cend = parsed.Host - 1;
+   char const * const cbegin = parsed.Host + strlen( parsed.Host ) - 1;
+   char const *ptr = cbegin;
+
+   // Seek for top-level domain
+   for ( ; ptr != cend && *ptr != '.'; --ptr );
+
+   char const **place = topLevelDomains + numOfTopLevelDomains;
+   if ( cbegin - ptr <= numOfChar )
+      {
+      place = APESEARCH::lower_bound< char const **, char const * const >
+            ( topLevelDomains, topLevelDomains + numOfTopLevelDomains, ptr, 
+      [ ] ( char const *topLevel, char const *val ) { return strcasecmp( topLevel, val ) < 0; } );
+      } // end if
+
+   return place != topLevelDomains + numOfTopLevelDomains && !strcasecmp( *place, ptr ) ? 0 : 1;
+   } // end calcPriority( )
+*/
+
+int calcPriority( const APESEARCH::string& url )
+   {
+   ParsedUrl parsed( url.cstr( ), true );
+   // Lowest priority if not https
+   if ( strncmp( parsed.Service, "https", 5 ) )
+      return -1;
+
+   char const * const cend = parsed.Host - 1;
+   char const * const cbegin = parsed.Host + strlen( parsed.Host ) - 1;
+   char const *ptr = cbegin;
+
+   // Seek for top-level domain
+   for ( ; ptr != cend && *ptr != '.'; --ptr );
+
+   char const **place = topLevelDomains + numOfTopLevelDomains;
+   if ( cbegin - ptr <= numOfChar )
+      {
+      place = APESEARCH::lower_bound< char const **, char const * const >
+            ( topLevelDomains, topLevelDomains + numOfTopLevelDomains, ptr, 
+      [ ] ( char const *topLevel, char const *val ) { return strcasecmp( topLevel, val ) < 0; } );
+      } // end if
+
+   return place != topLevelDomains + numOfTopLevelDomains && !strcasecmp( *place, ptr ) ? 0 : 1;
+   } // end calcPriority( )
 
 inline UrlObj SetOfUrls::helperDeq()
    {
@@ -326,7 +388,14 @@ inline UrlObj SetOfUrls::helperDeq()
    UrlObj obj;
    assert( start && frontQPtr && start <= frontQPtr );
    obj.url = APESEARCH::string( start, frontQPtr );
-   obj.priority = calcPriority( obj.url ); // All have a priority of 0
+   int priorityOf = calcPriority( obj.url );
+   if ( priorityOf == -1 )
+      {
+      obj.url = APESEARCH::string( );
+      obj.priority = SetOfUrls::maxPriority;
+      } // end if
+   else
+      obj.priority = ( size_t ) priorityOf;
    
    // Increment pointer now that url has been copied
    if ( ++frontQPtr == frontQEnd )

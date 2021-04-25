@@ -42,6 +42,12 @@ void APESEARCH::Mercator::crawlWebsite( Request& requester, APESEARCH::string& b
 
    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
    Result result = requester.getReqAndParse( buffer.cstr() );
+
+{
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( lkForCrawled );
+   size_t *num = ( size_t * ) pagesCrawled.get();
+   ++(*num);
+}   
    // At the end of this task, the buffer will be reinserted back into urlBuffers...
    std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
 
@@ -103,11 +109,17 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
 
    // Handle results by writing to file...
    //TODO put this on own thread
-   writeToFile( parser );
-   //std::cerr << "Crawled website successfully: " << url << '\n';
-   APESEARCH::unique_lock<APESEARCH::mutex> lk( lkForPages );
+   if ( parser.isValidHtml( ) )
+      {
+      writeToFile( parser );
+{
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( lkForWritten );
    size_t *num = ( size_t * ) pagesCrawled.get();
-   ++(*num);
+   ++num[ 1 ];
+} 
+      } // end if
+   //std::cerr << "Crawled website successfully: " << url << '\n';
+
    } // end parser()
 
 void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
@@ -152,13 +164,32 @@ void APESEARCH::Mercator::user_handler()
             case 'I':
                 intel();
                 break;
+            case 'S':
+               {
+               size_t pagesCrawled = 0;
+               for ( unsigned n = 0; n < SetOfUrls::maxPriority; ++n )
+                  {
+                  size_t num = queuesChosen[n].load( );
+                  std::cout << "N=" << n << ": " << num << '\n';
+                  pagesCrawled += num;
+                  } // end for
+               std::cout << "Sum: " << pagesCrawled << '\n';
+               break;
+               }
+            case 'R':
+               rate( );
+               break;
             // Add here for more functionality
+            case 'Q':
+            case 'q':
+               std::cout << "Attempting to exit elegantly\n";
+               break;
             default:
                 std::cerr << "Unrecognized command\n";
                 break;
            } // end switch()
        }
-    while( input.front() != 'Q' );
+    while( input.front() != 'Q' || input.front() != 'q' );
 
     // call cleanup handler
     cleanUp();
@@ -166,11 +197,43 @@ void APESEARCH::Mercator::user_handler()
 
 void APESEARCH::Mercator::intel()
    {
-   APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForPages);
-   size_t num = *( ( size_t * ) pagesCrawled.get() );
+   APESEARCH::unique_lock<APESEARCH::mutex> lk( lkForCrawled );
+   size_t *ptr = ( size_t * ) pagesCrawled.get();
+   size_t num = *ptr;
+   lk.unlock( );
+   std::cout << "Pages Crawled: " << num << '\n';
+   std::cout << "Crawled Since Launch: " << num - startCrawled << '\n';
 
-   std::cout << "Pages Crawled: " << num << std::endl;
+   lk = APESEARCH::unique_lock<APESEARCH::mutex> ( lkForWritten );
+   std::cout << "Pages Written To Disk: " << ptr[ 1 ] << '\n';
    return;
+   }
+
+void APESEARCH::Mercator::rate( )
+   {
+   static std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+   static std::size_t crawledSinceLastCall = *( ( size_t * ) pagesCrawled.get() );
+   std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+
+   APESEARCH::unique_lock<APESEARCH::mutex> lk(lkForCrawled);
+   size_t getCurrCrawled = *( ( size_t * ) pagesCrawled.get() );
+   lk.unlock( );
+   auto startMs = std::chrono::time_point_cast<std::chrono::milliseconds>( start );
+   auto endMs = std::chrono::time_point_cast<std::chrono::milliseconds>( end );
+   auto startVal = startMs.time_since_epoch();
+   auto endVal = endMs.time_since_epoch();
+   long duration = endVal.count() - startVal.count();
+
+   size_t diff = getCurrCrawled - crawledSinceLastCall;
+
+   std::cout << "Milliseconds Elapsed: " << duration << '\n';
+   std::cout << "Pages Crawled since last call: " << diff << '\n';
+   if ( duration > 0 )
+      std::cout << "Rate of Pages Crawled (page/min): " << ( double( diff ) / duration ) * 60000 << '\n';
+
+   lk.lock( );
+   crawledSinceLastCall = *( ( std::size_t * ) pagesCrawled.get() );
+   start = std::chrono::system_clock::now();
    }
 
 void APESEARCH::Mercator::cleanUp()
