@@ -14,7 +14,7 @@
 // .gov
 // .edu
 // Any other domain
-static APESEARCH::mutex coutLk;
+//static APESEARCH::mutex coutLk;
 #define SECSTOWAIT 7
 #define NUMOFPRIORITY 3
 
@@ -119,7 +119,6 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
       queue = &pQueues[ ind ].pQueue;
    queuesChosen[ ind ].fetch_add( 1 );
 
-   APESEARCH::unique_lock<APESEARCH::mutex> coutUniqLk( coutLk );
    assert( queue && !queue->empty() );
    APESEARCH::string url = std::move( queue->front() );
    queue->pop();
@@ -229,9 +228,9 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
             // Reinsert a fresh new timestamp
             APESEARCH::unique_lock< APESEARCH::mutex > uniqPQLk( pqLk );
             backendHeap.emplace( newTime(), index );
-            domainQueues[ index ].timeStampInDomain = true;
             semaHeap.up();
             uniqPQLk.unlock();
+            domainQueues[ index ].timeStampInDomain = true;
             domainQueues[ index ].domain = std::move( extractedDomain ); // okay to steal now
             } // end else
 

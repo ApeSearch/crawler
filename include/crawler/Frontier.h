@@ -129,7 +129,6 @@ class UrlFrontier
     using FrontierCircBuf = APESEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
     SetOfUrls set;
     
-    static constexpr std::size_t frontQueueSize = 1024;
     // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
     //static unsigned ratingOfTopLevelDomain( const char * );
 
