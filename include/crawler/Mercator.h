@@ -51,6 +51,7 @@ namespace APESEARCH
       APESEARCH::mutex lkForWritten;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
       size_t startCrawled;
+      size_t writtenAtStart;
       //Node networkNode;
 
       void crawlWebsite( Request& requester, APESEARCH::string& buffer);
@@ -98,7 +99,9 @@ namespace APESEARCH
                }
             } // end if
          pagesCrawled = unique_mmap( 0, sizeof( size_t ), PROT_READ | PROT_WRITE, MAP_SHARED, file.getFD( ) , 0 );
-         startCrawled = * ( size_t * ) pagesCrawled.get( );
+         size_t *ptr = ( size_t * ) pagesCrawled.get( );
+         startCrawled = ptr[ 0 ];
+         writtenAtStart = ptr[ 1 ];
          rate( ); // Called to initialize variables
          startUpCrawlers( amtOfCrawlers );
          }

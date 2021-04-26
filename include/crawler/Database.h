@@ -16,6 +16,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype> 
+#include <dirent.h> // for DIR 
 
 int verifyWords(char const *parsedPtr);
 void reduceFile(const std::string &path);
@@ -57,8 +58,10 @@ class Database
         void addParsedFile(const HtmlParser &parser);
         void condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsedFile, int index);
         void condenseFiles();
-        void parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap, int &fileCount);
+        void parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap);
         void cleanAnchorMap(int fileCount);
+        void cleanAnchorMap();
+        void fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, const char *parsedPtr , int fileSize, int &fileCount);
         FNV hash;
 };
 
