@@ -91,9 +91,8 @@ class Request
 
    inline void resetState()
       {
-      gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = contentLength = foundContentLength = headerBad = false; // Reset state
+      gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = contentLength = foundContentLength = headerBad = isHtml = false; // Reset state
       contentLengthBytes = 0;
-      isHtml = true;
       if ( !bodyBuff.empty( ) )
          bodyBuff = APESEARCH::vector< char >( );
       }

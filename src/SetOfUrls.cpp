@@ -102,7 +102,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
       } // end if
 
    //numOfFiles.store( numOfValidFiles( ) );
-
+   memset ( backFileName, 0, sizeof( backFileName ) ); // set to zero
    if ( !popNewBatch() )
       {
       // Signify an empty frontier
