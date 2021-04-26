@@ -123,10 +123,14 @@ DBBucket::DBBucket(size_t index, const char * dir ){
     formatFile(parsedFile);
 }
 
-Database::Database( ) : Database( nullptr ) { }
+Database::Database( ) : Database( nullptr ) 
+{
+    
+}
 
 Database::Database( const char *directory )
 {
+    cleanAnchorMap();
     char path[MAX_PATH];
     file_vector.reserve( NUM_OF_FILES );
     for(int i = 0; i < NUM_OF_FILES; i++)
@@ -226,7 +230,7 @@ void reduceAnchorMapFiles(int &fileCount){
     
 
     for(int i = 0; i < fileCount; i++){
-        std::string path = (i < 50000) ? path0 : (i < 100000) ? path1 : path2;
+        std::string path = (i < 200000) ? path0 : (i < 400000) ? path1 : path2;
         reduceFile(path + std::to_string(i));
     }
 
@@ -240,7 +244,7 @@ void writePhrase( int fileCount, const std::string& phrase ){
     std::string path2 = "./anchorMapFiles2/anchorMapFile";
 
 
-    std::string path = (fileCount < 50000) ? path0 : (fileCount < 100000) ? path1 : path2;
+    std::string path = (fileCount < 200000) ? path0 : (fileCount < 400000) ? path1 : path2;
     path += std::to_string(fileCount);
     APESEARCH::File file( path.c_str(), O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
     file.write(phrase.c_str(), phrase.length());
@@ -420,7 +424,7 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
         std::string parsedInfo(beg, it);
         condensedFile.write(parsedInfo.c_str(), parsedInfo.length() - 1);
         if(anchorMap.find(url) != anchorMap.end()){
-            std::string anchorMapPath = (anchorMap[url] < 50000) ? path0 : (anchorMap[url] < 100000) ? path1 : path2;
+            std::string anchorMapPath = (anchorMap[url] < 200000) ? path0 : (anchorMap[url] < 400000) ? path1 : path2;
             anchorMapPath += std::to_string(anchorMap[url]);
             APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
             if(anchorMapFile.fileSize() != 0){
@@ -432,21 +436,6 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
             anchorMap.erase(url);
         }
         condensedFile.write(null_char, 1);
-    }
-    for(const auto &it : anchorMap){
-        std::string writeString = it.first + "\n\n\n\n\n\n\n\n\n";
-        std::string anchorMapPath = (anchorMap[it.first] < 50000) ? path0 : (anchorMap[it.first] < 100000) ? path1 : path2;
-        anchorMapPath += std::to_string(anchorMap[it.first]);
-        APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
-        if(anchorMapFile.fileSize() != 0){
-            unique_mmap anchorMapMem( anchorMapFile.fileSize(), PROT_READ, MAP_SHARED, anchorMapFile.getFD(), 0 );
-            char const *anchorMapPtr = reinterpret_cast< char const *>( anchorMapMem.get() );
-            std::string anchorContent(anchorMapPtr, anchorMapPtr + anchorMapFile.fileSize());
-            writeString += anchorContent;
-            writeString.push_back('\0');
-            condensedFile.write(writeString.c_str(), writeString.length());
-        }
-        
     }
 }
 
@@ -476,6 +465,8 @@ void Database::condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsed
     cleanAnchorMap(fileCount);
 }
 
+
+
 void Database::condenseFiles(){
 
     for(int i = 0; i < file_vector.size(); i++){
@@ -485,13 +476,37 @@ void Database::condenseFiles(){
     }
 }
 
+void Database::cleanAnchorMap(){
+    static APESEARCH::vector< std::string > paths = { "./anchorMapFiles0", "./anchorMapFiles1", "./anchorMapFiles2" };
+
+    for ( size_t n = 0; n < paths.size( ); ++n )
+       {
+        DIR *dir = opendir( paths[ n ].c_str( ) );
+        struct dirent *dp;
+        while( (dp = readdir (dir)) != NULL )
+            {
+            if ( dp->d_type == DT_REG )
+                {
+                
+                std::string path = dp->d_name;
+                path = paths[n] + "/" + path;
+                truncate(path.c_str(), 0);
+
+                } // end if
+            } // end while
+       }
+
+
+
+}
+
 void Database::cleanAnchorMap(int fileCount){
     std::string path0 = "./anchorMapFiles0/anchorMapFile";
     std::string path1 = "./anchorMapFiles1/anchorMapFile";
     std::string path2 = "./anchorMapFiles2/anchorMapFile";
 
     for(int i = 0; i < fileCount; i++){
-        std::string path = (i < 50000) ? path0 : (i < 100000) ? path1 : path2;
+        std::string path = (i < 200000) ? path0 : (i < 400000) ? path1 : path2;
         path += std::to_string(i);
         APESEARCH::File file( path.c_str(), O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
         file.truncate(0);

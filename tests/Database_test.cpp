@@ -228,8 +228,6 @@ TEST(test_condense_file){
     check.push_back('\0');
     check += "https://www.ape.com\napes are strong \n0 2 \n\n1 \n\n2\n3\n4\n\"fuck\" 1\n";
     check.push_back('\0');
-    check += "https://www.bonobo.com\n\n\n\n\n\n\n\n\n\"poop\" 1\n";
-    check.push_back('\0');
     ASSERT_EQUAL(check, readData);
     condensed.truncate(0);
     anchor.truncate(0);
@@ -388,6 +386,16 @@ TEST(test_home_depot){
     condensed.truncate(0);
     anchor.truncate(0);
     parsed.truncate(0);
+}
+
+TEST(test_clean_anchor_map_initial){
+    std::string path ="./anchorMapFiles0/anchorMapFile0";
+    APESEARCH::File anchorMap(path.c_str(), O_RDWR | O_CREAT  , mode_t(0600));
+    std::string input = "Bad";
+    anchorMap.write(input.c_str(), input.length());
+    Database db;
+    assert(anchorMap.fileSize() == 0);
+
 }
 
 TEST_MAIN()
