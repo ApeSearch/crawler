@@ -242,6 +242,8 @@ void APESEARCH::Mercator::rate( )
 void APESEARCH::Mercator::cleanUp()
    {
     liveliness.store( false );
+    frontier.shutdown( );
+    std::cout << "Frontier finished cleaning up\n";
     pool.shutdown(); // Blocks until every thread has joined...
     return;
    } // end cleanUp()
