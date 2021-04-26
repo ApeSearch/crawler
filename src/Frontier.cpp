@@ -277,7 +277,7 @@ bool UrlFrontier::BackendPolitenessPolicy::insertTiming( const std::chrono::time
       domainQueues[ ind ].queueCV.wait( uniqQLk, cond );
 
       // If this is the case, then !domainQueues[ ind ].queueWLk.pQueue.empty()
-      if ( domain == domainQueues[ ind ].domain )
+      if ( liveliness.load( ) && domain == domainQueues[ ind ].domain )
          {
          assert( !domainQueues[ ind ].queueWLk.pQueue.empty() );
          if ( !domainQueues[ ind ].timeStampInDomain ) // Not in domainsHeap
@@ -307,8 +307,12 @@ void UrlFrontier::initiateInsertToDomain( std::chrono::time_point<std::chrono::s
 APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolicy::getMostOkayUrl( SetOfUrls& set )
    {
    unsigned index = 0;
+   if ( !liveliness.load( ) )
+      return APESEARCH::pair< APESEARCH::string, size_t >( "", domainQueues.size() );
 {
    semaHeap.down(); // Okay to go now that there's an open backend queue
+   if ( !liveliness.load( ) )
+      return APESEARCH::pair< APESEARCH::string, size_t >( "", domainQueues.size() );
    APESEARCH::unique_lock<APESEARCH::mutex> uniqPQLk( pqLk );
 
    // wait until time has reached the past before popping...
@@ -316,7 +320,7 @@ APESEARCH::pair< APESEARCH::string, size_t > UrlFrontier::BackendPolitenessPolic
       [this](){ 
          auto timeNow = std::chrono::time_point_cast<std::chrono::seconds>( std::chrono::system_clock::now() );
          return backendHeap.top().timeWCanCrawl < timeNow; } ) );
-   
+
    // Pop Queue...
    index = backendHeap.top().index;
    backendHeap.pop();
@@ -384,13 +388,20 @@ void UrlFrontier::shutdown( )
    count = frontEnd.full.getCount( );
    if ( count < 0 )
       frontEnd.full.up( -count );
+
+   count = backEnd.semaHeap.getCount( );
+   if ( count < 0 )
+      backEnd.semaHeap.up( -count );
    std::cout << "Shutting down url frontier\n";
    pool.shutdown( );
+   std::cout << "Thread pool finished joining ( UrlFrontier )\n";
    } // end shutdown( )
 
 APESEARCH::string UrlFrontier::getNextUrl( )
    {
    APESEARCH::pair< APESEARCH::string, size_t > retObj( backEnd.getMostOkayUrl( set ) );
+   if ( !liveliness.load( ) )
+      return retObj.first();
    assert( !retObj.first().empty() );
 
    // Check if queue is empty...

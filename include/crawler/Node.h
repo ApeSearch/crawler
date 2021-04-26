@@ -21,6 +21,7 @@
 //#include "SetOfUrls.h"
 #include "Database.h"
 #include "DynamicBuffer.h"
+#include <atomic>
 
 struct NodeBucket
 {
@@ -82,6 +83,7 @@ class Node
    Bloomfilter& bloomFilter;
    APESEARCH::PThreadPool< APESEARCH::circular_buffer<APESEARCH::Func, APESEARCH::DEFAULT::defaultBuffer<APESEARCH::Func, 32u>> > pool;
    Database& dataBase; 
+   std::atomic<bool> nodeLiveliness;
    
    int retriesConnectAfterFailure( int, int );
 
@@ -92,6 +94,9 @@ public:
     //Must have ips in some ordering!
     Node(APESEARCH::vector<APESEARCH::string> &ips, int node_id, UrlFrontier& fron, Database &db, Bloomfilter &bf);
     ~Node();
+
+   // Shutdown Node
+   void shutdown();
 
     //1 dedicated thread-blocking
     void connectionHandler();

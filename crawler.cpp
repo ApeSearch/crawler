@@ -46,7 +46,7 @@ int main( int argc, char **argv )
     
     
     // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 512, 256, 0, seed_links);
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 2500, 15000, 0, seed_links);
     
     merc.user_handler( );
     return 0;

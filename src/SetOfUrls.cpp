@@ -102,7 +102,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
       } // end if
 
    //numOfFiles.store( numOfValidFiles( ) );
-
+   memset( backFileName, sizeof( backFileName ), 0 ); // intialize to empty
    if ( !popNewBatch() )
       {
       // Signify an empty frontier
@@ -140,7 +140,7 @@ SetOfUrls::~SetOfUrls()
          finalizeSection();
       }        
          } // end if
-         assert( removeFile( frontQFileName ) );
+         removeFile( frontQFileName );
       } // end if
    removeFile( backQPath );
    closedir( dir );

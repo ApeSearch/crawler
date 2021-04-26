@@ -35,12 +35,13 @@ int main( int argc, char **argv )
 
     
     //Nikolas1, Nikolas2, Robin1, Robin2, Paul1, Paul2, Christian1, Christian2 Serdar1, Serdar2, Alex1, Alex2
-    APESEARCH::vector<APESEARCH::string> ips = { "35.230.41.55", "34.71.229.2", "34.75.57.124", "35.245.134.242", "35.194.60.3", "35.232.126.246", "199.223.236.235", "35.194.73.46", "35.231.170.57", "34.86.240.51", "34.73.221.32", "34.86.225.197" };
-    if(ips.size() != MAXNODES)
-        {
-        std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
-        return 2;
-        } // end if
+    //APESEARCH::vector<APESEARCH::string> ips = { "35.230.41.55", "34.71.229.2", "34.75.57.124", "35.245.134.242", "35.194.60.3", "35.232.126.246", "199.223.236.235", "35.194.73.46", "35.231.170.57", "34.86.240.51", "34.73.221.32", "34.86.225.197" };
+    APESEARCH::vector<APESEARCH::string> ips = { "34.73.221.32" };
+    //if(ips.size() != MAXNODES)
+    //    {
+    //    std::cerr << "Wrong amount of ips: " << ips.size() << std::endl;
+    //    return 2;
+    //    } // end if
 
     int node_id = -1;
             
@@ -60,8 +61,9 @@ int main( int argc, char **argv )
     }
     
     // crawlers, parsers
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
-    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 1000, 1024, 0, seed_links);
+    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
+    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 2500, 1500, 0, seed_links);
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 100, 50, 0, seed_links);
     
     merc.user_handler( );
     return 0;

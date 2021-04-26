@@ -93,7 +93,7 @@ void APESEARCH::Mercator::crawler( )
    {
     Request requester;
 
-    while( true )
+    while( liveliness.load( ) ) 
        {
         APESEARCH::string url = frontier.getNextUrl( ); // Writes directly to buffer
         if( url.empty( ) )
@@ -117,8 +117,10 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    size_t *num = ( size_t * ) pagesCrawled.get();
    ++num[ 1 ];
 } 
+      std::cerr << "Crawled website successfully: " << url << '\n';
       } // end if
-   //std::cerr << "Crawled website successfully: " << url << '\n';
+   else
+      std::cerr << "Issue with Crawled website: " << url << '\n';
 
    } // end parser()
 
@@ -158,7 +160,9 @@ void APESEARCH::Mercator::user_handler()
     std::string input;
     do 
        {
-        std::cin >> input; // Would need to overload operator>> for string here
+        sleep(60);
+        input = "Quit";
+        //std::cin >> input; // Would need to overload operator>> for string here
         switch( input.front() )
            {
             case 'I':
@@ -242,7 +246,11 @@ void APESEARCH::Mercator::rate( )
 void APESEARCH::Mercator::cleanUp()
    {
     liveliness.store( false );
+    frontier.shutdown( );
     pool.shutdown(); // Blocks until every thread has joined...
+    std::cout << "CleanUp has finished Running\n";
+    node.shutdown( );
+    std::cout << "Node clean has finished\n";
     return;
    } // end cleanUp()
 

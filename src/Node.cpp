@@ -27,7 +27,7 @@ NodeBucket::NodeBucket(size_t index, const char *ip) : socket(new Socket()), wri
 }
 
 Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron, Database &db, Bloomfilter &bf) : frontier( fron ), bloomFilter(bf)
-    ,pool( MAXTHREADS, MAXTHREADS ), dataBase( db ), node_id( id )
+    ,pool( ips.size( ) * 2 + 1, ips.size( ) * 2 + 1 ), dataBase( db ), node_id( id ), nodeLiveliness( true )
 {
     //THE NODE_ID BUCKET WILL NEVER BE USED FOR ANYTHING, NOT WORTH OPTIMIZATION
     node_buckets.reserve( ips.size() );
@@ -86,7 +86,40 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron,
        }
 }
 
-Node::~Node(){}
+void Node::shutdown()
+{
+    if ( !nodeLiveliness.load( ) )
+        return;
+    nodeLiveliness.store( false );
+    // Force senders to return
+    for ( size_t index = 0; index < node_buckets.size( ); ++index )
+    {
+        node_buckets[index].writer_semaphore.up();
+    }    
+
+    // Force accept to return
+    try 
+    {
+        //unique_ptr<Socket> acceptorSock = std::move( node_buckets[ (size_t) node_id].socket );
+        //assert( node_buckets[ (size_t) node_id].socket->getFD( ) == -1 );
+        connect(node_id);
+    }
+    catch(...)
+    {
+    }
+    for ( size_t index = 0; index < node_buckets.size( ); ++index )
+    {
+        node_buckets[index].cv.notify_one();
+    }    
+}
+
+Node::~Node()
+{
+    if ( nodeLiveliness )
+    {
+        shutdown();
+    }
+}
 
 
 void Node::connect( int index )
@@ -116,7 +149,7 @@ void Node::connectionHandler()
 {
     std::cerr << "Connection handler is running \n";
     //Since accept will block this is not spinning
-    while(true)
+    while( nodeLiveliness )
     {
         struct sockaddr_in node_addr;
         socklen_t node_len = sizeof(node_addr);
@@ -128,6 +161,8 @@ void Node::connectionHandler()
         {
             std::cerr<< "Before " << node_addr.sin_addr.s_addr << '\n';
 
+            if ( !nodeLiveliness )
+                return;
             unique_ptr<Socket> ptr = node_buckets[node_id].socket->accept((struct sockaddr *) &node_addr, &node_len);
 
             std::cerr << "After "<< node_addr.sin_addr.s_addr << '\n';
@@ -167,11 +202,15 @@ void Node::sender(int index)
     int fd = node_buckets[index].socket->getFD();
     node_buckets[index].socket_lock.unlock();
     
-    while(true)
+
+
+    while( nodeLiveliness )
     {
         sleep(5u);
 
         node_buckets[index].writer_semaphore.down();
+        if ( !nodeLiveliness )
+            return;
         //std::cerr << "Sender activated to send to Node: " << index << '\n';
         APESEARCH::vector<char> local;
         {
@@ -219,7 +258,7 @@ void Node::sender(int index)
             node_buckets[index].high_prio_unlock();
             //Try to connect
             fd = retriesConnectAfterFailure(fd, index);
-            assert( fd > 0 );
+            assert( !nodeLiveliness || fd > 0 );
             // Allow to try again
             node_buckets[index].writer_semaphore.up();
         }
@@ -293,8 +332,8 @@ int Node::retriesConnectAfterFailure( int fd, int index )
     APESEARCH::unique_lock<APESEARCH::mutex> lck(node_buckets[index].socket_lock);
             
     //Someone else changed it beforehand failsafe for recieve
-    int checkFD =  node_buckets[index].socket->getFD();
-    if(fd != checkFD || checkFD != -1)
+    int checkFD = node_buckets[index].socket->getFD();
+    if(!nodeLiveliness || fd != checkFD || checkFD != -1)
         return checkFD;
                 
     //Declare it invalid
@@ -311,7 +350,7 @@ int Node::retriesConnectAfterFailure( int fd, int index )
     {
         //std::cerr << "Reciever is waiting for connection to Node: " << index << '\n';
         //Wait for connector to notify you
-        node_buckets[index].cv.wait(lck, [this, index]() -> bool { return node_buckets[index].socket->getFD() > 0; } );
+        node_buckets[index].cv.wait(lck, [this, index]() -> bool { return !nodeLiveliness || node_buckets[index].socket->getFD() > 0; } );
         //std::cerr << "Reciever woke up from connection to Node: " << index << '\n';
     }
     return node_buckets[index].socket->getFD();
@@ -335,7 +374,7 @@ void Node::receiver(int index)
     
     //[url\n\0]
     //[url\nword \0]
-    while( true )
+    while( nodeLiveliness )
     {
         char *buffPtr, *buffEnd;
         bytesRead = recv(fd, buffer, BUFFERSIZE, 0);
@@ -344,7 +383,7 @@ void Node::receiver(int index)
         if ( bytesRead == -1 )
             {
             fd = retriesConnectAfterFailure( fd, index );
-            assert( fd > 0 );
+            assert( !nodeLiveliness || fd > 0 );
             intermediateBuf = APESEARCH::vector< char >( );
             continue; 
             } // end if
@@ -356,12 +395,10 @@ void Node::receiver(int index)
             // Signifies end of url
             case '\n':
                 linkOf.URL = APESEARCH::string( intermediateBuf.begin( ), intermediateBuf.end( ) );
-                //TODO change to .clear( );
                 intermediateBuf = APESEARCH::vector< char >( );
                 break;
             case ' ':
                 linkOf.anchorText.emplace_back( intermediateBuf.begin( ), intermediateBuf.end( ) );
-                //TODO change to .clear( );
                 intermediateBuf = APESEARCH::vector< char >( );
                 break;
             case '\0':
@@ -369,7 +406,6 @@ void Node::receiver(int index)
                 if ( !intermediateBuf.empty( ) )
                     {
                     linkOf.anchorText.emplace_back( intermediateBuf.begin( ), intermediateBuf.end( ) );
-                    //TODO change to .clear( );
                     intermediateBuf = APESEARCH::vector< char >( );
                     } // end if
                 
