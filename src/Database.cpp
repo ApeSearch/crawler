@@ -512,24 +512,22 @@ void Database::cleanAnchorMap(){
     static APESEARCH::vector< std::string > paths = { "./anchorMapFiles0", "./anchorMapFiles1", "./anchorMapFiles2" };
 
     for ( size_t n = 0; n < paths.size( ); ++n )
-       {
-        DIR *dir = opendir( paths[ n ].c_str( ) );
+        {
+        DIR *dir;
+        while( ( dir = opendir( paths[ n ].c_str( ) ) ) == NULL )
+            assert( mkdir( paths[ n ].c_str( ), 0700 ) == 0 );
+
         struct dirent *dp;
         while( (dp = readdir (dir)) != NULL )
             {
             if ( dp->d_type == DT_REG )
                 {
-                
                 std::string path = dp->d_name;
                 path = paths[n] + "/" + path;
                 truncate(path.c_str(), 0);
-
                 } // end if
             } // end while
-       }
-
-
-
+        } // end for
 }
 
 void Database::cleanAnchorMap(int fileCount){
