@@ -73,6 +73,7 @@ void reduceFile( const std::string& path )
         file.write(writeString.c_str(), writeString.length());
     }
     catch(...){
+        std::cout << "anchormapfile missing" << std::endl;
         return;
     }
 }
