@@ -73,7 +73,6 @@ void reduceFile( const std::string& path )
         file.write(writeString.c_str(), writeString.length());
     }
     catch(...){
-        std::cout << "anchormapfile missing" << std::endl;
         return;
     }
 }
@@ -228,17 +227,15 @@ void Database::addParsedFile( const HtmlParser &parsed )        //url, parsed te
 }
 
 
-void reduceAnchorMapFiles(int &fileCount){
+void reduceAnchorMapFiles(int &fileCount, std::unordered_map<std::string, int> anchorMap){
     static const char* const newline_char = "\n";
     std::string path0 = "./anchorMapFiles0/anchorMapFile";
     std::string path1 = "./anchorMapFiles1/anchorMapFile";
     std::string path2 = "./anchorMapFiles2/anchorMapFile";
-    
 
-    for(int i = 0; i < fileCount; i++){
-        std::string path = (i < 200000) ? path0 : (i < 400000) ? path1 : path2;
-        
-        reduceFile(path + std::to_string(i));
+    for(auto &it : anchorMap){
+        std::string path = (it.second < 200000) ? path0 : (it.second < 400000) ? path1 : path2;
+        reduceFile(path + std::to_string(it.second));
     }
 
 }
@@ -466,7 +463,7 @@ void Database::condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsed
 
     fillAnchorMap(anchorMap, parsedPtr, parsedFile.fileSize(), fileCount);
     parseAnchorFile(anchorPtr, anchorFile.fileSize(), anchorMap);
-    reduceAnchorMapFiles(fileCount);
+    reduceAnchorMapFiles(fileCount, anchorMap);
     writeCondensedFile("./condensedFiles/condensedFile" + std::to_string(index), anchorMap, parsedPtr, parsedFile.fileSize());
     cleanAnchorMap(fileCount);
 }
