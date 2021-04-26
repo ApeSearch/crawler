@@ -396,6 +396,7 @@ TEST(test_clean_anchor_map_initial){
     std::string input = "Bad";
     anchorMap.write(input.c_str(), input.length());
     Database db;
+    db.cleanAnchorMap();
     assert(anchorMap.fileSize() == 0);
 
 }
