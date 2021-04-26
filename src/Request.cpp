@@ -62,6 +62,7 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
 */
 Result Request::getReqAndParse(const char *urlStr)
 {
+   urlPtr= urlStr;
     ParsedUrl url( urlStr );
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = !strcmp(url.Service, "http"); // 0 if http 1 if https
@@ -381,6 +382,206 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
    return num;
    }
 
+inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char const ***currEnd, APESEARCH::vector<char>& buffer )
+   {
+   static char const * const endChunkSize = "\r\n";
+   char const *start = **ptr;
+   char const *place = endChunkSize;
+   ssize_t bytesReceived = 0;
+   assert( **ptr <= **currEnd );
+
+   do
+   {
+      **currEnd += bytesReceived;
+      while( *place && **ptr != **currEnd )
+         ( * ( **ptr )++ == *place ) ? ++place : place = endChunkSize;
+
+      // Check if we're currently at the end of buffer
+      if ( **ptr == buffer.end( ) )
+         {
+         if ( buffer.end( ) - start == buffer.size( ) )
+            return false;
+
+         size_t shift = start - buffer.begin( );
+
+         // Copy buffer to the beginning
+         char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( )  );
+         assert( ( retPtr - buffer.begin( ) ) == ( buffer.end( ) - start ) );
+
+         // Readjust pointers
+         start = buffer.begin( ); // start now begins at the beginning
+         **ptr -= shift;
+         **currEnd -= shift; // currEnd is shifted down start - buffer.begin( ) bytes
+         } // end if
+   } while ( *place && ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
+   return !*place;
+   }
+
+ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer )
+   {
+   static char const * const endChunkSize = "\r\n";
+   char const *start = *ptr;
+   char const *place = endChunkSize;
+   ssize_t bytesReceived = 0;
+
+   if ( !seekLineSeperator( socket, &ptr, &currEnd, buffer ) )
+      return -1;
+
+   if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
+      {
+      char const *iterator = buffer.begin( );
+      while( iterator != *currEnd )
+         std::cout << *iterator++;
+      printf("\nIssue with Url: %s\n", urlPtr);
+      assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
+      } // end if
+
+   return hexaToDecimal( start, *ptr - 2 );
+   } // end findChunkSize( )
+
+bool Request::attemptPushBack( char val )
+   {
+   // If about to increase, check if would go over
+   if ( bodyBuff.size( ) == bodyBuff.capacity( ) && bodyBuff.size( ) << 1 > Request::maxBodyBytes )
+      return false;
+   bodyBuff.push_back( val );
+   return true;
+   } // end val
+
+// Continously iterate through the buffer and write to bodyBUff until bytes
+bool Request::writeChunked( unique_ptr<Socket> &socket, APESEARCH::vector<char>& buffer, char **ptr, char const**currEnd, const size_t bytesToReceive )
+   {
+   assert( bytesToReceive > 0 );
+   assert( *ptr <= *currEnd );
+   ssize_t bytesToWrite = 0;
+   size_t bytesWritten = 0;
+
+   do
+   {
+      *currEnd += bytesToWrite;
+      while( *ptr != *currEnd )
+         {
+         if ( !attemptPushBack( *( *ptr )++ ) )
+            return false;
+         if( ++bytesWritten == bytesToReceive )
+            {
+            return seekLineSeperator( socket, &ptr, &currEnd, buffer );
+            }
+         } // end while
+      *ptr = buffer.begin( );
+      *currEnd = ( const char * ) buffer.begin( );
+   } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
+   return false;
+   } // end writeChunked( )
+
+void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
+   {
+   assert( partOfBody.second() - partOfBody.first() < 65536 );
+   APESEARCH::vector<char> temp( 65536 ); // 2^16
+   char *buffPtr = temp.begin( );
+   char const *currEnd = ( const char * ) APESEARCH::copy( partOfBody.first(), partOfBody.second(), temp.begin() );
+   do
+   {
+   ssize_t chunkSize = findChunkSize( socket, &buffPtr, &currEnd, temp );
+   if ( chunkSize == -1 )
+      {
+      headerBad = true;
+      return;
+      } // end if
+   // Reached the end ( no longer receiving )
+   else if ( chunkSize == 0 )
+      {
+      return;
+      } // end elseif
+
+   // Resets if reaches the end
+   if ( buffPtr == temp.end( ) )  
+      {
+      buffPtr = temp.begin( );
+      currEnd = ( char const * ) temp.begin( );
+      }
+   
+   // Now attempt to continue to write into BodyBuff
+   if ( !writeChunked( socket, temp, &buffPtr, &currEnd, ( size_t ) chunkSize ) )
+      {
+      headerBad = true;
+      return;
+      } // end if
+   } while ( true );
+   } // end chunkedHtml( )
+
+
+static void DecompressResponse( APESEARCH::vector < char >& data_ );
+
+void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
+   {
+   
+   if ( chunked )
+   {
+      chunkedHtml( socket, partOfBody );
+   }
+   else
+      receiveNormally( socket, partOfBody );
+      
+   if ( !headerBad && gzipped )
+      DecompressResponse( bodyBuff );
+
+   return;
+   }
+
+   APESEARCH::vector< char > Request::getResponseBuffer()
+   {
+      return std::move( bodyBuff );
+   }
+
+// Perform the decompression
+void DecompressResponse( APESEARCH::vector < char >& data_ )
+    {
+    z_stream zs;                        // z_stream is zlib's control structure
+    memset( &zs, 0, sizeof( zs ) );
+
+    APESEARCH::vector < char > decompressed;
+    std::array < char, 32768 > outBuffer;
+
+    if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
+      throw std::runtime_error( "inflateInit2 fail" );
+
+    zs.next_in =
+        const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
+    zs.avail_in = static_cast < unsigned int >( data_.size( ) );
+
+    int ret;
+
+    // get the decompressed bytes blockwise using repeated calls to inflate
+    do
+        {
+        zs.next_out = reinterpret_cast < Bytef* >( outBuffer.data( ) );
+        zs.avail_out = sizeof( outBuffer );
+
+        ret = inflate( &zs, 0 );
+
+        if ( decompressed.size( ) < zs.total_out )
+            {
+            unsigned bytesToTransfer = zs.total_out - decompressed.size( );
+            unsigned sizeOfDec = decompressed.size( );
+            decompressed.resize( decompressed.size( ) + bytesToTransfer );
+            char *decompressedPtr = &decompressed.front( ) + sizeOfDec;
+            APESEARCH::copy( outBuffer.data( ), outBuffer.data( ) + zs.total_out - sizeOfDec, decompressedPtr );
+            } // end if
+        }
+    while ( ret == Z_OK );
+
+    inflateEnd( &zs );
+
+    if ( ret != Z_STREAM_END )
+        {          // an error occurred that was not EOF
+        throw std::runtime_error( "Non-EOF occurred while decompressing" );
+        }
+
+    APESEARCH::swap( decompressed, data_ );
+    }
+
+/*
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
 {
    APESEARCH::vector<char> temp;
@@ -432,78 +633,4 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
       }
    }
 }
-
-
-static void DecompressResponse( APESEARCH::vector < char >& data_ );
-
-void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
-   {
-   
-   if ( chunked )
-   {
-      chunkedHtml( socket, partOfBody );
-   }
-   else
-      receiveNormally( socket, partOfBody );
-      
-   if ( gzipped )
-      DecompressResponse( bodyBuff );
-
-   return;
-   }
-
-   APESEARCH::vector< char > Request::getResponseBuffer()
-   {
-      return std::move( bodyBuff );
-   }
-
-
-// Perform the decompression
-void DecompressResponse( APESEARCH::vector < char >& data_ )
-    {
-    z_stream zs;                        // z_stream is zlib's control structure
-    memset( &zs, 0, sizeof( zs ) );
-
-    APESEARCH::vector < char > decompressed;
-    std::array < char, 32768 > outBuffer;
-
-    if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
-      throw std::runtime_error( "inflateInit2 fail" );
-
-    zs.next_in =
-        const_cast < Bytef * >( reinterpret_cast < const unsigned char * >( &data_.front( ) ) );
-    zs.avail_in = static_cast < unsigned int >( data_.size( ) );
-
-    int ret;
-
-    // get the decompressed bytes blockwise using repeated calls to inflate
-    do
-        {
-        zs.next_out = reinterpret_cast < Bytef* >( outBuffer.data( ) );
-        zs.avail_out = sizeof( outBuffer );
-
-        ret = inflate( &zs, 0 );
-
-        if ( decompressed.size( ) < zs.total_out )
-            {
-            unsigned bytesToTransfer = zs.total_out - decompressed.size( );
-            unsigned sizeOfDec = decompressed.size( );
-            decompressed.resize( decompressed.size( ) + bytesToTransfer );
-            char *decompressedPtr = &decompressed.front( ) + sizeOfDec;
-            APESEARCH::copy( outBuffer.data( ), outBuffer.data( ) + zs.total_out - sizeOfDec, decompressedPtr );
-            } // end if
-        }
-    while ( ret == Z_OK );
-
-    inflateEnd( &zs );
-
-    if ( ret != Z_STREAM_END )
-        {          // an error occurred that was not EOF
-        throw std::runtime_error( "Non-EOF occurred while decompressing" );
-        }
-
-    APESEARCH::swap( decompressed, data_ );
-    }
-
-
-    
+*/

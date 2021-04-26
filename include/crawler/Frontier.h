@@ -26,7 +26,7 @@
 #include "DynamicBuffer.h"
 
 
-#define NUMOFFRONTQUEUES 1
+#define NUMOFFRONTQUEUES 2
 
 struct domainTiming
 {
@@ -70,7 +70,7 @@ class UrlFrontier
     {
     public:
         // Member Variables
-        static const constexpr std::size_t urlsPerPriority = 3096;
+        static const constexpr std::size_t urlsPerPriority = 2048;
         APESEARCH::vector< QueueWLock< urlsPerPriority > > pQueues;
         APESEARCH::semaphore empty;
         APESEARCH::semaphore full;
@@ -85,7 +85,7 @@ class UrlFrontier
         void readInUrl( SetOfUrls& set, std::atomic<bool>& );
         APESEARCH::string getUrl();
 
-        FrontEndPrioritizer( SetOfUrls& _set, std::atomic<bool>& boolean, size_t numOfQueues = NUMOFFRONTQUEUES ) : 
+        FrontEndPrioritizer( SetOfUrls& _set, std::atomic<bool>& boolean, size_t numOfQueues = SetOfUrls::maxPriority ) : 
             pQueues( numOfQueues ), empty( FrontEndPrioritizer::urlsPerPriority * numOfQueues ), full( 0 ), setRef( _set ), liveliness( boolean ) {}
         ~FrontEndPrioritizer( );
     };
@@ -94,7 +94,7 @@ class UrlFrontier
     {
     public:
         // Member Variables
-        static constexpr std::size_t endQueueSize = 100;
+        static constexpr std::size_t endQueueSize = 128;
         struct BackEndQueue
             {
             QueueWLock< endQueueSize > queueWLk;
@@ -129,7 +129,6 @@ class UrlFrontier
     using FrontierCircBuf = APESEARCH::circular_buffer< APESEARCH::Func, APESEARCH::dynamicBuffer< APESEARCH::Func > >;
     SetOfUrls set;
     
-    static constexpr std::size_t frontQueueSize = 1024;
     // "To keep crawling threds busy, 3 times as many backeended queues as crawler threads"
     //static unsigned ratingOfTopLevelDomain( const char * );
 
@@ -152,6 +151,7 @@ public:
     void shutdown(); // signals threads to stop
 };
 
+extern std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
+std::chrono::time_point<std::chrono::system_clock> newTime( );
 #endif
 
-std::chrono::time_point<std::chrono::system_clock> newTime( );

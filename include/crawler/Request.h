@@ -74,6 +74,7 @@ class Request
    APESEARCH::vector< char > bodyBuff;
    //std::string buffer;
    std::size_t contentLengthBytes = 0;
+   char const *urlPtr;
    unsigned state;
    bool gzipped, chunked, redirect, contentLength, headerBad, isHtml;
    bool foundGzipped, foundChunked, foundUrl, foundContentLength;
@@ -83,7 +84,7 @@ class Request
    // Helper Functions
   
    // Static Variables
-   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 xiongrob@umich.edu nikolag@umich.edu skarahan@umich.edu alexwong@umich.edu paulzhan@umich.edu cluc@umich.edu (Linux)\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n";
+   static constexpr const char * const fields = "User-Agent: ApeSearch Crawler/2.0 apesearchnoreply@gmail.com (Linux)\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n";
    //static constexpr const char * const fields = "User-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n";
    static constexpr const size_t fieldSize = 139u;
    static constexpr time_t timeoutSec = 7;
@@ -92,12 +93,17 @@ class Request
       {
       gzipped = chunked = redirect = foundGzipped = foundChunked = foundUrl = contentLength = foundContentLength = headerBad = false; // Reset state
       contentLengthBytes = 0;
-      bodyBuff = APESEARCH::vector< char >( );
+      if ( !bodyBuff.empty( ) )
+         bodyBuff = APESEARCH::vector< char >( );
       }
    
    void receiveNormally( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody );
    void chunkedHtml( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody);
 
+   // Helper functions for chunkedHtml
+   ssize_t findChunkSize( APESEARCH::unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer );
+   bool writeChunked( APESEARCH::unique_ptr<Socket> &socket, APESEARCH::vector<char>& buffer, char **ptr, char const **currEnd, const size_t bytesToReceive );
+   bool attemptPushBack( char val );
 public:
    getReqStatus validateStatus( unsigned status );
    int evalulateRespStatus( char **header, const char* const endOfHeader );

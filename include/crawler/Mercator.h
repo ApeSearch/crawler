@@ -19,6 +19,7 @@
 #include <assert.h>
 #include "ParsedUrl.h"
 
+extern std::atomic<size_t> queuesChosen[ SetOfUrls::maxPriority ];
 /*
  * The general flow of this design is to seperate out
  * different parts of the crawler into smaller tasks
@@ -46,8 +47,11 @@ namespace APESEARCH
       Bloomfilter bloomfilter;
       unique_mmap pagesCrawled;
       UrlFrontier frontier;
-      APESEARCH::mutex lkForPages;
+      APESEARCH::mutex lkForCrawled;
+      APESEARCH::mutex lkForWritten;
       std::atomic<bool> liveliness; // Used to communicate liveliness of frontier
+      size_t startCrawled;
+      size_t writtenAtStart;
       //Node networkNode;
 
       void crawlWebsite( Request& requester, APESEARCH::string& buffer);
@@ -58,6 +62,7 @@ namespace APESEARCH
       //void getRequester( SharedQueue< APESEARCH::string >&, APESEARCH::string&& url );
       // Responsible for signaling and shutting down threads elegantly
       void intel( );
+      void rate( );
       void cleanUp( ); 
       void startUpCrawlers( const std::size_t );
     public:
@@ -75,9 +80,9 @@ namespace APESEARCH
          std::cout << "Opened: /VirtualFileSystem/Root/pagesCrawledDONTTOUCH.txt" << std::endl;
 
          int fileSize = lseek(  file.getFD( ), 0, SEEK_END );
-         if ( (long unsigned int)fileSize < sizeof( size_t ) )
+         if ( (long unsigned int)fileSize < sizeof( size_t ) * 2 )
             {
-            ssize_t result = lseek( file.getFD( ), sizeof( size_t ) - 1, SEEK_SET );
+            ssize_t result = lseek( file.getFD( ), sizeof( size_t ) * 2 - 1, SEEK_SET );
 
             if ( result == -1 )
                {
@@ -94,7 +99,10 @@ namespace APESEARCH
                }
             } // end if
          pagesCrawled = unique_mmap( 0, sizeof( size_t ), PROT_READ | PROT_WRITE, MAP_SHARED, file.getFD( ) , 0 );
-
+         size_t *ptr = ( size_t * ) pagesCrawled.get( );
+         startCrawled = ptr[ 0 ];
+         writtenAtStart = ptr[ 1 ];
+         rate( ); // Called to initialize variables
          startUpCrawlers( amtOfCrawlers );
          }
       ~Mercator();
