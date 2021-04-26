@@ -135,7 +135,6 @@ Database::Database( ) : Database( nullptr )
 
 Database::Database( const char *directory )
 {
-    cleanAnchorMap();
     char path[MAX_PATH];
     file_vector.reserve( NUM_OF_FILES );
     for(int i = 0; i < NUM_OF_FILES; i++)
@@ -260,10 +259,9 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
     if(fileSize == 0){
         return;
     }
-    
+
     char const *startingPtr = anchorPtr;
     while(anchorPtr < startingPtr + fileSize){
-
         std::string url = "";
         while(anchorPtr < startingPtr + fileSize && *anchorPtr != '\n'){
             url.push_back(*anchorPtr);
@@ -283,7 +281,6 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
             anchorPtr++;
             continue;
         }
-
         
         bool isAlphaNum = true;
         std::string phrase = "";
@@ -425,6 +422,7 @@ void writeCondensedFile(std::string path, std::unordered_map<std::string, int> &
         std::string parsedInfo(beg, it);
         condensedFile.write(parsedInfo.c_str(), parsedInfo.length() - 1);
         if(anchorMap.find(url) != anchorMap.end()){
+            
             std::string anchorMapPath = (anchorMap[url] < 200000) ? path0 : (anchorMap[url] < 400000) ? path1 : path2;
             anchorMapPath += std::to_string(anchorMap[url]);
             APESEARCH::File anchorMapFile( anchorMapPath.c_str(), O_RDWR , (mode_t) 0600 );
@@ -469,6 +467,10 @@ void Database::condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsed
 }
 
 void Database::fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, const char* parsedPtr, int fileSize, int &fileCount){
+    std::string path0 = "./anchorMapFiles0/anchorMapFile";
+    std::string path1 = "./anchorMapFiles1/anchorMapFile";
+    std::string path2 = "./anchorMapFiles2/anchorMapFile";
+
     char const *it = parsedPtr;
     while(it && it < parsedPtr + fileSize){
         char const *beg = it;
@@ -486,6 +488,10 @@ void Database::fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, co
             continue;
         }
         if(anchorMap.find(url) == anchorMap.end()){
+
+            std::string path = (fileCount < 200000) ? path0 : (fileCount < 400000) ? path1 : path2;
+            path += std::to_string(fileCount);
+            APESEARCH::File file( path.c_str(), O_RDWR | O_CREAT | O_APPEND , (mode_t) 0600 );
             anchorMap[url] = fileCount++;
         }
         it++;
@@ -500,6 +506,8 @@ void Database::fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, co
 
 
 void Database::condenseFiles(){
+
+    cleanAnchorMap();
 
     for(int i = 0; i < file_vector.size(); i++){
         APESEARCH::unique_lock<APESEARCH::mutex> parsedLock( file_vector[i].parsed_lock );
