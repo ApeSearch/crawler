@@ -251,7 +251,7 @@ void writePhrase( int fileCount, const std::string& phrase ){
     file.write(newline_char, 1);
 }
 
-void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap, int &fileCount){
+void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unordered_map<std::string, int> &anchorMap){
 
     if(fileSize == 0){
         return;
@@ -303,10 +303,7 @@ void Database::parseAnchorFile(char const *anchorPtr, size_t fileSize, std::unor
             //std::cerr << "Anchor was improperly formatted and went over fileSize" <<std::endl;
             return;
         }
-        if(*anchorPtr == '\0'){
-            if(anchorMap.find(url) == anchorMap.end()){
-                anchorMap[url] = fileCount++;
-            }
+        if(*anchorPtr == '\0' && anchorMap.find(url) != anchorMap.end() ){
             writePhrase(anchorMap[url], phrase);
         }
         else{
@@ -459,10 +456,39 @@ void Database::condenseFile(APESEARCH::File &anchorFile, APESEARCH::File &parsed
     std::unordered_map<std::string, int> anchorMap;
     assert(anchorMap.max_size() > 150000);
     int fileCount = 0;
-    parseAnchorFile(anchorPtr, anchorFile.fileSize(), anchorMap, fileCount);
+
+    fillAnchorMap(anchorMap, parsedPtr, parsedFile.fileSize(), fileCount);
+    parseAnchorFile(anchorPtr, anchorFile.fileSize(), anchorMap);
     reduceAnchorMapFiles(fileCount);
     writeCondensedFile("./condensedFiles/condensedFile" + std::to_string(index), anchorMap, parsedPtr, parsedFile.fileSize());
     cleanAnchorMap(fileCount);
+}
+
+void Database::fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, const char* parsedPtr, int fileSize, int &fileCount){
+    char const *it = parsedPtr;
+    while(it && it < parsedPtr + fileSize){
+        char const *beg = it;
+        
+        while(*it != '\n'){
+            it++;
+        }
+        std::string url(beg, it);
+        std::string prot = url.substr(0, 5);
+        if(prot != "https"){
+            while(*it != '\0'){
+                it++;
+            }
+            it++;
+            continue;
+        }
+        anchorMap[url] = fileCount++;
+        it++;
+        while(*it != '\0'){
+            it++;
+        }
+        assert(*it == '\0');
+        it++;
+    }
 }
 
 

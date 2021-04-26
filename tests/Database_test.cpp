@@ -149,10 +149,11 @@ TEST(test_parsed_anchor_file){
     check += "\n";
     check.push_back('\0'); 
     std::unordered_map<std::string, int> map;
+    map["https://www.google.com"] = 0;
 
     Database db;
     int fileCount = 0;
-    db.parseAnchorFile(check.c_str(), check.length(), map, fileCount);
+    db.parseAnchorFile(check.c_str(), check.length(), map);
     APESEARCH::string path = "./anchorMapFiles0/anchorMapFile0";
     APESEARCH::File file(path.cstr(), O_RDWR , mode_t(0600));
     unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
@@ -277,10 +278,11 @@ TEST(test_parsed_anchor_file_broken){
     check += "https://www.google.com\n1 2 3 4 \n";
     check.push_back('\0');
     std::unordered_map<std::string, int> map;
+    map["https://www.google.com"] = 0;
 
     Database db;
     int fileCount = 0;
-    db.parseAnchorFile(check.c_str(), check.length(), map, fileCount);
+    db.parseAnchorFile(check.c_str(), check.length(), map);
     APESEARCH::string path = "./anchorMapFiles0/anchorMapFile0";
     APESEARCH::File file(path.cstr(), O_RDWR , mode_t(0600));
     unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
@@ -396,6 +398,21 @@ TEST(test_clean_anchor_map_initial){
     Database db;
     assert(anchorMap.fileSize() == 0);
 
+}
+
+TEST(test_fill_anchor_Map){
+    Database db;
+    std::string parsedString = "https://www.monkey.com\nyes no \n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "https://www.ape.com\n,, !! ++ \n0 2 \n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    parsedString += "http://www.bonobo.com\n\n\n\n1 \n\n2\n3\n4\n";
+    parsedString.push_back('\0');
+    std::unordered_map<std::string, int> map;
+    int fileCount = 0;
+    db.fillAnchorMap(map, parsedString.c_str(), parsedString.length(), fileCount);
+    assert(map.find("https://www.monkey.com") != map.end());
+    assert(map.find("https://www.notmonkey.com") == map.end());
 }
 
 TEST_MAIN()
