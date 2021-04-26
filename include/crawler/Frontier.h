@@ -65,6 +65,7 @@ struct QueueWLock
 
 class UrlFrontier
 {
+    //friend class APESEARCH::Mercator;
     // Representation of the front-end queues
     class FrontEndPrioritizer 
     {
