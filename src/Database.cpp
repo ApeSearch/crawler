@@ -34,42 +34,47 @@ bool sortbysecdesc(const std::pair<std::string,int> &a,
 
 void reduceFile( const std::string& path )
     {
-    APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
-    if(file.fileSize() == 0){
+    try{
+        APESEARCH::File file( path.c_str(), O_RDWR, (mode_t) 0600 );
+        if(file.fileSize() == 0){
+            return;
+        }
+        unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
+        std::unordered_map<std::string, int> phraseFreq;
+        char const *mmapPtr = reinterpret_cast< char const *>( mmap.get() );
+        char const *it = mmapPtr;
+        while(it < mmapPtr + file.fileSize()){
+            std::string phrase = "";
+            while(*it != '\n'){
+                phrase += *it;
+                it++;
+            }
+            assert(*it == '\n');
+            it++;
+            if(phraseFreq.find(phrase) == phraseFreq.end()){
+                phraseFreq[phrase] = 0;
+            }
+            phraseFreq[phrase]++;
+        }
+        file.truncate(0);
+        APESEARCH::vector<std::pair<std::string, int>> tempVec;
+        for( auto& i : phraseFreq ) {
+            tempVec.push_back(std::make_pair(i.first, i.second));
+        }
+        std::sort(tempVec.begin(), tempVec.end(), sortbysecdesc);
+        std::string writeString = "";
+        for(int i = 0; i < tempVec.size(); i++){
+            tempVec[i].first = "\"" + tempVec[i].first + " ";
+            tempVec[i].first[tempVec[i].first.length() - 2] = '\"';
+            writeString += tempVec[i].first;
+            writeString += std::to_string(tempVec[i].second);
+            writeString += '\n';
+        }
+        file.write(writeString.c_str(), writeString.length());
+    }
+    catch(...){
         return;
     }
-    unique_mmap mmap( file.fileSize(), PROT_READ, MAP_SHARED, file.getFD(), 0 );
-    std::unordered_map<std::string, int> phraseFreq;
-    char const *mmapPtr = reinterpret_cast< char const *>( mmap.get() );
-    char const *it = mmapPtr;
-    while(it < mmapPtr + file.fileSize()){
-        std::string phrase = "";
-        while(*it != '\n'){
-            phrase += *it;
-            it++;
-        }
-        assert(*it == '\n');
-        it++;
-        if(phraseFreq.find(phrase) == phraseFreq.end()){
-            phraseFreq[phrase] = 0;
-        }
-        phraseFreq[phrase]++;
-    }
-    file.truncate(0);
-    APESEARCH::vector<std::pair<std::string, int>> tempVec;
-    for( auto& i : phraseFreq ) {
-        tempVec.push_back(std::make_pair(i.first, i.second));
-    }
-    std::sort(tempVec.begin(), tempVec.end(), sortbysecdesc);
-    std::string writeString = "";
-    for(int i = 0; i < tempVec.size(); i++){
-        tempVec[i].first = "\"" + tempVec[i].first + " ";
-        tempVec[i].first[tempVec[i].first.length() - 2] = '\"';
-        writeString += tempVec[i].first;
-        writeString += std::to_string(tempVec[i].second);
-        writeString += '\n';
-    }
-    file.write(writeString.c_str(), writeString.length());
 }
 
 
@@ -231,6 +236,7 @@ void reduceAnchorMapFiles(int &fileCount){
 
     for(int i = 0; i < fileCount; i++){
         std::string path = (i < 200000) ? path0 : (i < 400000) ? path1 : path2;
+        
         reduceFile(path + std::to_string(i));
     }
 
