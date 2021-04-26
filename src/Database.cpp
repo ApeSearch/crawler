@@ -485,7 +485,9 @@ void Database::fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, co
             it++;
             continue;
         }
-        anchorMap[url] = fileCount++;
+        if(anchorMap.find(url) == anchorMap.end()){
+            anchorMap[url] = fileCount++;
+        }
         it++;
         while(*it != '\0'){
             it++;
