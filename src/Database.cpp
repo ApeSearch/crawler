@@ -508,6 +508,11 @@ void Database::fillAnchorMap(std::unordered_map<std::string, int> &anchorMap, co
 void Database::condenseFiles(){
 
     cleanAnchorMap();
+    DIR *dir = opendir ( "./condensedFiles" );
+    if ( dir == NULL )
+        mkdir ( "./condensedFiles", 0700 );
+    else
+        closedir( dir ); 
 
     for(int i = 0; i < file_vector.size(); i++){
         APESEARCH::unique_lock<APESEARCH::mutex> parsedLock( file_vector[i].parsed_lock );
@@ -535,6 +540,7 @@ void Database::cleanAnchorMap(){
                 truncate(path.c_str(), 0);
                 } // end if
             } // end while
+        closedir( dir );
         } // end for
 }
 
