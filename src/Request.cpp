@@ -26,7 +26,7 @@
 #endif
 
 
-Request::Request() : headerBuff( 16384, 0 ) {}
+Request::Request() : headerBuff( 16384, 0 ), isHtml( true ) {}
 
 APESEARCH::pair< char const * const, char const * const > Request::getHeader( unique_ptr<Socket> &socket )
     {
