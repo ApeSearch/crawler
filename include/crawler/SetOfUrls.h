@@ -14,10 +14,6 @@
 #include <dirent.h> // for DIR 
 #include <atomic>
 
-extern const char *blackListedDomain[ ];
-
-constexpr size_t numOfDomains = 2u;
-
 struct UrlObj
 {
     //struct PriorityFields

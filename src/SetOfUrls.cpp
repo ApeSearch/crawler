@@ -21,12 +21,6 @@ static const char *topLevelDomains[ ] =
    ".us"
    };
 
-const char *blackListedDomain[ ] =
-   {
-   "www.facebook.com",
-   "www.tumblr.com"
-   };
-
 static const size_t numOfTopLevelDomains = 6u;
 
 //--------------------------------------------------------------------------------
@@ -94,6 +88,7 @@ size_t SetOfUrls::numOfValidFiles(  )
 
 SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 ), liveliness( true )
    {
+   memset ( backFileName, 0, sizeof( backFileName ) ); // set to zero
    if ( !directory )
       directory = SetOfUrls::frontierLoc;
    assert( *directory == '/' );
@@ -108,7 +103,7 @@ SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsI
       } // end if
 
    //numOfFiles.store( numOfValidFiles( ) );
-   memset ( backFileName, 0, sizeof( backFileName ) ); // set to zero
+
    if ( !popNewBatch() )
       {
       // Signify an empty frontier
@@ -341,13 +336,6 @@ int calcPriority( const APESEARCH::string& url )
    ParsedUrl parsed( url.cstr( ), true );
    // Lowest priority if not https
    if ( strncmp( parsed.Service, "https", 5 ) )
-      return -1;
-
-   char const **domainOf = APESEARCH::lower_bound< char const **, char const * const >
-            ( blackListedDomain, blackListedDomain + numOfDomains, parsed.Host, 
-      [ ] ( char const *domain, char const *val ) { return strcasecmp( domain, val ) < 0; } );
-   
-   if ( domainOf != topLevelDomains + numOfTopLevelDomains )
       return -1;
 
    char const * const cend = parsed.Host - 1;
