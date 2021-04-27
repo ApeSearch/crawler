@@ -382,7 +382,7 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
    return num;
    }
 
-inline const char * seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char const ***currEnd, APESEARCH::vector<char>& buffer )
+inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char const ***currEnd, APESEARCH::vector<char>& buffer )
    {
    static char const * const endChunkSize = "\r\n";
    char const *start = **ptr;

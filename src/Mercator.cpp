@@ -117,8 +117,8 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    size_t *num = ( size_t * ) pagesCrawled.get();
    ++num[ 1 ];
 } 
-      } // end if
    //std::cerr << "Crawled website successfully: " << url << '\n';
+      } // end if
 
    } // end parser()
 
