@@ -21,6 +21,12 @@ static const char *topLevelDomains[ ] =
    ".us"
    };
 
+const char *blackListedDomain[ ] =
+   {
+   "www.facebook.com",
+   "www.tumblr.com"
+   };
+
 static const size_t numOfTopLevelDomains = 6u;
 
 //--------------------------------------------------------------------------------
@@ -335,6 +341,13 @@ int calcPriority( const APESEARCH::string& url )
    ParsedUrl parsed( url.cstr( ), true );
    // Lowest priority if not https
    if ( strncmp( parsed.Service, "https", 5 ) )
+      return -1;
+
+   char const **domainOf = APESEARCH::lower_bound< char const **, char const * const >
+            ( blackListedDomain, blackListedDomain + numOfDomains, parsed.Host, 
+      [ ] ( char const *domain, char const *val ) { return strcasecmp( domain, val ) < 0; } );
+   
+   if ( domainOf != topLevelDomains + numOfTopLevelDomains )
       return -1;
 
    char const * const cend = parsed.Host - 1;

@@ -382,7 +382,7 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
    return num;
    }
 
-inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char const ***currEnd, APESEARCH::vector<char>& buffer )
+inline const char * seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char const ***currEnd, APESEARCH::vector<char>& buffer )
    {
    static char const * const endChunkSize = "\r\n";
    char const *start = **ptr;
@@ -400,12 +400,12 @@ inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char co
       if ( **ptr == buffer.end( ) )
          {
          if ( buffer.end( ) - start == buffer.size( ) )
-            return false;
+            return nullptr;
 
          size_t shift = start - buffer.begin( );
 
          // Copy buffer to the beginning
-         char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( )  );
+         char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( ) );
          assert( ( retPtr - buffer.begin( ) ) == ( buffer.end( ) - start ) );
 
          // Readjust pointers
@@ -414,7 +414,7 @@ inline bool seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char co
          **currEnd -= shift; // currEnd is shifted down start - buffer.begin( ) bytes
          } // end if
    } while ( *place && ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
-   return !*place;
+   return !*place ? start : nullptr;
    }
 
 ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer )
@@ -424,7 +424,7 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
    char const *place = endChunkSize;
    ssize_t bytesReceived = 0;
 
-   if ( !seekLineSeperator( socket, &ptr, &currEnd, buffer ) )
+   if ( !( start = seekLineSeperator( socket, &ptr, &currEnd, buffer ) ) )
       return -1;
 
    if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
@@ -471,6 +471,8 @@ bool Request::writeChunked( unique_ptr<Socket> &socket, APESEARCH::vector<char>&
       *ptr = buffer.begin( );
       *currEnd = ( const char * ) buffer.begin( );
    } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
+   if ( bytesToWrite == -1 )
+      perror("Issue with wrteChunked");
    return false;
    } // end writeChunked( )
 
