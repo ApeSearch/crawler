@@ -36,9 +36,7 @@ A class dedicated to writing urls to files and maintaining the front of it (a ra
 
 ## UrlFrontier
 
-The Index class (located at the very bottom of Index.h) takes in a directory of ApeChunks (serialized index chunk files), memory maps them as an IndexBlob (a HashBlob), and allows it to be accessed as an in-memory hash table whose keys are words and values are posting lists of variable-length encoded deltas. 
-
-The different ListIterators provide a way for users to give the iterator an absolute location relative to the beginning of the index, and get back the first Post after that location. The ListIterator takes care of decoding the variable-length encoded deltas back into locations.
+The UrlFrontier is the main method of prioritizing urls and providing some sort of politeness thorugh the backendPolitenessPolicy.
 
 ## Node
 
@@ -46,21 +44,15 @@ Provides a writeFile(filename) method, which allows users to create a directory 
 
 ## Database
 
-IndexHT provides the ability for a user to add documents into an in-memory Inverse Index. The inverse index contains posting lists that map from words to their location relative to the beginning of the index.
+Database is an object that manages writing parsed files and anchor text into a group of bucket files (1024). This is to make it easy to group together anchor text with its corresponding parsed files.
 
 ## Request
 
-This is the constraint solver, which uses Index Stream Readers (ISRs) to search through each ApeChunk. Provides the ability to seek to the first location after a target that matches a structured ISR tree.
+This the main requesting object that gets a request, parses the header and decides what to do afterwards.
 
 ## SSLSocket
 
-Provides the ability for a user to construct a structured parse tree from a search query. Changes search words into an OR expression with decorated words underneath, and phrases into an OR expression with decorated phrases underneath.
-
-## Ranker
-
-Takes in a search query, an ApeChunk (synonymous with IndexBlob, they're basically the same thing) pointer, and provides the ability to construct the most relevant matches based on mostly dynamic ranking factors.
-
-Ranks based on number of in-order and short spans, spans near the top, and exact phrase matches. Also finds matches to the query in Anchor Text and in the URL/Title.
+An inherited class from sockets.h (look in libraries for more details).
 
 # Tests
 Similar to query_constraint, this repository contains unit tests and a few drivers for different parts of the project. Theses are located in tests where many of the basic functionalities were tested.
