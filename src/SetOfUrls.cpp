@@ -88,6 +88,7 @@ size_t SetOfUrls::numOfValidFiles(  )
 
 SetOfUrls::SetOfUrls( const char *directory ) : frontQPtr( nullptr ), numOfUrlsInserted( 0 ), liveliness( true )
    {
+   memset ( backFileName, 0, sizeof( backFileName ) ); // set to zero
    if ( !directory )
       directory = SetOfUrls::frontierLoc;
    assert( *directory == '/' );
