@@ -18,43 +18,41 @@ while(true) {
 		add link to frontier
 } // end while
 
-## Componenets
+# Crawler
 
-# Query-Constraint
+This repository houses the crawler, node between machines when passing urls and how to store and process anchor text.
 
-This repository houses most of the backend code for serving queries to users. 
-
-To see a small example, run "./tests/APESEARCH/apesearch" from the query-constraint top-level directory.
+It starts up by running the following script ( after compiling with make clean; make -j tests/crawler ) ./scripts/start.sh " in the top-level directory.
 
 Must run git submodule update --init --remote to download the submodules (or you could drag our libraries repo into the directory).
 
 # Classes
 
-Each of the class header files are located in query-constrain/include, and their implementations (if applicable) are in query-constraint
+Each of the class header files are located in crawler/include/crawler, and their implementations (if applicable) are in src/.
 
-## Builder
+## SetOfUrl
 
-Builder provides the ability to build an in-memory index from a list of processed Apefiles which contain a URL, words in the document corresponding to the URL, and other useful information. 
+A class dedicated to writing urls to files and maintaining the front of it (a randomly picked url from the directory) and a backend file for which urls are written to it.
 
-## Index
+## UrlFrontier
 
 The Index class (located at the very bottom of Index.h) takes in a directory of ApeChunks (serialized index chunk files), memory maps them as an IndexBlob (a HashBlob), and allows it to be accessed as an in-memory hash table whose keys are words and values are posting lists of variable-length encoded deltas. 
 
 The different ListIterators provide a way for users to give the iterator an absolute location relative to the beginning of the index, and get back the first Post after that location. The ListIterator takes care of decoding the variable-length encoded deltas back into locations.
 
-## IndexFileParser
+## Node
 
 Provides a writeFile(filename) method, which allows users to create a directory full of Apechunks.  writeFile() adds documents to the index until it reaches a certain number of Posts, then serializes the index into an ApeChunk.
 
-## IndexHT
+## Database
 
 IndexHT provides the ability for a user to add documents into an in-memory Inverse Index. The inverse index contains posting lists that map from words to their location relative to the beginning of the index.
 
-## ISR
+## Request
 
 This is the constraint solver, which uses Index Stream Readers (ISRs) to search through each ApeChunk. Provides the ability to seek to the first location after a target that matches a structured ISR tree.
 
-## QueryParser
+## SSLSocket
 
 Provides the ability for a user to construct a structured parse tree from a search query. Changes search words into an OR expression with decorated words underneath, and phrases into an OR expression with decorated phrases underneath.
 
@@ -64,20 +62,5 @@ Takes in a search query, an ApeChunk (synonymous with IndexBlob, they're basical
 
 Ranks based on number of in-order and short spans, spans near the top, and exact phrase matches. Also finds matches to the query in Anchor Text and in the URL/Title.
 
-## Token/TokenStream
-
-Provides a stream of Token objects corresponding to different tokens in a search query. TokenStream provides the ability to get the next token and view the current token. 
-
-Tokens include:
-AND operators: &&, &, and AND
-OR operators: ||, |, and OR
-NESTED operators: ( and )
-PHRASE operator: "
-NOT operators: NOT and -
-
-## Tuple/TupleList
-
-Provides the ability to construct an ISR tree from a Parse tree by calling compile() on the top-level expression in the parse tree.
-
 # Tests
-Contains unit tests and a few drivers for different parts of the project. token_tool.cpp (make tests/token_tool) allows you to type in a search query and it prints out the tokens from the token stream. apesearch.cpp (make tests/apesearch) allows you to type in a search query and find matching documents in a directory of ApeChunks.
+Similar to query_constraint, this repository contains unit tests and a few drivers for different parts of the project. Theses are located in tests where many of the basic functionalities were tested.
