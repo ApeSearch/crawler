@@ -72,15 +72,12 @@ class Request
    static constexpr size_t maxBodyBytes = 33554432; //2**25
    APESEARCH::vector< char > headerBuff;
    APESEARCH::vector< char > bodyBuff;
-   //std::string buffer;
    std::size_t contentLengthBytes = 0;
    char const *urlPtr;
    unsigned state;
    bool gzipped, chunked, redirect, contentLength, headerBad, isHtml;
    bool foundGzipped, foundChunked, foundUrl, foundContentLength;
-   // The first arg holds the buffer, second argument tells which index response starts (in case includes header)
-   APESEARCH::pair< std::string, size_t > processedResponse;
-   
+
    // Helper Functions
   
    // Static Variables

@@ -38,7 +38,8 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
     headerEnd = bufPtr = &*headerBuff.begin();
     //TODO check string.end() 
 
-    while( *place && static_cast<size_t > ( headerEnd - headerBuff.begin( ) ) < headerBuff.size( ) && ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
+    while( *place && static_cast<size_t > ( headerEnd - headerBuff.begin( ) ) < headerBuff.size( ) && 
+      ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
         {
         headerEnd += bytesReceived;
         while( *place && bufPtr != headerEnd )
@@ -344,11 +345,10 @@ Result Request::parseHeader( char const * const endOfHeader )
    return resultOfReq;
 }
 
-// Transfer-Encoding can be chunked
 
 void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
-   if(contentLengthBytes == 0 )
+   if( contentLengthBytes == 0 )
       return;
    bodyBuff.resize( contentLengthBytes );
    char *bufPtr = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), &bodyBuff.front( ) );
@@ -367,7 +367,7 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
    while( begin != end )
       {
       num <<= 4;
-      int hexa = *begin - '0';
+      int hexa;
       char character = *begin++;
       if ( '0' <= character && character <= '9')
          hexa = character - '0';
@@ -399,10 +399,9 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
       // Check if we're currently at the end of buffer
       if ( **ptr == buffer.end( ) )
          {
+         // Cannot shift any further so just stops reading in anything
          if ( buffer.end( ) - start == buffer.size( ) )
             return nullptr;
-
-         size_t shift = start - buffer.begin( );
 
          // Copy buffer to the beginning
          char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( ) );
@@ -410,8 +409,11 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
 
          // Readjust pointers
          start = buffer.begin( ); // start now begins at the beginning
-         **ptr -= shift;
-         **currEnd -= shift; // currEnd is shifted down start - buffer.begin( ) bytes
+         **currEnd = (const char *) ( **ptr = retPtr );
+
+         //**ptr -= shift;
+         //**currEnd -= shift; // currEnd is shifted down start - buffer.begin( ) bytes
+         //assert( retPtr == **ptr && retPtr == **currEnd );
          } // end if
    } while ( *place && ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
    return !*place ? start : nullptr;
@@ -449,7 +451,7 @@ bool Request::attemptPushBack( char val )
    } // end val
 
 // Continously iterate through the buffer and write to bodyBUff until bytes
-bool Request::writeChunked( unique_ptr<Socket> &socket, APESEARCH::vector<char>& buffer, char **ptr, char const**currEnd, const size_t bytesToReceive )
+bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>& buffer, char **ptr, char const**currEnd, const size_t bytesToReceive )
    {
    assert( bytesToReceive > 0 );
    assert( *ptr <= *currEnd );
@@ -465,14 +467,15 @@ bool Request::writeChunked( unique_ptr<Socket> &socket, APESEARCH::vector<char>&
             return false;
          if( ++bytesWritten == bytesToReceive )
             {
-            return seekLineSeperator( socket, &ptr, &currEnd, buffer );
-            }
+            char const *start = seekLineSeperator( socket, &ptr, &currEnd, buffer );
+            return start && *ptr - start == 2;
+            } // end if
          } // end while
-      *ptr = buffer.begin( );
-      *currEnd = ( const char * ) buffer.begin( );
+      // Point to the beginning of the buffer.
+      *currEnd = static_cast<const char *>( *ptr = buffer.begin( ) );
    } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
    if ( bytesToWrite == -1 )
-      perror("Issue with wrteChunked");
+      perror("Issue with writeChunked");
    return false;
    } // end writeChunked( )
 
@@ -480,31 +483,21 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
    {
    assert( partOfBody.second() - partOfBody.first() < 65536 );
    APESEARCH::vector<char> temp( 65536 ); // 2^16
+   //APESEARCH::vector<char> temp( 16384 );
    char *buffPtr = temp.begin( );
    char const *currEnd = ( const char * ) APESEARCH::copy( partOfBody.first(), partOfBody.second(), temp.begin() );
    do
    {
    ssize_t chunkSize = findChunkSize( socket, &buffPtr, &currEnd, temp );
-   if ( chunkSize == -1 )
+   // Reached the end ( no longer receiving )
+   if ( chunkSize <= 0 )
       {
-      headerBad = true;
+      headerBad = chunkSize == -1;
       return;
       } // end if
-   // Reached the end ( no longer receiving )
-   else if ( chunkSize == 0 )
-      {
-      return;
-      } // end elseif
-
-   // Resets if reaches the end
-   if ( buffPtr == temp.end( ) )  
-      {
-      buffPtr = temp.begin( );
-      currEnd = ( char const * ) temp.begin( );
-      }
    
    // Now attempt to continue to write into BodyBuff
-   if ( !writeChunked( socket, temp, &buffPtr, &currEnd, ( size_t ) chunkSize ) )
+   if ( !writeChunked( socket, temp, &buffPtr, &currEnd, static_cast<size_t>( chunkSize ) ) )
       {
       headerBad = true;
       return;
@@ -519,9 +512,7 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    {
    
    if ( chunked )
-   {
       chunkedHtml( socket, partOfBody );
-   }
    else
       receiveNormally( socket, partOfBody );
       
