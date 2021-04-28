@@ -429,6 +429,7 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
    if ( !( start = seekLineSeperator( socket, &ptr, &currEnd, buffer ) ) )
       return -1;
 
+   /*
    if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
       {
       char const *iterator = buffer.begin( );
@@ -437,6 +438,7 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
       printf("\nIssue with Url: %s\n", urlPtr);
       assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
       } // end if
+   */
 
    return hexaToDecimal( start, *ptr - 2 );
    } // end findChunkSize( )
@@ -468,6 +470,7 @@ bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>&
          if( ++bytesWritten == bytesToReceive )
             {
             char const *start = seekLineSeperator( socket, &ptr, &currEnd, buffer );
+            // Expects that immediately after is \r\n
             return start && *ptr - start == 2;
             } // end if
          } // end while
