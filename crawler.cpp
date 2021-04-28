@@ -3,7 +3,7 @@
 #include <signal.h> 
 #include <fstream>
 #include <signal.h>
-#include "../include/crawler/SSLSocket.h"
+#include "include/crawler/SSLSocket.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
