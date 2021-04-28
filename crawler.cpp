@@ -1,5 +1,5 @@
 
-#include "../include/crawler/Mercator.h"
+#include "include/crawler/Mercator.h"
 #include <signal.h> 
 #include <fstream>
 #include <signal.h>
