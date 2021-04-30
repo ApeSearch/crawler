@@ -1,25 +1,20 @@
-#include "../include/crawler/Request.h"
 #include <iostream>
+#include <utility> // for std::move
+#include "../include/crawler/Request.h"
 #include "../libraries/AS/include/AS/Socket.h"
 #include "../include/crawler/SSLSocket.h" // For SSLSocket
 #include "../include/crawler/ParsedUrl.h"
-#include <utility> // for std::move
-
 #include "../libraries/AS/include/AS/algorithms.h" // use Algorithms
+#include "../libraries/AS/include/AS/array.h"
 
 #include <stdlib.h> /* atoi */
 #include <zlib.h>
-#include <array>
-#include <vector>
-#include <string.h>
 
 #include <iostream>
 
 #ifdef testing
    #include <memory>
    using std::unique_ptr;
-   #include <string>
-   using std::string;
 #else
    #include "../libraries/AS/include/AS/unique_ptr.h"
    using APESEARCH::unique_ptr;
@@ -35,8 +30,7 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
     char const *place = endHeader;
     
     char *bufPtr, *headerEnd;
-    headerEnd = bufPtr = &*headerBuff.begin();
-    //TODO check string.end() 
+    headerEnd = bufPtr = headerBuff.begin();
 
     while( *place && static_cast<size_t > ( headerEnd - headerBuff.begin( ) ) < headerBuff.size( ) && 
       ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
@@ -44,14 +38,13 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
         headerEnd += bytesReceived;
         while( *place && bufPtr != headerEnd )
             (*place == *bufPtr++) ? ++place : place = endHeader;
-        //TODO Some statistics tracking to see how many times this runs
 
         } // end while
 
    //construct string based off of buffer call our pase header function
    // Reached the end of header
 
-   //std::cout << std::string(  &headerBuff.front(), bufPtr ) << std::endl;
+   //std::cout << APESEARCH::string(  &headerBuff.front(), bufPtr ) << std::endl;
 
    return APESEARCH::pair< char const * const, char const * const  > 
       ( ( *place ? nullptr : bufPtr ), ( *place ? nullptr : headerEnd ) );
@@ -67,7 +60,7 @@ Result Request::getReqAndParse(const char *urlStr)
     ParsedUrl url( urlStr );
     APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = !strcmp(url.Service, "http"); // 0 if http 1 if https
-    Address address(url.Host, httpProtocol ? "80" : "443" );
+    Address address(url.Host, *url.Port ? url.Port : httpProtocol ? "80" : "443" );
     if(!address.valid)
       return Result( getReqStatus::badURL );
     int attempts = 0; 
@@ -292,14 +285,14 @@ Result Request::parseHeader( char const * const endOfHeader )
                while( front != trueEnd )
                   {
                   contentLengthBytes *= 10;
-                  int digit = *front - '0';
+                  int digit = *front++ - '0';
                   if ( digit < 0 || digit > 10 )
                      {
                      contentLengthBytes = 0;
                      headerBad = true;
                      return;
                      } // end if
-                  contentLengthBytes += std::size_t ( *front++ - '0' );
+                  contentLengthBytes += std::size_t ( digit );
                   } // end while
                foundContentLength = contentLength = true; 
                };
@@ -315,12 +308,12 @@ Result Request::parseHeader( char const * const endOfHeader )
             if ( !foundChunked && !foundContentLength )
                {
                processField( headerPtr, endOfLine, "Content-Length: ", ContentLen, FieldTerminator() );
-               if ( contentLengthBytes > Request::maxBodyBytes )
+               if ( headerBad || contentLengthBytes > Request::maxBodyBytes )
                   {
                   resultOfReq.status = getReqStatus::badHtml;
                   return resultOfReq;
                   } // end if
-               }
+               } // end if
             if( !isHtml )
                processField( headerPtr, endOfLine, "Content-Type: ", ContentType ,FieldTerminator() );
 
@@ -470,7 +463,7 @@ bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>&
          if( ++bytesWritten == bytesToReceive )
             {
             char const *start = seekLineSeperator( socket, &ptr, &currEnd, buffer );
-            // Expects that immediately after is \r\n
+            // Expects that immediately after is \r\n (so the difference should be exactly 2)
             return start && *ptr - start == 2;
             } // end if
          } // end while
@@ -478,7 +471,7 @@ bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>&
       *currEnd = static_cast<const char *>( *ptr = buffer.begin( ) );
    } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
    if ( bytesToWrite == -1 )
-      perror("Issue with writeChunked");
+      perror("WriteChunked Return -1");
    return false;
    } // end writeChunked( )
 
@@ -486,7 +479,6 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
    {
    assert( partOfBody.second() - partOfBody.first() < 65536 );
    APESEARCH::vector<char> temp( 65536 ); // 2^16
-   //APESEARCH::vector<char> temp( 16384 );
    char *buffPtr = temp.begin( );
    char const *currEnd = ( const char * ) APESEARCH::copy( partOfBody.first(), partOfBody.second(), temp.begin() );
    do
@@ -525,9 +517,9 @@ void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const *
    return;
    }
 
-   APESEARCH::vector< char > Request::getResponseBuffer()
+APESEARCH::vector< char > Request::getResponseBuffer()
    {
-      return std::move( bodyBuff );
+   return std::move( bodyBuff );
    }
 
 // Perform the decompression
@@ -537,7 +529,7 @@ void DecompressResponse( APESEARCH::vector < char >& data_ )
     memset( &zs, 0, sizeof( zs ) );
 
     APESEARCH::vector < char > decompressed;
-    std::array < char, 32768 > outBuffer;
+    APESEARCH::array < char, 32768 > outBuffer;
 
     if ( inflateInit2( &zs, MAX_WBITS + 16 ) != Z_OK )
       throw std::runtime_error( "inflateInit2 fail" );
