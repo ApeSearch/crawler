@@ -347,6 +347,7 @@ Result Request::parseHeader( char const * const endOfHeader )
    return resultOfReq;
 }
 
+static void DecompressResponse( APESEARCH::vector < char >& data_ );
 void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
    
@@ -518,7 +519,6 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
    } // end chunkedHtml( )
 
 
-static void DecompressResponse( APESEARCH::vector < char >& data_ );
 
 
 
