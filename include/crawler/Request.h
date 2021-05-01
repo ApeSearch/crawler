@@ -50,14 +50,14 @@ class Request
 #ifdef DEBUG
    public:
 #endif
-   // U
+   // Used in validateStatus to help differentiate between different statuses that have been passed in.
    enum statusCategory
    {
       informational = 1,
-      successful = 2,
-      redirection = 3,
-      clientError = 4,
-      serverError = 5
+      successful    = 2,
+      redirection   = 3,
+      clientError   = 4,
+      serverError   = 5
    };
 
    //e.g. Accept: text/plain, text/html
@@ -66,10 +66,10 @@ class Request
          inline bool operator()(char a) {
             switch(a) 
             {
-            case '\n':
-            case ' ':
-            case ',':
-            case ';':
+            case '\n': // To signify the very end \r"\n" of a field
+            case ' ':  // A delimiter between multiple values in a field
+            case ',':  // "            "
+            case ';':  // "            "
                return true;
             default:
                return false;

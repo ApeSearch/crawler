@@ -56,7 +56,13 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
  * REQUIRES: urlStr's number of bytes to be at most 870 bytes. This is a temporary fix to account for urls that may be larger than
  *           buf can hold (max bytes being 1024).
  * MODIFIES: headerBuff through getHeader and bodyBuff through getBody.
- *  EFFECTS: Attempts to do a get request to the url passed in as urlStr. It first parses
+ *  EFFECTS: Attempts to do a get request to the url passed in as urlStr. 
+ *          
+ *    It first parses the url to obtain different entries like 1) the host in order to perform DNT ( domain name translation )
+ *    2) Service, to get the right protocol (http or https), etc.
+ *    
+ *    Next, 
+ *           
 */
 Result Request::getReqAndParse(const char *urlStr)
 {
@@ -232,7 +238,7 @@ void processField( char const * headerPtr, char const * const endOfLine, const c
    // Verify that key is indeed the key
    headerPtr = safeStrNCmp( headerPtr, (char *)endOfLine, key );
    if ( headerPtr == endOfLine )
-      return;
+      return; // Was the wrong field (do nothing)
 
    // Found the key, now processing value
    const char *endVal;
@@ -342,6 +348,7 @@ Result Request::parseHeader( char const * const endOfHeader )
             break;
             } // end case 'L'
          } // end switch
+      // Update pointer to point to next line
       headerPtr = endOfLine;
       } // end while
    return resultOfReq;
@@ -400,6 +407,19 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
    return num;
    }
 
+/*
+ * REQUIRES: socket points to an actual socket.
+ * MODIFIES: buffer
+ *  EFFECTS: Seeks for the delimiter siginifying the ned of a chunk (be it the chunk size or the end of a chunk).
+ *           Utilizes a buffer to hold the necessary data and returns a pointer to the start of it. This is useful
+ *           to find out the chunk size. 
+ *           Due to the limit of the size, it is necessary to shift the valid data to the beginning of the buffer were the
+ *           pointer to the end reaches the end of the buffer itself (buffer.end()) in order for Request to continue being able
+ *           to receive data.
+ *           
+ *           i.e [ R, R, R, R, 1, F, e, 0, \r ] => [ 1, F, e, 0, \r, R, R, R, R ]
+ *           *** R signifies bytes that don't matter
+*/
 inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, char const ***currEnd, APESEARCH::vector<char>& buffer )
    {
    static char const * const endChunkSize = "\r\n";

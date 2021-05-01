@@ -303,33 +303,6 @@ void SetOfUrls::finalizeSection( )
    }
 
 static const size_t numOfChar = 3u;
-/*
-unsigned calcPriority( const APESEARCH::string& url )
-   {
-   ParsedUrl parsed( url.cstr( ), true );
-
-   // Lowest priority if not https
-   if ( strncmp( parsed.Service, "https", 5 ) )
-      return 2;
-
-   char const * const cend = parsed.Host - 1;
-   char const * const cbegin = parsed.Host + strlen( parsed.Host ) - 1;
-   char const *ptr = cbegin;
-
-   // Seek for top-level domain
-   for ( ; ptr != cend && *ptr != '.'; --ptr );
-
-   char const **place = topLevelDomains + numOfTopLevelDomains;
-   if ( cbegin - ptr <= numOfChar )
-      {
-      place = APESEARCH::lower_bound< char const **, char const * const >
-            ( topLevelDomains, topLevelDomains + numOfTopLevelDomains, ptr, 
-      [ ] ( char const *topLevel, char const *val ) { return strcasecmp( topLevel, val ) < 0; } );
-      } // end if
-
-   return place != topLevelDomains + numOfTopLevelDomains && !strcasecmp( *place, ptr ) ? 0 : 1;
-   } // end calcPriority( )
-*/
 
 int calcPriority( const APESEARCH::string& url )
    {
@@ -468,8 +441,6 @@ const char *SetOfUrls::front( )
 void SetOfUrls::enqueue( const APESEARCH::string &url )
    {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( backQLk );
-   //priorityCV.wait( lk, [ this ]( ) 
-   //   { return !highPriorityThreadWaiting.load( ); } );
    assert( numOfUrlsInserted.load() < SetOfUrls::maxUrls );
    assert( !url.empty( ) );
 
@@ -479,11 +450,9 @@ void SetOfUrls::enqueue( const APESEARCH::string &url )
    back.write( "\n", 1 );
    ++numOfUrlsInserted;
    cv.notify_one(); // Notify any potewaiting threads
-   //priorityCV.notify_one( );
 
    if ( numOfUrlsInserted == SetOfUrls::maxUrls )
-      {
       finalizeSection(); // assumes backQLk is held
-      } // end if
+
    } // end enqueue()
 
