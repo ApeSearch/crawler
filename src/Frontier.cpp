@@ -342,7 +342,7 @@ UrlFrontier::UrlFrontier( const size_t numOfCrawlerThreads ) : UrlFrontier( null
 
 
 UrlFrontier::UrlFrontier( const char *directory, const size_t numOfCrawlerThreads ) : set( directory ),  pool( FrontierCircBuf( computeTwosPowCeiling( numOfCrawlerThreads * 6 ) ), ( numOfCrawlerThreads  * 3 ) * 2, computeTwosPowCeiling( numOfCrawlerThreads * 6 ) )
-   ,liveliness( true ), frontEnd( set, liveliness ), backEnd( numOfCrawlerThreads * 3, set, liveliness )
+   ,liveliness( true ), frontEnd( set, liveliness ), backEnd( numOfCrawlerThreads * 4, set, liveliness )
    {
    for ( size_t index = 0; index < SetOfUrls::maxPriority; ++index )
       queuesChosen[index].store( 0 );
