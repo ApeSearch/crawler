@@ -442,7 +442,7 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
          {
          // Cannot shift any further so just stops reading in anything
          if ( buffer.end( ) - start == buffer.size( ) )
-            return nullptr;
+            break; // break from while loop (now will check if *place is indeed at the end)
 
          // Copy buffer to the beginning shifting defined bytes to the beginning to continue reading in
          char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( ) );
