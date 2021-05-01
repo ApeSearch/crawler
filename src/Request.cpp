@@ -1,7 +1,7 @@
 #include <iostream>
 #include <utility> // for std::move
 #include "../include/crawler/Request.h"
-#include "../libraries/AS/include/AS/Socket.h"
+#include "../libraries/AS/include/AS/Socket.h" // For Regular Socket
 #include "../include/crawler/SSLSocket.h" // For SSLSocket
 #include "../include/crawler/ParsedUrl.h"
 #include "../libraries/AS/include/AS/algorithms.h" // use Algorithms
@@ -178,6 +178,7 @@ int Request::evalulateRespStatus( char **header, const char* const endOfHeader )
       *header = space; // update pointer
 
       // Now seek for next space in order to add a null character there
+      // HTTP/1.x <Resp Num>" "
       space = APESEARCH::find( *header, endOfLine, ' ' );
       if ( space == endOfLine )
          return -1; 

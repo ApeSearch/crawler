@@ -27,4 +27,4 @@ int main(int argc, char **argv )
     write(1, buff.begin(), buff.size());
     std::cout << "\r\nEndResponse\n";
     std::cout << num << std::endl;
-    } // end main() https://news.ycombinator.comP
+    } // end main() https://news.ycombinator.com

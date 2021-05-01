@@ -49,6 +49,7 @@ bloomFilter.bin
 
 others
 bin
+tests/DummyFrontier
 
 #dSYM directories
 *.dSYM

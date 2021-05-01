@@ -4,8 +4,8 @@
 #ifndef REQUEST_H_APESEARCH
 #define REQUEST_H_APESEARCH
 
+// The amount of times a request object will iterate
 #define MAXATTEMPTS 3
-
 
 #include <memory>
 #include <string>
