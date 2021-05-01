@@ -8,17 +8,9 @@
 #include "../libraries/AS/include/AS/array.h"
 
 #include <stdlib.h> /* atoi */
-#include <zlib.h>
-
+#include <zlib.h> // deflate
 #include <iostream>
-
-#ifdef testing
-   #include <memory>
-   using std::unique_ptr;
-#else
-   #include "../libraries/AS/include/AS/unique_ptr.h"
-   using APESEARCH::unique_ptr;
-#endif
+using APESEARCH::unique_ptr;
 
 
 Request::Request() : headerBuff( 16384, 0 ), isHtml( false ) {}
@@ -40,8 +32,6 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
             (*place == *bufPtr++) ? ++place : place = endHeader;
 
         } // end while
-
-   //construct string based off of buffer call our pase header function
    // Reached the end of header
 
    //std::cout << APESEARCH::string(  &headerBuff.front(), bufPtr ) << std::endl;
@@ -423,7 +413,7 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
    if ( !( start = seekLineSeperator( socket, &ptr, &currEnd, buffer ) ) )
       return -1;
 
-   /*
+   // Invariant assertion to ensure that the previous two bytes are \r\n respectively
    if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
       {
       char const *iterator = buffer.begin( );
@@ -432,7 +422,6 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
       printf("\nIssue with Url: %s\n", urlPtr);
       assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
       } // end if
-   */
 
    return hexaToDecimal( start, *ptr - 2 );
    } // end findChunkSize( )

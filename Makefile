@@ -59,7 +59,7 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
-	${CC} -Dtesting -DDEBUG $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
+	${CC} -Dtesting $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
 
 test: ${TEST_SRC} 
 

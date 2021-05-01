@@ -1,23 +1,20 @@
 
 #include "include/crawler/Mercator.h"
-#include <signal.h> 
+#include "include/crawler/SSLSocket.h"
+#include <signal.h> // For SIGPIPE
 #include <fstream>
 #include <signal.h>
-#include "include/crawler/SSLSocket.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 
 #define MAXNODES 2
-// ./exec <NODE_ID> 
-// ./exec 1 < seed_list.txt
-//34.201.187.203 ( 1 )
 int main( int argc, char **argv )
     {
     // Initialize SSLlibrary
-    SSL_library_init( );
+    SSL_library_init( ); // Initialize relevant resources
     //SIGPIPE setting
-    signal(SIGPIPE, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN); // Prevents crashing if SIGPIPE signal occurs
     
     printf("IP address: %s\n", argv[1]);
 
@@ -26,11 +23,10 @@ int main( int argc, char **argv )
 
     std::ifstream in( "./crawling_list.txt" );
     
+    // Input urls from crawling list into url vector
     while( in >> url )
         {
-        Link link;
-        link.URL = APESEARCH::string(url.begin(), url.end());
-        seed_links.push_back( link );
+        seed_links.emplace_back( APESEARCH::string(url.begin(), url.end()) );
         } // end while
 
     
@@ -44,26 +40,26 @@ int main( int argc, char **argv )
         } // end if
 
     int node_id = -1;
-            
+    APESEARCH::string ip( argv[ 1 ] );
     for(int i =0; i < ips.size(); ++i)
         {
-        if( !strcmp( ips[ i ].cstr( ), argv[ 1 ] ) )
+        if( ips[ i ] == ip ) 
             {
-                std::cerr << "Starting to run on this ip: " << ips[ i ] <<  " this is Node " << i << "\n";
-                node_id = i;
-                break; 
+            std::cerr << "Starting to run on this ip: " << ips[ i ] <<  " this is Node " << i << "\n";
+            node_id = i;
+            break; 
             } // end if             
         } // end for
     if( node_id < 0)
-    {
+        {
         std::cerr << "Could not find your local ip address\n";
         return 3;
-    }
+        }
     
     // crawlers, parsers
-    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links);
-    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 4, 4, 0, seed_links);
-    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 2500, 1500, 0, seed_links);
+    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 768, 384, 0, seed_links); // For depolyment
+    //APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 4, 4, 0, seed_links); // For testing
+    APESEARCH::Mercator merc(ips, node_id, nullptr, nullptr, 2500, 1500, 0, seed_links); // Playing around with bounds
     
     merc.user_handler( );
     return 0;
