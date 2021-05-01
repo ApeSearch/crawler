@@ -53,7 +53,10 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
 
 
 /*
- * Where the request is done
+ * REQUIRES: urlStr's number of bytes to be at most 870 bytes. This is a temporary fix to account for urls that may be larger than
+ *           buf can hold (max bytes being 1024).
+ * MODIFIES: headerBuff through getHeader and bodyBuff through getBody.
+ *  EFFECTS: Attempts to do a get request to the url passed in as urlStr. It first parses
 */
 Result Request::getReqAndParse(const char *urlStr)
 {
@@ -486,8 +489,6 @@ bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>&
       // Point to the beginning of the buffer.
       *currEnd = static_cast<const char *>( *ptr = buffer.begin( ) );
    } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
-   if ( bytesToWrite == -1 )
-      perror("WriteChunked Return -1");
    return false;
    } // end writeChunked( )
 

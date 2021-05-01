@@ -50,6 +50,7 @@ class Request
 #ifdef DEBUG
    public:
 #endif
+   // U
    enum statusCategory
    {
       informational = 1,
