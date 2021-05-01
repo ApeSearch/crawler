@@ -15,6 +15,17 @@ using APESEARCH::unique_ptr;
 
 Request::Request() : headerBuff( 16384, 0 ), isHtml( false ) {}
 
+/*
+ * REQUIRES: Nothing
+ * MODIFIES: headerBuff
+ *  EFFECTS: Receives all of the header from a Request to a server and returns where the header ends (via \r\n\r\n)
+ *           and how much further from the end of the header via the second argument in pair. This is required since
+ *           part of the body can already be receieved and it may be necessary to still process it (gzip, chunked) before
+ *           placing it into bodyBuff.
+ * 
+ *    Effectively analyzes every character received and reads into headerBuff 
+ *    until the end of header character pattern is reached( \r\n\r\n ).
+*/
 APESEARCH::pair< char const * const, char const * const > Request::getHeader( unique_ptr<Socket> &socket )
     {
     int bytesReceived = 0;
@@ -24,8 +35,8 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
     char *bufPtr, *headerEnd;
     headerEnd = bufPtr = headerBuff.begin();
 
-    while( *place && static_cast<size_t > ( headerEnd - headerBuff.begin( ) ) < headerBuff.size( ) && 
-      ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( &*headerBuff.end() - bufPtr ) ) ) > 0 )
+    while( *place && headerEnd < headerBuff.end( ) && 
+      ( bytesReceived = socket->receive( bufPtr, static_cast<size_t> ( headerBuff.end() - bufPtr ) ) ) > 0 )
         {
         headerEnd += bytesReceived;
         while( *place && bufPtr != headerEnd )
@@ -46,9 +57,11 @@ APESEARCH::pair< char const * const, char const * const > Request::getHeader( un
 */
 Result Request::getReqAndParse(const char *urlStr)
 {
-   urlPtr= urlStr;
+   // Prevent bufferoverflow
+   if ( strlen( urlStr ) > 870 )
+      return Result( getReqStatus::badURL );
+    urlPtr= urlStr;
     ParsedUrl url( urlStr );
-    APESEARCH::pair<const char *, size_t> req = url.getReqStr();
     bool httpProtocol = !strcmp(url.Service, "http"); // 0 if http 1 if https
     Address address(url.Host, *url.Port ? url.Port : httpProtocol ? "80" : "443" );
     if(!address.valid)
@@ -61,7 +74,8 @@ Result Request::getReqAndParse(const char *urlStr)
          {
          unique_ptr<Socket> socket( httpProtocol ? new Socket(address, Request::timeoutSec) : new SSLSocket(address, timeoutSec) );
          char buff[1024];
-         snprintf( buff, sizeof( buff ), "%s%s", req.first( ), fields );
+         // Combine Request header and fields
+         snprintf( buff, sizeof( buff ), "GET /%s HTTP/1.1\r\nHost: %s\r\n%s", url.Path, url.Host, fields );
          //printf( "%s\n", buff );
          socket->send( buff, strlen( buff ) );
          APESEARCH::pair< char const * const, char const * const  > headerPtrs( getHeader( socket ) );
@@ -226,6 +240,9 @@ void processField( char const * headerPtr, char const * const endOfLine, const c
       } // end while
    } // end processField
 
+/*
+* REQUIRES: endOfHeader to indeed point to the end of a header
+*/
 Result Request::parseHeader( char const * const endOfHeader )
 {
    static constexpr char * const newline = "\r\n";
@@ -237,9 +254,7 @@ Result Request::parseHeader( char const * const endOfHeader )
    if ( static_cast<int>( resultOfReq.response ) < 2 )
       return resultOfReq;
    else if ( resultOfReq.status == getReqStatus::redirected )
-      {
       redirect = true;
-      }
 
    // Evaluate each header's fields
    while ( !headerBad && ( endOfLine = findString( headerPtr, endOfHeader, newline ) ) != endOfHeader )
@@ -329,11 +344,27 @@ Result Request::parseHeader( char const * const endOfHeader )
    return resultOfReq;
 }
 
+void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
+   {
+   
+   if ( chunked )
+      chunkedHtml( socket, partOfBody );
+   else
+      receiveNormally( socket, partOfBody );
+      
+   if ( !headerBad && gzipped )
+      DecompressResponse( bodyBuff );
+
+   return;
+   }
+
+APESEARCH::vector< char > Request::getResponseBuffer()
+   {
+   return std::move( bodyBuff );
+   }
 
 void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
    {
-   if( contentLengthBytes == 0 )
-      return;
    bodyBuff.resize( contentLengthBytes );
    char *bufPtr = APESEARCH::copy( partOfBody.first( ), partOfBody.second( ), &bodyBuff.front( ) );
    char *bufEnd = &bodyBuff.front( ) + contentLengthBytes;
@@ -343,7 +374,6 @@ void Request::receiveNormally( unique_ptr<Socket> &socket, APESEARCH::pair< char
 
    }  // end normalHtml( )
 
-//size_t ctoh()
 
 static ssize_t hexaToDecimal( char const *begin, char const *end )
    {
@@ -355,10 +385,10 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
       char character = *begin++;
       if ( '0' <= character && character <= '9')
          hexa = character - '0';
-      else if ( 'A' <= character && character <= 'F' )
-         hexa = character - 'A' + 10;
       else if ( 'a' <= character && character <= 'f' )
          hexa = character - 'a' + 10;
+      else if ( 'A' <= character && character <= 'F' )
+         hexa = character - 'A' + 10;
       else
          return -1;
       num += hexa;
@@ -387,17 +417,13 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
          if ( buffer.end( ) - start == buffer.size( ) )
             return nullptr;
 
-         // Copy buffer to the beginning
+         // Copy buffer to the beginning shifting defined bytes to the beginning to continue reading in
          char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( ) );
          assert( ( retPtr - buffer.begin( ) ) == ( buffer.end( ) - start ) );
 
          // Readjust pointers
          start = buffer.begin( ); // start now begins at the beginning
          **currEnd = (const char *) ( **ptr = retPtr );
-
-         //**ptr -= shift;
-         //**currEnd -= shift; // currEnd is shifted down start - buffer.begin( ) bytes
-         //assert( retPtr == **ptr && retPtr == **currEnd );
          } // end if
    } while ( *place && ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
    return !*place ? start : nullptr;
@@ -414,13 +440,13 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
       return -1;
 
    // Invariant assertion to ensure that the previous two bytes are \r\n respectively
-   if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' )
+   if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' || start >= *ptr )
       {
       char const *iterator = buffer.begin( );
       while( iterator != *currEnd )
          std::cout << *iterator++;
       printf("\nIssue with Url: %s\n", urlPtr);
-      assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' );
+      assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' && start < *ptr );
       } // end if
 
    return hexaToDecimal( start, *ptr - 2 );
@@ -429,7 +455,7 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
 bool Request::attemptPushBack( char val )
    {
    // If about to increase, check if would go over
-   if ( bodyBuff.size( ) == bodyBuff.capacity( ) && bodyBuff.size( ) << 1 > Request::maxBodyBytes )
+   if ( bodyBuff.size( ) == bodyBuff.capacity( ) && bodyBuff.capacity( ) << 1 > Request::maxBodyBytes )
       return false;
    bodyBuff.push_back( val );
    return true;
@@ -493,24 +519,7 @@ void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char cons
 
 static void DecompressResponse( APESEARCH::vector < char >& data_ );
 
-void Request::getBody( unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody )
-   {
-   
-   if ( chunked )
-      chunkedHtml( socket, partOfBody );
-   else
-      receiveNormally( socket, partOfBody );
-      
-   if ( !headerBad && gzipped )
-      DecompressResponse( bodyBuff );
 
-   return;
-   }
-
-APESEARCH::vector< char > Request::getResponseBuffer()
-   {
-   return std::move( bodyBuff );
-   }
 
 // Perform the decompression
 void DecompressResponse( APESEARCH::vector < char >& data_ )

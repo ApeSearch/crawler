@@ -71,9 +71,9 @@ crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
 update:
 
 %.o: %.cpp
-	${CC} -D${FLAGS} -DTESTING ${LDFLAGS} -c $< -o $@
+	${CC} -D${FLAGS} ${LDFLAGS} -c $< -o $@
 %.o: %.cc
-	${CC} -c $< -o $@
+	${CC} -D${FLAGS} -c $< -o $@
 
 debug: CC += -g3 -DDEBUG
 debug: clean all

@@ -12,18 +12,18 @@ class ParsedUrl
       const char *CompleteUrl;
       char *Service, *Host, *Port, *Path;
       bool protocolType; // true == http, false == https
-      char *getRequest;
+      //char *getRequest;
       int reqSize;
 
-      APESEARCH::pair<const char *, size_t> getReqStr() 
-      {
-         return APESEARCH::pair<const char *, size_t>( getRequest, static_cast<size_t> ( reqSize ) );
-      } // end formRequest()
+      //APESEARCH::pair<const char *, size_t> getReqStr() 
+      //{
+      //   return APESEARCH::pair<const char *, size_t>( getRequest, static_cast<size_t> ( reqSize ) );
+      //} // end formRequest()
 
       ParsedUrl( ParsedUrl&& other ) : CompleteUrl( other.CompleteUrl ), 
          Service( other.Service ), Host( other.Host ), Port( other.Port ), Path( other.Path )
          {
-         other.Path = other.getRequest = nullptr;
+         other.Path = nullptr;
          }
 
       ParsedUrl( const char *url, bool )
@@ -85,10 +85,10 @@ class ParsedUrl
          else
             Host = Path = p;
          
-         if ( ( reqSize = asprintf( &getRequest, "GET /%s HTTP/1.1\r\nHost: %s\r\n", Path, Host ) ) == -1 )
-            {
-            throw std::runtime_error(" asprintf failed. Could be due to lack of memory. Please investiagate further" );
-            } // end if
+         //if ( ( reqSize = asprintf( &getRequest, "GET /%s HTTP/1.1\r\nHost: %s\r\n", Path, Host ) ) == -1 )
+            //{
+            //throw std::runtime_error(" asprintf failed. Could be due to lack of memory. Please investiagate further" );
+            //} // end if
          }
 
       ParsedUrl( const char *url )
@@ -106,7 +106,7 @@ class ParsedUrl
 
          Service = pathBuffer;
 
-          const char Colon = ':', Slash = '/', pound = '#';
+         const char Colon = ':', Slash = '/', pound = '#';
          char *p;
          for ( p = pathBuffer; *p && *p != Colon; p++ )
             ;
@@ -154,10 +154,10 @@ class ParsedUrl
          else
             Host = Path = p;
          
-         if ( ( reqSize = asprintf( &getRequest, "GET /%s HTTP/1.1\r\nHost: %s\r\n", Path, Host ) ) == -1 )
-            {
-            throw std::runtime_error(" asprintf failed. Could be due to lack of memory. Please investiagate further" );
-            } // end if
+         //if ( ( reqSize = asprintf( &getRequest, "GET /%s HTTP/1.1\r\nHost: %s\r\n", Path, Host ) ) == -1 )
+         //   {
+         //   throw std::runtime_error(" asprintf failed. Could be due to lack of memory. Please investiagate further" );
+         //   } // end if
          
          } // end if
          
@@ -165,7 +165,7 @@ class ParsedUrl
       ~ParsedUrl( )
          {
          delete[ ] pathBuffer;
-         free ( getRequest );
+         //free ( getRequest );
          }
 
    private:
