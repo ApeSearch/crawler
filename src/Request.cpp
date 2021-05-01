@@ -410,12 +410,15 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
 /*
  * REQUIRES: socket points to an actual socket.
  * MODIFIES: buffer
- *  EFFECTS: Seeks for the delimiter siginifying the ned of a chunk (be it the chunk size or the end of a chunk).
+ *  EFFECTS: Seeks for the delimiter siginifying the end of a chunk (be it the chunk size or the end of a chunk).
  *           Utilizes a buffer to hold the necessary data and returns a pointer to the start of it. This is useful
  *           to find out the chunk size. 
- *           Due to the limit of the size, it is necessary to shift the valid data to the beginning of the buffer were the
+ *           Due to the limit of the size and that shifting bytes is limited as much as possible, 
+ *           it may be necessary to shift the valid data to the beginning of the buffer were the
  *           pointer to the end reaches the end of the buffer itself (buffer.end()) in order for Request to continue being able
- *           to receive data.
+ *           to receive data. The reason for this is because, the buffer is reused so when receving the chunk itself, it may be possible that the
+ *           next chunk size signifier/chunk size may already have been received; a choice made is to avoid shifting bytes as much as possible until it is 
+ *           absolutely necessary. With a size of 2^16 bytes buffer, the need of shifting should be limited as much as possible.
  *           
  *           i.e [ R, R, R, R, 1, F, e, 0, \r ] => [ 1, F, e, 0, \r, R, R, R, R ]
  *           *** R signifies bytes that don't matter
