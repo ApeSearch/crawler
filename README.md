@@ -6,13 +6,13 @@ Set<URL> seen; // Will be implemented as a bloom filter for better space
 Queue<URL> frontier = getSeedList();
 
 while(true) {
-URL url = frontier.pop_front();
-HTML content = download(url);
-ParsedHTML parsed = parse(content);
+	URL url = frontier.pop_front();
+	HTML content = download(url);
+	ParsedHTML parsed = parse(content);
 
-save parsed.content to be indexed later
+	save parsed.content to be indexed later
 
-for link in parsed.links which are not in seen:
+	for link in parsed.links which are not in seen:
 	add link to frontier
 } // end while
 
