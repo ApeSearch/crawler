@@ -219,7 +219,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
                } // end if
             // Insert a new entry to map
             domainsMap.emplace( std::piecewise_construct, 
-               std::tuple<char *, char*>(  parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
+               std::tuple<char *, char*>( parsedUrl.Host, parsedUrl.Port ), std::tuple<unsigned>( index ) );
             itr = domainsMap.end( );
             assert( domainsMap.find( extractedDomain ) != domainsMap.end( ) );
             uniqMLk.unlock(); // Must happen after obtaining the queue lock
@@ -239,7 +239,7 @@ void UrlFrontier::BackendPolitenessPolicy::fillUpEmptyBackQueue( FrontEndPriorit
          else
             {
             domainQueues[ indToInsert ].queueWLk.pQueue.emplace( std::move( url ) );
-            // Notify any waiting threads...
+            // Notify any waiting threads to insert time stamp...
             domainQueues[ indToInsert ].queueCV.notify_one( );
             } // end else
          

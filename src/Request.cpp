@@ -86,6 +86,7 @@ Result Request::getReqAndParse(const char *urlStr)
          // Combine Request header and fields
          snprintf( buff, sizeof( buff ), "GET /%s HTTP/1.1\r\nHost: %s\r\n%s", url.Path, url.Host, fields );
          //printf( "%s\n", buff );
+         //! Start timer here...
          socket->send( buff, strlen( buff ) );
          APESEARCH::pair< char const * const, char const * const  > headerPtrs( getHeader( socket ) );
          // first is end of header, second is end of buffer header is situated
@@ -434,15 +435,23 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
    do
    {
       **currEnd += bytesReceived;
-      while( *place && **ptr != **currEnd )
-         ( * ( **ptr )++ == *place ) ? ++place : place = endChunkSize;
+      while( **ptr != **currEnd )
+         {
+         if ( * ( **ptr )++ == *place )
+            {
+            if ( !( *++place ) )
+               return start;
+            } // end if
+         else
+            place = endChunkSize;
+         } // end while
 
       // Check if we're currently at the end of buffer
       if ( **ptr == buffer.end( ) )
          {
          // Cannot shift any further so just stops reading in anything
          if ( buffer.end( ) - start == buffer.size( ) )
-            break; // break from while loop (now will check if *place is indeed at the end)
+            break;
 
          // Copy buffer to the beginning shifting defined bytes to the beginning to continue reading in
          char *retPtr = APESEARCH::copy( start, ( const char * ) buffer.end( ), buffer.begin( ) );
@@ -452,16 +461,13 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
          start = buffer.begin( ); // start now begins at the beginning
          **currEnd = (const char *) ( **ptr = retPtr );
          } // end if
-   } while ( *place && ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
-   return !*place ? start : nullptr;
+   } while ( ( bytesReceived = socket->receive( **ptr, buffer.end( ) - **ptr ) ) > 0 );
+   return nullptr;
    }
 
 ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer )
    {
-   static char const * const endChunkSize = "\r\n";
    char const *start = *ptr;
-   char const *place = endChunkSize;
-   ssize_t bytesReceived = 0;
 
    if ( !( start = seekLineSeperator( socket, &ptr, &currEnd, buffer ) ) )
       return -1;
