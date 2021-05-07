@@ -59,8 +59,9 @@ $(TEST_SRC): %: %.cpp ${ASOBJS} ${OBJS} ${FrameWorkOBJS} ${PARSEROBJS}
 	@mkdir -p ${EXECDIR}
 	@mkdir -p ${STDEXECDIR}
 	@mkdir -p ${OUTPUT}
-	${CC} -Dtesting $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
+	${CC} -Dtesting -D${FLAGS} $^ $(LDFLAGS) -o ${EXECDIR}/$(notdir $@)
 
+test: CC += -g3 -DDEBUG
 test: ${TEST_SRC} 
 
 crawler: %: %.cpp ${ASOBJS} ${OBJS} ${PARSEROBJS}
