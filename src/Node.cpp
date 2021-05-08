@@ -249,16 +249,14 @@ void Node::write( Link &link )
     val = val % node_buckets.size();
     bool new_link = false;
     //std::cerr << "Going into writer\n";
+    if(!bloomFilter.contains(link.URL))
     {
-        if(!bloomFilter.contains(link.URL))
-        {
-            new_link = true;
-            bloomFilter.insert( link.URL );
-        } // end if
-        else if(link.anchorText.empty() || link.URL.empty()) {
-            return;
-        } // end else
-    }
+        new_link = true;
+        bloomFilter.insert( link.URL );
+    } // end if
+    else if(link.anchorText.empty() || link.URL.empty()) {
+        return;
+    } // end else
     if(val == node_id)
     {
         //std::cerr << "Hashed and writing locally\n";
@@ -267,7 +265,6 @@ void Node::write( Link &link )
         {
             //std::cerr << "WROTE A URL TO THE FRONTIER" << link.URL << "\n";
             frontier.insertNewUrl( std::move( link.URL ) );
-            
             //set.enqueue(std::move( link.URL ));
         }
     }

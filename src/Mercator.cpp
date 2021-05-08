@@ -124,6 +124,7 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
 
 void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
 {
+   //write to DB
    db.addParsedFile( parser );
 
    if( parser.base.empty( ) )
@@ -133,7 +134,6 @@ void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
        parser.base = APESEARCH::string( parsedUrl.Service, parsedUrl.Port );
       } // end if
 
-   //write to DB
    //write to Nodes
    for(int i = 0; i < parser.links.size( ); ++i)
    {
