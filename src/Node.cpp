@@ -375,28 +375,25 @@ void Node::receiver(int index)
                 
                // std::cerr << "RECEIVED BUFFER: "<<  linkOf.URL << "\n";
                 // Check bloomfilter
-                if( linkOf.URL.empty() )
+                if( !linkOf.URL.empty() )
                     {
-                        linkOf = Link();
-                        continue;
-                    }
-
-                if ( !bloomFilter.contains( linkOf.URL ) )
-                    {
-                    bloomFilter.insert( linkOf.URL );
-                    frontier.insertNewUrl( std::move( linkOf.URL ) );
-                    //set.enqueue(std::move( linkOf.URL ));
-                    }
-                // Add to DB
-                dataBase.addAnchorFile(linkOf);
-
+                    // Add to DB
+                    dataBase.addAnchorFile(linkOf);
+                    // Add to frontier if not yet seen (according to bloomFilter)
+                    if ( !bloomFilter.contains( linkOf.URL ) )
+                        {
+                        bloomFilter.insert( linkOf.URL );
+                        frontier.insertNewUrl( linkOf.URL );
+                        //set.enqueue(std::move( linkOf.URL ));
+                        }
+                    } // end if
                 // Reset Link
                 linkOf = Link();
-                }
+                } // end case '\0'
                 break;
             default:
                 intermediateBuf.push_back( *buffPtr );
             } // end switch
-        }//end for
+        }//end while 
     }  // end while
 }
