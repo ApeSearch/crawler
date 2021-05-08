@@ -6,6 +6,7 @@
 #include "../../libraries/AS/include/AS/string.h"
 #include "../../libraries/AS/include/AS/vector.h"
 
+// In addition, there will be a need for a parser dedicated to robots.txt
 // The main idea here is creating a m-tree with sorted entries
 
 // Associates tokens
@@ -24,4 +25,13 @@ class TreeNode
     APESEARCH::vector<APESEARCH::string> subDirEntries;
     APESEARCH::string dirName;
     bool allowed;
+    };
+
+class RobotsTxtObj
+    {
+    
+    RobotsTxtObj( ) = default;
+
+    // Function to parse robots.txt
+    void parser( char const * buffer, char const *buffEnd );
     };
