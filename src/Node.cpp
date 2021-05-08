@@ -67,22 +67,22 @@ Node::Node(APESEARCH::vector<APESEARCH::string> &ips, int id, UrlFrontier& fron,
     //Call threadpool for Senders
     for ( unsigned i = 0; i < ips.size(); ++i )
        {
-           if(i != node_id)
-            {
-                auto sen = [this]( int i )
-                { this->Node::sender( i ); };
-                pool.submitNoFuture(sen, i);
-            }
+       if(i != node_id)
+           {
+           auto sen = [this]( int i )
+           { this->Node::sender( i ); };
+           pool.submitNoFuture(sen, i);
+           }
        }
     //Call threadpool for Receivers
     for ( unsigned i = 0; i < ips.size(); ++i )
        {
-           if(i != node_id)
-            {
-                auto rec = [this]( int i )
-                { this->Node::receiver( i ); };
-                pool.submitNoFuture(rec, i);
-            }
+       if(i != node_id)
+           {
+           auto rec = [this]( int i )
+           { this->Node::receiver( i ); };
+           pool.submitNoFuture(rec, i);
+           }
        }
 }
 
@@ -198,6 +198,9 @@ void Node::sender(int index)
             {
                 local[i] = sfile[i];
             }
+            //! Note this isn't fault tolerent. Consider that this machine crashes while sending,
+            //! local[i] will now have been permanently lost.
+            //! Even so, there isn't any exchange to ensure that the data was even successfully sent.
             //Truncate it 
             if( 0 > ftruncate(node_buckets[index].storage_file.getFD(), 0))
             {
