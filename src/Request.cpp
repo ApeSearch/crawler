@@ -300,7 +300,6 @@ Result Request::parseHeader( char const * const endOfHeader )
 
                while( front != trueEnd )
                   {
-                  contentLengthBytes *= 10;
                   int digit = *front++ - '0';
                   if ( digit < 0 || digit > 10 )
                      {
@@ -308,6 +307,7 @@ Result Request::parseHeader( char const * const endOfHeader )
                      headerBad = true;
                      return;
                      } // end if
+                  contentLengthBytes *= 10;
                   contentLengthBytes += std::size_t ( digit );
                   } // end while
                foundContentLength = contentLength = true; 
@@ -392,7 +392,6 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
    ssize_t num = 0;
    while( begin != end )
       {
-      num <<= 4;
       int hexa;
       char character = *begin++;
       if ( '0' <= character && character <= '9')
@@ -403,6 +402,8 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
          hexa = character - 'A' + 10;
       else
          return -1;
+      num <<= 4; // was moved after branches since num<<=4 is only required 
+                 //after it reaches any condition other than the else
       num += hexa;
       } // end while
    return num;
