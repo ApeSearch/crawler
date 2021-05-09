@@ -127,6 +127,8 @@ void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
    //write to DB
    db.addParsedFile( parser );
 
+   // In the case where the base is empty, it is (by default) such that
+   // the base needs to be the url itself.
    if( parser.base.empty( ) )
       {
        char combinedUrl[1024];
