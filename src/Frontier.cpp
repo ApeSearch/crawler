@@ -101,7 +101,7 @@ APESEARCH::string UrlFrontier::FrontEndPrioritizer::getUrl( )
       {
       lk.unlock();
 
-      // Start from the highest priority all the way to zero
+      // Start from the highest priority ( 0 ) all the way to the lowest priority.
       ind = 0;
       do
       {

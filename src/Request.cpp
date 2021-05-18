@@ -221,11 +221,14 @@ getReqStatus Request::validateStatus( unsigned status )
 
    switch( category )
       {
-      case successful:
+      case statusCategory::successful:
+
          return getReqStatus::successful;
-      case redirection:
+      case statusCategory::redirection:
+
          return getReqStatus::redirected;
-      case serverError:
+      case statusCategory::serverError:
+
          return getReqStatus::ServerIssue;
       default:
          return getReqStatus::badHtml;
