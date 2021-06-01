@@ -454,7 +454,7 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
       if ( **ptr == buffer.end( ) )
          {
          // Cannot shift any further so just stops reading in anything
-         if ( buffer.end( ) - start == buffer.size( ) )
+         if( start == buffer.begin( ) )
             break;
 
          // Copy buffer to the beginning shifting defined bytes to the beginning to continue reading in
@@ -469,6 +469,12 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
    return nullptr;
    }
 
+/*
+ * The chunk length (which is converted to decimal in hexaToDecimal) is guranteed to be
+ * continous in respect to the beginning of the chunk (after the previous chunk ). This is
+ * This is guranteed with the shifting done in seekLineSeperator in the scenerio where the chunk length
+ * has reached the end of buffer.
+*/
 ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char const **currEnd, APESEARCH::vector<char>& buffer )
    {
    char const *start = *ptr;
