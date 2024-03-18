@@ -78,7 +78,6 @@ class UrlFrontier
         SetOfUrls& setRef;
         std::atomic<bool>& liveliness;
 
-
         // Member Functions
         inline std::size_t pickQueue(); // user-defined prirority for picking which queue to pop from
         UrlObj helperReadInUrl( SetOfUrls& set, std::atomic<bool>& liveliness );

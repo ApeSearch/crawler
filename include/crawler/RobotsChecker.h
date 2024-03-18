@@ -35,3 +35,5 @@ class RobotsTxtObj
     // Function to parse robots.txt
     void parser( char const * buffer, char const *buffEnd );
     };
+
+#endif // ROBOTS_H_AS

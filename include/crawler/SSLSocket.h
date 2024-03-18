@@ -20,8 +20,8 @@ class SSLSocket : public Socket
 
    protected:
     // Pointerto to a framework which establishes TLS/SSL enabled ocnnections
-      SSL_CTX * sslFramework;
-      SSL * ssl;
+      SSL_CTX *sslFramework;
+      SSL *ssl;
 };
 
 

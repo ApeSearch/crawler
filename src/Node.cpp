@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #define MAXTHREADS 25
-#define BUFFERSIZE 262144
+#define BUFFERSIZE 262144 //WARN: Why was this number choosen??
 #define PORT 6666
 
 using APESEARCH::unique_ptr;
@@ -351,7 +351,7 @@ void Node::receiver(int index)
 
         for ( ;buffPtr != buffEnd; ++buffPtr )
         {
-        switch( *buffPtr )
+        switch( *buffPtr ) // Main protocol for documents
             {
             // Signifies end of url
             case '\n':

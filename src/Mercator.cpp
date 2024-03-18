@@ -5,6 +5,7 @@
 #include <string> // needed to get idea out
 #include <iostream>
 #include <stdlib.h>     /* atoi */
+#include <limits>
 
 #define MULTIPLE 10
 
@@ -112,6 +113,7 @@ void APESEARCH::Mercator::parser( const APESEARCH::vector< char >& buffer, const
    if ( parser.isValidHtml( ) )
       {
       writeToFile( parser );
+   // Increment number of webpages written to disk
 {
    APESEARCH::unique_lock<APESEARCH::mutex> lk( lkForWritten );
    size_t *num = ( size_t * ) pagesCrawled.get();
@@ -154,48 +156,89 @@ void APESEARCH::Mercator::writeToFile( HtmlParser& parser )
    }
 }
 
-
+static std::string get_input ( );
 void APESEARCH::Mercator::user_handler()
    {
     std::string input;
     do 
-       {
-        std::cin >> input; // Would need to overload operator>> for string here
-        switch( input.front() )
-           {
-            case 'I':
-                intel();
-                break;
-            case 'S':
+      {
+      input = get_input( );
+      switch( input.front() )
+         {
+         case 'I':
+         case 'i':
+            intel();
+            break;
+         case 'S': // Sum up pages crawled
+         case 's': // Sum up pages crawled
+            {
+            size_t pagesCrawled = 0;
+            for ( unsigned n = 0; n < SetOfUrls::maxPriority; ++n )
                {
-               size_t pagesCrawled = 0;
-               for ( unsigned n = 0; n < SetOfUrls::maxPriority; ++n )
-                  {
-                  size_t num = queuesChosen[n].load( );
-                  std::cout << "N=" << n << ": " << num << '\n';
-                  pagesCrawled += num;
-                  } // end for
-               std::cout << "Sum: " << pagesCrawled << '\n';
-               break;
-               }
-            case 'R':
-               rate( );
-               break;
-            // Add here for more functionality
-            case 'Q':
-            case 'q':
-               std::cout << "Attempting to exit elegantly\n";
-               break;
-            default:
-                std::cerr << "Unrecognized command\n";
-                break;
-           } // end switch()
-       }
+               size_t num = queuesChosen[n].load( );
+               std::cout << "N=" << n << ": " << num << '\n';
+               pagesCrawled += num;
+               } // end for
+            std::cout << "Sum: " << pagesCrawled << '\n';
+            break;
+            }
+         case 'R':
+         case 'r':
+            rate( );
+            break;
+         // Add here for more functionality
+         case 'Q':
+         case 'q':
+            std::cout << "Attempting to exit elegantly\n";
+            break;
+         default:
+            std::cerr << "Unrecognized command\n";
+            break;
+         } // end switch()
+      }
     while( input.front() != 'Q' && input.front() != 'q' );
 
     // call cleanup handler
     cleanUp();
    }
+
+// Keeps checking input stream and attempts to grab until it gets a string successfully.
+static std::string get_input( )
+   {
+   std::string input;
+   bool done = false;
+   do
+      {
+      if ( std::cin >> input )
+         {
+         done = true;
+         } // end if
+      else // There's something wrong with the input stream
+         {
+         // std::cerr << "clearing cin stream\n" << std::endl;
+         std::cin.clear( );
+         // Try again once, And if it fails again, clear stream.
+         //NOTE:The main reason for this is because when the user suspends the program,
+         // this causes the cin stream to enter a fail state. However, prior to this change,
+         // cin.ignore( ) itself was called, and since this is a blocking call AND there wasn't
+         // any input, it required the input stream to consume additional characters before
+         // being able to proceed. By accounting for such an edge case and assuming that the
+         // stream was already empty, provides the user with an intuitive experience 
+         // (which is typically the case when the user suspends the program).
+         if ( std::cin >> input )
+            {
+            done = true;
+            } // end if
+         else // Still couldn't clear the input so we must assume it is invalid and clear the stream
+            {
+            // skip over the input until a newline is encountered or end-of-file is reached
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cerr << "done clearing cin stream\n" << std::endl;
+            } // end else
+         } // end else
+      } while ( !done );
+   return input;
+   } // get_input( )
 
 void APESEARCH::Mercator::intel()
    {
@@ -252,7 +295,7 @@ void APESEARCH::Mercator::cleanUp()
 
 void APESEARCH::Mercator::startUpCrawlers( const std::size_t amtOfCrawlers )
    {
-   
+   // Use indirection to work around member functions headache
    auto crawler = [this] ( )
       {
       this->crawler( );

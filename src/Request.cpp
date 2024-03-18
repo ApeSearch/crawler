@@ -99,6 +99,7 @@ Result Request::getReqAndParse(const char *urlStr)
          // Parse header
          res = parseHeader( headerPtrs.first( ) );
 
+         // Deal with any exceptional cases for html
          if ( headerBad || res.status == getReqStatus::badHtml || !( foundChunked ^ foundContentLength ) 
             || foundContentLength && (contentLengthBytes > Request::maxBodyBytes || 
                headerPtrs.second( ) - headerPtrs.first( ) > ( ssize_t ) contentLengthBytes ) )
@@ -113,6 +114,9 @@ Result Request::getReqAndParse(const char *urlStr)
          else if ( !isHtml )
             return Result( getReqStatus::notHtml );
 
+         // Continue as normal...
+
+         // Ready all bytes of html now...
          getBody( socket, headerPtrs );
          if ( headerBad )
             return Result( getReqStatus::badHtml );
@@ -414,7 +418,7 @@ static ssize_t hexaToDecimal( char const *begin, char const *end )
 
 /*
  * REQUIRES: socket points to an actual socket.
- * MODIFIES: buffer
+ * MODIFIES: buffer, ptr, currEnd (indireclty)
  *  EFFECTS: Seeks for the delimiter siginifying the end of a chunk (be it the chunk size or the end of a chunk).
  *           Utilizes a buffer to hold the necessary data and returns a pointer to the start of it. This is useful
  *           to find out the chunk size. 
@@ -432,7 +436,7 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
    {
    static char const * const endChunkSize = "\r\n";
    char const *start = **ptr;
-   char const *place = endChunkSize;
+   char const *place = endChunkSize; // Pointer to delimiter for endChunSize pointer
    ssize_t bytesReceived = 0;
    assert( **ptr <= **currEnd );
 
@@ -443,14 +447,14 @@ inline const char *seekLineSeperator(  unique_ptr<Socket> &socket, char ***ptr, 
          {
          if ( * ( **ptr )++ == *place )
             {
-            if ( !( *++place ) )
+            if ( !( *++place ) ) 
                return start;
             } // end if
          else
             place = endChunkSize;
          } // end while
 
-      // Check if we're currently at the end of buffer
+      // Check if we're currently at the end of buffer (keep receiving otherwise)
       if ( **ptr == buffer.end( ) )
          {
          // Cannot shift any further so just stops reading in anything
@@ -482,13 +486,13 @@ ssize_t Request::findChunkSize( unique_ptr<Socket> &socket, char **ptr, char con
    if ( !( start = seekLineSeperator( socket, &ptr, &currEnd, buffer ) ) )
       return -1;
 
-   // Invariant assertion to ensure that the previous two bytes are \r\n respectively
+   // Invariant assertion to ensure that the previous two bytes are \r\n respectively (which ptr should point to afterwards)
    if ( *(*ptr - 1) != '\n' || *(*ptr - 2) != '\r' || start >= *ptr )
       {
       char const *iterator = buffer.begin( );
       while( iterator != *currEnd )
          std::cout << *iterator++;
-      printf("\nIssue with Url: %s\n", urlPtr);
+      printf("\nIssue with Url (Logic Problem): %s\n", urlPtr);
       assert( *(*ptr - 1) == '\n' && *(*ptr - 2) == '\r' && start < *ptr );
       } // end if
 
@@ -504,7 +508,8 @@ bool Request::attemptPushBack( char val )
    return true;
    } // end val
 
-// Continously iterate through the buffer and write to bodyBUff until bytes
+// Continously iterate through the buffer and write to bodyBUff (member var) until bytesToReceive has been reached ( bytesWritten == bytesToReceive )
+// Wrtie through buffer ( temporary ) and receive through socket when all characters to be written has been written to bodyBuff.
 bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>& buffer, char **ptr, char const**currEnd, const size_t bytesToReceive )
    {
    assert( bytesToReceive > 0 );
@@ -526,39 +531,40 @@ bool Request::writeChunked( unique_ptr<Socket>& socket, APESEARCH::vector<char>&
             return start && *ptr - start == 2;
             } // end if
          } // end while
-      // Point to the beginning of the buffer.
-      *currEnd = static_cast<const char *>( *ptr = buffer.begin( ) );
+      // Point to the beginning of the buffer as all characters received have been written to bodyBuff
+      *currEnd = static_cast<const char *>( *ptr = buffer.begin( ) ); 
    } while( ( bytesToWrite = socket->receive( *ptr, buffer.end( ) - *ptr ) ) > 0 );
    return false;
    } // end writeChunked( )
 
+// Decodes the chunkedHtml and writes to BodyBuff.
+// temp serves as a temporary buffer in which to receive from socket (and remove any delimiters).
 void Request::chunkedHtml(unique_ptr<Socket> &socket, APESEARCH::pair< char const * const, char const * const >& partOfBody)
    {
-   assert( partOfBody.second() - partOfBody.first() < 65536 );
+   assert( partOfBody.second( ) - partOfBody.first() < 65536 );
    APESEARCH::vector<char> temp( 65536 ); // 2^16
    char *buffPtr = temp.begin( );
+
+   // Copy already received part of body into temp and return a pointer to the end.
    char const *currEnd = ( const char * ) APESEARCH::copy( partOfBody.first(), partOfBody.second(), temp.begin() );
    do
-   {
-   ssize_t chunkSize = findChunkSize( socket, &buffPtr, &currEnd, temp );
-   // Reached the end ( no longer receiving )
-   if ( chunkSize <= 0 )
       {
-      headerBad = chunkSize == -1;
-      return;
-      } // end if
+      ssize_t chunkSize = findChunkSize( socket, &buffPtr, &currEnd, temp );
+      // Reached the end if lteq zero( no longer receiving )
+      if ( chunkSize <= 0 )
+         {
+         headerBad = chunkSize == -1;
+         return;
+         } // end if
    
-   // Now attempt to continue to write into BodyBuff
-   if ( !writeChunked( socket, temp, &buffPtr, &currEnd, static_cast<size_t>( chunkSize ) ) )
-      {
-      headerBad = true;
-      return;
-      } // end if
-   } while ( true );
+      // Now attempt to continue to write into BodyBuff ( up to chunkSize bytes )
+      if ( !writeChunked( socket, temp, &buffPtr, &currEnd, static_cast<size_t>( chunkSize ) ) )
+         {
+         headerBad = true;
+         return;
+         } // end if
+      } while ( true );
    } // end chunkedHtml( )
-
-
-
 
 
 // Perform the decompression
